@@ -1,0 +1,14 @@
+guard
+function void fwrites(f:file s:ptr) {
+	len = strlen$ s
+	for uint [0u,len) with index {
+		fwrite$ f deref_ubyte$ + s as index ptr
+	}
+}
+
+alias void fwritebytes(f:file a:listbyte)
+function void fwritebytes(f:file lis:listubyte) {
+	for ubyte lis with writer {
+		fwrite$ f writer
+	}
+}

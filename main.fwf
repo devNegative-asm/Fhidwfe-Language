@@ -53,6 +53,7 @@ puts$ my_strings
 putln$
 free$ my_strings
 
+
 for int [!10,10] with q {
 	if in q (!5,5] {
 		puti$ q
@@ -65,9 +66,8 @@ free$ my_strlist
 
 //file operations only supported on my VM
 home = fopen$ "test.txt"
-fwrite$ home 'a'
-fwrite$ home 'b'
-fwrite$ home 'c'
+fwrites$ home "This is a string\r\n"
+fwritebytes$ home [49b 50b 51b]
 fclose$ home
 
 

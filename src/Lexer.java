@@ -22,7 +22,7 @@ public class Lexer {
 		ret.addAll(stringConstants);
 		return ret;
 	}
-	public Lexer(File f) throws FileNotFoundException {
+	public Lexer(File f, CompilationSettings settings) throws FileNotFoundException {
 		Scanner x = new Scanner(f);
 		x.useDelimiter("(?<=\n)");
 		for(File fv:new File("./library/").listFiles()) {
@@ -31,6 +31,17 @@ public class Lexer {
 				files.add(fv);
 				scan.add(new Scanner(fv).useDelimiter("(?<=\n)"));
 			}
+		}
+		if(new File("./"+settings.target.libLoc+"/").exists()) {
+			for(File fv:new File("./"+settings.target.libLoc+"/").listFiles()) {
+				if(fv.getName().endsWith(".fwf"))
+				{
+					files.add(fv);
+					scan.add(new Scanner(fv).useDelimiter("(?<=\n)"));
+				}
+			}
+		} else {
+			System.err.println("Architecture missing lib folder "+settings.target.libLoc);
 		}
 		scan.add(x);
 		files.add(f);
@@ -418,14 +429,16 @@ public class Lexer {
 		String sourceFile = args[0];
 		String binFile = args.length>1?args[1]:null;
 		
-		Lexer lx = new Lexer(new File(args[0]));
-		ArrayList<Token> tokens = lx.tokenize();
+		
 		CompilationSettings z80settings = CompilationSettings.setIntByteSize(2).setHeapSpace(256).useTarget(CompilationSettings.Target.TI83pz80);
 		//x64 not supported yet
 		CompilationSettings x64settings = CompilationSettings.setIntByteSize(8).setHeapSpace(1<<14).useTarget(CompilationSettings.Target.WINx64);
 		CompilationSettings emulatorSettings = CompilationSettings.setIntByteSize(2).setHeapSpace(2048).useTarget(CompilationSettings.Target.z80Emulator);
 		CompilationSettings settings = emulatorSettings;
 		
+		
+		Lexer lx = new Lexer(new File(args[0]),settings);
+		ArrayList<Token> tokens = lx.tokenize();
 		
 		Parser p = new Parser(settings);
 		BaseTree tree = p.parse(tokens);

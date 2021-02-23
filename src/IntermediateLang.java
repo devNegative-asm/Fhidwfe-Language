@@ -570,10 +570,10 @@ public class IntermediateLang {
 					x = Integer.parseInt(str.substring(0,str.length()-1));
 				if(x<-128||x>255)
 					throw new RuntimeException("byte value: "+str+" out of range at line "+tree.getToken().linenum);
+				results.add(new Instruction(InstructionType.retrieve_immediate_byte,x+""));
 			} catch(NumberFormatException e) {
 				throw new RuntimeException("byte value: "+str+" cannot be parsed at line "+tree.getToken().linenum);
 			}
-			results.add(new Instruction(InstructionType.retrieve_immediate_byte,str));
 		case CLOSE_BRACE:
 			break;
 		case CLOSE_RANGE_EXCLUSIVE:

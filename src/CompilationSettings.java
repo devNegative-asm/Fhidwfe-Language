@@ -3,11 +3,17 @@ import java.util.List;
 
 public class CompilationSettings {
 	enum Target {
-		WINx86,
-		WINx64,
-		z80Emulator,
-		TI83pz80;
-
+		WINx86("libwin86"),
+		WINx64("libwin64"),
+		z80Emulator("libemuz80"),
+		TI83pz80("libti83pz80");
+		public final String libLoc;
+		private Target(String libLoc) {
+			this.libLoc=libLoc;
+		}
+		
+		
+		
 		public void addHeader(List<String> instructions) {
 			switch(this) {
 			case z80Emulator:
