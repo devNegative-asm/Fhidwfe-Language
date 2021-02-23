@@ -1,0 +1,58 @@
+guard
+function void putui(num:uint) {
+	if > num 9u {
+		upper = / num 10u
+		putui$ upper
+		putchar$ + '0' as - num * 10u upper ubyte
+	} {
+		putchar$ + '0' as num ubyte
+	}
+}
+
+function void puti(num:int) {
+	if < num 0 {
+		putchar$ '-'
+		num = !num // negation in any language has 2 fixed points: 0, and the smallest negative number. We don't have to worry about printing -- because we treat it as unsigned from here on
+	} ;
+	putui$ as num uint
+}
+
+function void put_hex(i:uint) {
+	// we want to access the highest nibble repeatedly
+	// this is easiest done by pointer magic
+	int_size = ?1
+	puts$ "0x"
+	for uint (0u,int_size] with added {// only works on little endian architectures
+		offset = as - int_size added ptr
+		thebyte = deref_ubyte$ + @i offset
+		put_hexit$ >> >> >> >> thebyte
+		put_hexit$ & 15ub thebyte
+	}
+}
+
+function void put_hexit(i:ubyte) {
+	if < i 10ub {
+		putchar$ + i '0'
+	} {
+		putchar$ + i '7' //depends on ascii implementation
+	}
+}
+
+alias void puts(s:listbyte)
+alias void puts(s:listubyte)
+
+function void puts(s:ptr) {//similar to puts in C.
+	set reading
+	while reading {
+		x = deref_ubyte$ s
+		if = x 0ub {
+			return
+		} { if = x '\n' {
+				putln$
+			} {
+				putchar$ x
+			}
+			s = + s as 1 ptr
+		}
+	}
+}

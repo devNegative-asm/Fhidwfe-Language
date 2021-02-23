@@ -1,0 +1,39 @@
+guard
+
+
+set consumed //probably the first time I ever actually used a flag
+
+function void consume_line() {
+	ifnot consumed {
+		whilenot = getc$ '\n' ;
+	} ;
+	set consumed
+}
+
+function bool line_done() {// returns whether the last consumed character was a line feed
+	if consumed {
+		return true
+	} ;
+	return false
+}
+
+function void getline(str:ptr) {
+	//empty the string
+	maxlen = sizeof$ str
+	for uint [0u,maxlen] with x {
+		put_byte$ + as x ptr str 0b
+	}
+	size = 0u
+	while < size maxlen {
+		char = getc$
+		if = char '\r' {
+			getc$ //get the newline too
+			set consumed
+			return
+		} {
+			put_ubyte$ + as size ptr str char
+			size = + size 1u
+		}
+	}
+	reset consumed
+}

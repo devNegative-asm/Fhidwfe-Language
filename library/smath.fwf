@@ -1,0 +1,97 @@
+guard
+
+function byte log2(x:uint) {
+	lg = !1b
+	while > x 0u {
+		x = >> x
+		++ @lg
+	}
+	return lg
+}
+
+function uint pow2(x:uint) {
+	res = 1u
+	if >= x ?8 {
+		return 0u
+	} ;
+	while > x 0u {
+		res = <<res
+		x = - x 1u
+	}
+	return res
+}
+
+//an alternating sign function
+alias int sflip(x:uint)
+function int sflip(x:int) {
+	return - 1 << - x << >> x 
+}
+
+function int abs(x:int) {
+	if < x 0 {
+		return !x
+	} ;
+	return x
+}
+
+function int sdiv(a:int b:int) {
+	a_negative = < a 0
+	b_negative = < b 0
+	if a_negative {
+		a = !a
+	} ;
+	if b_negative {
+		b = !b
+	} ;
+	if ^ a_negative b_negative {
+		return ! as / as a uint as b uint int
+	} {
+		return as / as a uint as b uint int
+	}
+}
+
+function byte sbdiv(a:byte b:byte) {
+	a_negative = < a 0b
+	b_negative = < b 0b
+	if a_negative {
+		a = !a
+	} ;
+	if b_negative {
+		b = !b
+	} ;
+	if ^ a_negative b_negative {
+		return ! as / as a ubyte as b ubyte byte
+	} {
+		return as / as a ubyte as b ubyte byte
+	}
+}
+
+function int smod(a:int b:int) {
+	if = b 0 {return 0};
+	possible = - a * / a b b
+	if >= b 0 {
+		while < possible 0 {
+			possible = + possible b
+		}
+	} {
+		while > possible 0 {
+			possible = + possible b
+		}
+	}
+	return possible
+}
+
+function byte sbmod(a:byte b:byte) {
+	if = b 0b {return 0b};
+	possible = - a * / a b b
+	if >= b 0b {
+		while < possible 0b {
+			possible = + possible b
+		}
+	} {
+		while > possible 0b {
+			possible = + possible b
+		}
+	}
+	return possible
+}

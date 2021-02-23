@@ -1,0 +1,32 @@
+//represent floats by
+//   a* 2^b
+// b is high byte, a is low byte, both are signed.
+// The low byte, when it is not 0, should be in the range 64 - 127 or -127 - -64
+// 1 is represented by 11111010 01000000
+// 1 can also be represented by 00000000 00000001 or 11111111 00000010, etc.
+// 11111111 11111111 represents -127/2 = -63.5
+
+guard
+
+// float is technically also of type int because it's 2 bytes
+
+function int tofloat (input:int) {
+	sign = < input 0
+	if sign {
+		input = !input
+	} ;
+	vall = as input uint
+	exp = 0b
+	while > vall 256u {
+		++ @exp
+		vall = >> vall
+	}
+	mantissa = as vall byte
+	if sign {
+		mantissa = | mantissa !128b
+	} ;
+	result =as as mantissa uint int
+	put_byte$ + as 1 ptr @result exp
+	return result
+}
+

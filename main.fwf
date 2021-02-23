@@ -1,0 +1,73 @@
+// a ; denotes an empty code block. it can be used in if statements like if cond {do_something} ; or if cond ; {do_something}
+// special types:
+//  raw expressions of the form (a,b) (a,b] [a,b) and [a,b] represent ranges. without commas, they represent lists
+//  ^ both of these types are automatically malloc'd and must be manually freed later
+//  an int range can be used in a for loop
+//  otherwise, ranges can be used with the "in" function to determine if a<(=)x<(=)b as a bool
+//  flags and booleans are distinct. set and reset only work on flags. logical operations only work on bools
+//  ptr can be pointer to any datatype, but deref_X variants return different types.
+//  casting is done in the form "as var type" which casts var's value to the new type and returns it
+// to get the pointer to a variable use @varname
+// assignment = and testing = are both written with =
+// strings are compiletime constants. Any edit to the string will make code make less sense, so try not to do that
+// the input and output types of a function are the only places where type declaration is necessary
+// inputs to a function are whitespace delimited
+// all arrays, including literal arrays are allocated each time they are created in the code
+
+//functions names are followed by $ to call them
+
+//operations
+
+// ~ @ !
+// * / %
+// ++ --
+// + -
+// | ^ &
+// < > <= >= =
+// || &&
+// ! is used for numeric negation (-x)
+
+//explicit types
+// flag (can never accept or return a flag, so annotating it is impossible)
+// bool
+// byte
+// int
+// float (not supported yet)
+// uint
+// ubyte
+// ptr
+// void
+// range
+// file
+
+// arithmetic done inside the same type will stay that type (I'm looking at you, Java)
+// arithmetic cannot be done between types. use the casting system.
+// only || && ^ and ~ can be used with booleans
+// no operations can be done on flags
+
+guard
+my_strlist = ["hello" "world" "bye"]
+my_strings = join$ my_strlist '-'
+
+puts$ my_strings
+putln$
+free$ my_strings
+
+for int [!10,10] with q {
+	if in q (!5,5] {
+		puti$ q
+		putchar$ ' '
+	} ;
+	
+}
+
+free$ my_strlist
+
+//file operations only supported on my VM
+home = fopen$ "test.txt"
+fwrite$ home 'a'
+fwrite$ home 'b'
+fwrite$ home 'c'
+fclose$ home
+
+

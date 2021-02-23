@@ -1,0 +1,74 @@
+guard
+function ptr concat(s1:ptr s2:ptr) {
+	//concat s1 with s2 and return it as a new string
+	len_1 = strlen$ s1
+	len_2 = strlen$ s2
+	
+	final_size = + len_1 len_2
+	
+	writer = malloc$ + final_size 1u
+	writer2 = + writer as len_1 ptr
+	endloc = + writer as final_size ptr
+	
+	for uint [0u, len_1) with loc {
+		put_byte$ + as loc ptr writer deref_byte$ + s1 as loc ptr 
+	}
+	
+	writer = + writer as len_1 ptr
+	
+	
+	for uint [0u, len_2) with loc2 {
+		put_byte$ + as loc2 ptr writer2 deref_byte$ + s2 as loc2 ptr 
+	}
+	
+	put_byte$ endloc 0b
+	return writer
+}
+
+function uint strlen(s:ptr) {
+	offset = 0u
+	while true {
+		x = deref_byte$ s
+		if = x 0b {
+			return offset
+		} {
+			s = + s as 1 ptr
+			offset = + offset 1u
+		}
+	}
+	return offset
+}
+
+function ptr stralloc(s:ptr) {
+	len = strlen$ s
+	ret = malloc$ + len 1u
+	memcpy$ ret s + len 1u
+	return ret
+}
+
+alias ptr join(strlist:listptr delim:ubyte)
+alias ptr join(strlist:listptr delim:byte)
+alias ptr join(strlist:ptr delim:byte)
+
+function ptr join(strlist:ptr delim:ubyte) {
+	int_size = ?1
+	list_size = / sizeof$ strlist int_size
+	final_size = list_size
+	for uint [0u,list_size) with index {
+		str_pointer = deref_ptr$ + strlist as * int_size index ptr
+		final_size = + final_size strlen$ str_pointer
+	}
+	joined = malloc$ final_size
+	final_size = 0u
+	
+	for uint [0u,list_size) with count {
+		str_copy = deref_ptr$ + strlist as * int_size count ptr
+		memcpy$ + as final_size ptr joined str_copy strlen$ str_copy
+		final_size = + final_size strlen$ str_copy
+		put_ubyte$ + as final_size ptr joined delim
+		final_size = + final_size 1u
+	}
+	put_ubyte$ + as - final_size 1u ptr joined 0ub
+	
+	return joined
+}
