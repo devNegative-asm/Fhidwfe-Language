@@ -1,3 +1,30 @@
+Enjoy Fhidwfe!
+This is a C-like language which takes some syntax and feature inspiration from functional languages and python.
+This is not functional at all though, so be warned.
+
+This is the source code for the compiler. Currently it only compiles to z80. to to run in on a terminal, I've included a z80 emulator with unique IO functionality.
+To use the compiler, build it into a jar then run
+java -jar comp.jar "main.fwf" "outputfile"
+
+Compiler modes:
+ x86, x64: Unsupported
+ Ti83+Z80: Generates a files outputfile.asm (assembly) and outputfile.prc (preprocessed). outputfile.prc can be assembled by tniasm. The resulting file will run on a Ti83+
+ emuZ80: Z80 emulated in Java, with support for command line & file IO operations.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Syntax:
 In most cases, tokens are space delimited. Tokens are also delimited by special characters except for characters used as a prefix or suffix in an operation (+ - $ @ = & | < >)
 The following rules generally describe the syntax:
@@ -165,3 +192,16 @@ Heap:
 	Alternative implementations of malloc and free can be provided after disabling the library. For systems other than the TIz80, this is heavily recommended.
 	
 	As it is implemented now, restoring both the head and tail of the heap's linked list will effectively free every object.
+	
+	
+	
+	
+	
+	
+(Credit to the maker of the z80 emulator used in this project)
+Emulador en Java de un Sinclair ZX Spectrum 48K
+1.0 B
+Copyright (c) 2004
+Alberto Sánchez Terrén
+
+	
