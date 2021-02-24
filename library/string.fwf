@@ -39,11 +39,25 @@ function uint strlen(s:ptr) {
 	return offset
 }
 
-function ptr stralloc(s:ptr) {
+function ptr makestr(s:ptr) {//make a string from a byte list
+	len = sizeof$ s
+	ret = malloc$ + len 1u
+	memcpy$ ret s len
+	put_byte$ + as len ptr s 0b
+	return stralloc_delete$ ret //trim trailing 0 bytes
+}
+
+function ptr stralloc(s:ptr) {//make a string on the heap
 	len = strlen$ s
 	ret = malloc$ + len 1u
 	memcpy$ ret s + len 1u
 	return ret
+}
+
+function ptr stralloc_delete(s:ptr) {//make a string from the given string or list with 0 terminator
+	rett = stralloc$ s
+	free$ s
+	return rett
 }
 
 alias ptr join(strlist:listptr delim:ubyte)

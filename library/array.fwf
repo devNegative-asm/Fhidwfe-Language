@@ -1,5 +1,10 @@
 guard
 ovflow = "Array overflow."
+
+alias void memcpy(a:listbyte b:listbyte c:uint)
+alias void memcpy(a:listubyte b:listubyte c:uint)
+
+
 alias ubyte access_byte(a:listubyte a:uint)
 function byte access_byte(list:listbyte index:uint) {
 	if < index deref_uint$ - as list ptr as ? 1 ptr {
@@ -20,4 +25,11 @@ function int access_word(list:listint index:uint) {
 		error$ ovflow
 	}
 	return 0
+}
+
+function listbyte double_len(a:listbyte) {
+	b = as malloc$ << sizeof$ a listbyte
+	memcpy$ b a sizeof$ a
+	free$ a
+	return b
 }

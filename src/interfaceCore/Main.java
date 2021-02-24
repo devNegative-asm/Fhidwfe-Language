@@ -169,6 +169,9 @@ public class Main {
 							}
 						files[descriptor] = null;
 						break;
+					case 0x83:
+						state = IOstate.AVAILABLE;
+						break;
 					default:
 						if((Byte.toUnsignedInt(t)&0xc0)==0xc0)
 							descriptor = (byte) (t&0x3f);

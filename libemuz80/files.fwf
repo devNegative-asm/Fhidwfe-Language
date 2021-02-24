@@ -7,8 +7,22 @@ function void fwrites(f:file s:ptr) {
 }
 
 alias void fwritebytes(f:file a:listbyte)
+
 function void fwritebytes(f:file lis:listubyte) {
 	for ubyte lis with writer {
 		fwrite$ f writer
 	}
+}
+
+//read as many bytes as possible from the file
+//null terminates in case you want to use it as a string
+
+function listbyte freadmany(f:file) {
+	size = as favail$ f uint
+	ret = malloc$ + 1u size
+	for uint [0u,size) with index {
+		put_ubyte$ + as index ptr ret fread$ f
+	}
+	put_ubyte$ + as size ptr ret 0ub
+	return as ret listbyte
 }

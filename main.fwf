@@ -66,8 +66,8 @@ free$ my_strlist
 
 //file operations only supported on my VM
 home = fopen$ "test.txt"
-fwrites$ home "This is a string\r\n"
-fwritebytes$ home [49b 50b 51b]
+contents = freadmany$ home
+puts$ contents
 fclose$ home
 
 
