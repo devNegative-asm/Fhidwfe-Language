@@ -62,6 +62,36 @@ function ptr malloc(size:uint) {
 	
 }
 
+//UNTESTED
+function ptr realloc(block:ptr newsize:uint) {
+	if <= newsize sizeof$ block {
+		//remove space from this block
+		put_uint$ - block as ?1 ptr newsize
+		return block
+	} ;
+	next = deref_ptr$ - block as ? 2u ptr
+	
+	//easiest when there's extra room between objects
+	//space needed between ptr and next is newsize + 3
+	
+	if <= newsize - as - next block uint ? 3u {
+		put_uint$ - block as ?1 ptr newsize
+		return block
+	} ;
+	
+	//there isn't enough room to simply extend it
+	newloc = malloc$ newsize
+	//memcpy the minimum number of bytes to assure no buffer overflow
+	memcpy$ newloc block umin$ sizeof$ block newsize
+	free$ block
+	return newloc
+}
+
+
+
+
+
+
 alias void free(a:listbyte)
 alias void free(a:listubyte)
 alias void free(a:listptr)

@@ -9,6 +9,34 @@ function byte log2(x:uint) {
 	return lg
 }
 
+function int max(a:int b:int) {
+	if > a b {
+		return a
+	} ;
+	return b
+}
+
+function uint umax(a:uint b:uint) {
+	if > a b {
+		return a
+	} ;
+	return b
+}
+
+function int min(a:int b:int) {
+	if > a b {
+		return b
+	} ;
+	return a
+}
+
+function uint umin(a:uint b:uint) {
+	if > a b {
+		return b
+	} ;
+	return a
+}
+
 function uint pow2(x:uint) {
 	res = 1u
 	if >= x ?8 {
