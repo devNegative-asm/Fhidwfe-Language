@@ -969,7 +969,11 @@ public class IntermediateLang {
 			}
 			break;
 		case POINTER_TO:
-			String descriptor = tree.resolveVariableLocation(tree.getTokenString().substring(1));
+			String descriptor;
+			if(tree.getToken().guarded())
+				descriptor = tree.resolveVariableLocation(tree.getTokenString());
+			else
+				descriptor = tree.resolveVariableLocation(tree.getTokenString().substring(1));
 			String at = descriptor.split(" ")[1];
 			switch(IntermediateLang.loc(descriptor.split(" ")[0])) {
 				case ARG:

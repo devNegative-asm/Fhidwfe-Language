@@ -16,8 +16,8 @@ public class Token {
 	public Token(String s, Type t, boolean guard, File srcfile)
 	{
 		reals=s;
-		if(guard && (t==Type.IDENTIFIER||t==Type.FUNCTION_ARG)) {
-			s= "_guard_"+srcfile.getName().replaceAll("[^_a-zA-Z0-9]", "_")+("_"+srcfile.hashCode()+"_"+s.hashCode()).replace('-', 'n')+"_"+s;
+		if(guard && (t==Type.IDENTIFIER||t==Type.FUNCTION_ARG||t==Type.POINTER_TO)) {
+			s= "_guard_"+srcfile.getName().replaceAll("[^_a-zA-Z0-9]", "_")+("_"+srcfile.hashCode()+"_"+s.replace("@", "").hashCode()).replace('-', 'n')+"_"+s.replace("@", "");
 		}
 		this.s=s;
 		this.t=t;

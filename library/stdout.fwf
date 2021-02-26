@@ -17,6 +17,7 @@ function void puti(num:int) {
 	putui$ as num uint
 }
 
+alias void put_hex(i:int)
 function void put_hex(i:uint) {
 	// we want to access the highest nibble repeatedly
 	// this is easiest done by pointer magic

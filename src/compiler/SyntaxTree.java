@@ -172,7 +172,6 @@ public class SyntaxTree extends BaseTree{
 	
 	public String resolveVariableLocation(String varname)
 	{
-		
 		try {
 			return Location.LOCAL+" "+resolveLocalOffset(varname);
 		}catch(RuntimeException e) {
