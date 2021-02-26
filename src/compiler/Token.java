@@ -1,3 +1,4 @@
+package compiler;
 import java.io.File;
 
 public class Token {

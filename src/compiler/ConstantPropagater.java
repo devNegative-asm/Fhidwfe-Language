@@ -1,3 +1,4 @@
+package compiler;
 
 public class ConstantPropagater {
 	public static void propagateConstants(SyntaxTree t) {

@@ -1,3 +1,4 @@
+package compiler;
 
 public class Variable implements Comparable<Variable>{
 	final String name;

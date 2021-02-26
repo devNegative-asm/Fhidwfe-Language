@@ -1,3 +1,4 @@
+package compiler;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -424,53 +425,5 @@ public class Lexer {
 		return tokens;
 	}
 
-	public static void main(String[] args) throws IOException, InterruptedException
-	{
-		String sourceFile = args[0];
-		String binFile = args.length>1?args[1]:null;
-		
-		
-		CompilationSettings z80settings = CompilationSettings.setIntByteSize(2).setHeapSpace(256).useTarget(CompilationSettings.Target.TI83pz80);
-		//x64 not supported yet
-		CompilationSettings x64settings = CompilationSettings.setIntByteSize(8).setHeapSpace(1<<14).useTarget(CompilationSettings.Target.WINx64);
-		CompilationSettings emulatorSettings = CompilationSettings.setIntByteSize(2).setHeapSpace(2048).useTarget(CompilationSettings.Target.z80Emulator);
-		CompilationSettings settings = emulatorSettings;
-		
-		
-		Lexer lx = new Lexer(new File(args[0]),settings);
-		ArrayList<Token> tokens = lx.tokenize();
-		
-		Parser p = new Parser(settings);
-		BaseTree tree = p.parse(tokens);
-		
-		
-		tree.typeCheck(); // check that typing is valid, and register all variables in use
-		tree.prepareVariables(); // give variables their proper locations, whether that be on the stack or in the global scope
-		ArrayList<IntermediateLang.Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
-		settings.library.correct(VMCode, p);
-		PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
-		p.verify(VMCode);
-		for(IntermediateLang.Instruction s:VMCode) {
-			pr1.println(s);
-		}
-		pr1.close();
-		
-		ArrayList<String> assembly = new Translator().translate(p, VMCode,true);
-		if(binFile!=null) {
-			//try to save the assembly file, preprocess it, assemble it
-			
-			PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
-			for(String ins:assembly) {
-				pr.println(ins);
-			}
-			pr.close();
-			Preprocessor.process(binFile+".asm");
-			Assembler.assemble(binFile+".prc", binFile+".bin");
-		} else {
-			for(String ins:assembly) {
-				System.out.println(ins);
-			}
-		}
-		Main.run(binFile+".bin");
-	}
+	
 }

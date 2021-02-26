@@ -1,3 +1,4 @@
+package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1149,7 +1150,6 @@ public class Parser {
 				//parseinner repeatedly
 				while(t.get(0).t!=Token.Type.CLOSE_BRACE)
 				{
-					System.out.println(t.get(0));
 					root.addChild(parseInner(t,root));
 				}
 				t.remove(0);

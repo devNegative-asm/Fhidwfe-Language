@@ -1,3 +1,4 @@
+package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -229,7 +230,7 @@ public class LibFunctions {
 						switch(architecture) {
 							case z80Emulator:
 								replacement = Arrays.asList(//switch to file select mode, write my argument string (including terminating 0) and return the descriptor
-									IntermediateLang.InstructionType.rawinstruction.cv("ld a,$ff"),
+									IntermediateLang.InstructionType.rawinstruction.cv("ld a,$84"),
 									IntermediateLang.InstructionType.rawinstruction.cv("out (1),a"),//entered file select mode
 									IntermediateLang.InstructionType.general_label.cv("__fopen_loop_"+label),
 									IntermediateLang.InstructionType.rawinstruction.cv("ld a,(hl)"),

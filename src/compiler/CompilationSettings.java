@@ -1,15 +1,18 @@
+package compiler;
 import java.util.Arrays;
 import java.util.List;
 
 public class CompilationSettings {
-	enum Target {
-		WINx86("libwin86"),
-		WINx64("libwin64"),
-		z80Emulator("libemuz80"),
-		TI83pz80("libti83pz80");
+	public enum Target {
+		WINx86("libwin86",4),
+		WINx64("libwin64",8),
+		z80Emulator("libemuz80",2),
+		TI83pz80("libti83pz80",2);
 		public final String libLoc;
-		private Target(String libLoc) {
+		public final int intsize;
+		private Target(String libLoc, int intsize) {
 			this.libLoc=libLoc;
+			this.intsize=intsize;
 		}
 		
 		

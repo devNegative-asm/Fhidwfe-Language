@@ -4,11 +4,23 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Scanner;
 import java.util.function.Supplier;
 
+import assembler.Assembler;
+import compiler.BaseTree;
+import compiler.CompilationSettings;
+import compiler.IntermediateLang;
+import compiler.Lexer;
+import compiler.Parser;
+import compiler.Token;
+import compiler.Translator;
+import preprocessor.Preprocessor;
+import ti83packager.Packager;
 import z80core.MemIoOps;
 import z80core.Z80;
 import z80core.NotifyOps;
@@ -36,12 +48,114 @@ public class Main {
 	};
 	private static final Z80 PROCESSOR = new Z80(MEMORY,operations);
 	private static boolean paused = false;
+	
+	
+	public static void main(String[] args) throws IOException, InterruptedException
+	{
+		if(args.length==1) {
+			run(args[0]);
+			System.exit(0);
+		}
+		if(args.length!=4) {
+			System.err.println("Usage: java -jar compiler.jar \"main_source.fwf\" \"output_prog\" architecture heap_size_bytes");
+			System.err.println("Or: java -jar compiler.jar \"executable.bin\" to run a z80emu binary");
+			System.err.println("Possible architectures:");
+			System.err.println("\t\"TI83pz80\": Ti83+ program");
+			System.err.println("\t\"z80Emulator\": z80 ROM, run in emulator");
+			System.err.println("\t\"WINx64\": unsupported");
+			System.err.println("\t\"WINx86\": unsupported");
+			System.exit(-1);
+		}
+		String binFile = args[1];
+		CompilationSettings.Target target = null;
+		try {
+			 target = CompilationSettings.Target.valueOf(args[2]);
+		} catch(Exception e) {
+			System.err.println("Unrecognized architecture: "+args[2]);
+			System.exit(1);
+		}
+		int heapspace =0;
+		try {
+			heapspace = Integer.parseInt(args[3]);
+			if(heapspace < 0)
+			{ 
+				System.err.println("Invalid heap size: "+args[3]);
+				System.exit(1);
+			}
+		} catch(Exception e) {
+			System.err.println("Invalid heap size: "+args[3]);
+			System.exit(1);
+		}
+		CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
+		
+		Lexer lx = new Lexer(new File(args[0]),settings);
+		ArrayList<Token> tokens = lx.tokenize();
+		
+		Parser p = new Parser(settings);
+		BaseTree tree = p.parse(tokens);
+		
+		
+		tree.typeCheck(); // check that typing is valid, and register all variables in use
+		tree.prepareVariables(); // give variables their proper locations, whether that be on the stack or in the global scope
+		ArrayList<IntermediateLang.Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
+		settings.library.correct(VMCode, p);
+		PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
+		p.verify(VMCode);
+		for(IntermediateLang.Instruction s:VMCode) {
+			pr1.println(s);
+		}
+		pr1.close();
+		
+		ArrayList<String> assembly = new Translator().translate(p, VMCode,true);
+		
+		PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
+		for(String ins:assembly) {
+			pr.println(ins);
+		}
+		pr.close();
+		
+		switch(target) {
+		case TI83pz80:
+			Preprocessor.process(binFile+".asm");
+			Assembler.assemble(binFile+".prc", binFile+".bin");
+			Packager.to8xp(binFile+".bin");
+			break;
+		case WINx64:
+			break;
+		case WINx86:
+			break;
+		case z80Emulator:
+			Preprocessor.process(binFile+".asm");
+			Assembler.assemble(binFile+".prc", binFile+".bin");
+			run(binFile+".bin");
+			break;
+		}
+		
+		if(binFile!=null) {
+			//try to save the assembly file, preprocess it, assemble it
+			
+			
+			
+		} else {
+			for(String ins:assembly) {
+				System.out.println(ins);
+			}
+		}
+	}
+	
+	
+	
+	
 	public static void run(String infile) throws InterruptedException, IOException
 	{
 		MEMORY.setPorts(PORTS);
 		MEMORY.setRam(RAM);
 		int maddr=0;
 		File inf = new File(infile);
+		if(!inf.exists()) {
+			System.err.println("Could not find "+infile+" to run.");
+			System.exit(1);
+		}
 		FileInputStream fis = new FileInputStream(inf);
 		
 		while(fis.available()>0) {
@@ -146,6 +260,9 @@ public class Main {
 				case OTHER:
 					switch(Byte.toUnsignedInt(t)) {
 					case 0xff:
+						//file open failed and we got back an invalid file descriptor
+						throw new RuntimeException("Failed to open a file. attempted to use descriptor 0x3f");
+					case 0x84:
 						state = IOstate.FILE_SELECT;
 						break;
 					case 0x80:
@@ -209,11 +326,11 @@ public class Main {
 		MEMORY.addInPortSupplier(1, port1);
 		//port 1 is for file operations
 		//control bytes:
-		// 0xff: enter file select mode (read chars until 00, then reading from this port will give the file descriptor number) 
 		// 0x80: write byte
 		// 0x81: flush
 		// 0x82: close
 		// 0x83: available mode
+		// 0x84: enter file select mode (read chars until 00, then reading from this port will give the file descriptor number) 
 		// 0xC0 | descriptor: select file #descriptor
 		
 		// reading from port 1

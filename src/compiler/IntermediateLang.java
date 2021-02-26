@@ -1,3 +1,4 @@
+package compiler;
 import java.util.ArrayList;
 
 public class IntermediateLang {
