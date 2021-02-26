@@ -29,6 +29,11 @@ Syntax:
 In most cases, tokens are space delimited. Tokens are also delimited by special characters except for characters used as a prefix or suffix in an operation (+ - $ @ = & | < >)
 The following rules generally describe the syntax:
 
+
+file:
+private variables:	guard
+import globals:		import [var_name]
+
 block:
 function calling:	func_name$ args...
 conditional:		if cond {blockTrue} {blockFalse}
@@ -163,6 +168,7 @@ Scoping rules:
 	There is an automated way of doing this, by using the "guard" keyword. This keyword can be inserted anywhere without affecting parsing.
 	
 	Adding the guard keyword will cause all further variables used in that file to have a long string prepended to them to almost entirely prevent cross-file name clashes.
+	writing import [var_name] afterward will specifically allow access to that global variable, even if it's in another file.
 	when used properly, a guard will prevent your code from accessing compiler constants and globals from other files, and prevent other files from accessing your globals.
 	(The following may be changed later)
 		It is possible to bypass another file's guard by prepending its prefix to the name of a global variable. This is very strongly discouraged.

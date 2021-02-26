@@ -231,7 +231,9 @@ public class Lexer {
 		boolean functionImmediate = false;
 		boolean fnNameImmediate = false;
 		boolean guarded = false;
+		ArrayList<String> imported = new ArrayList<String>();
 		File lastFile = null;
+		boolean importNext = false;
 		while(hasNextString())
 		{
 			File fileIn;
@@ -241,6 +243,7 @@ public class Lexer {
 				if(lastFile!=fileIn)
 				{
 					guarded = false;
+					imported = new ArrayList<String>();
 				}
 				lastFile = fileIn;
 			} else {
@@ -258,6 +261,9 @@ public class Lexer {
 			} else if(tok.equals("="))
 			{
 				tk = new Token(tok,Token.Type.EQ_SIGN,guarded,fileIn);
+			} else if(tok.equals("import")) {
+				importNext =true;
+				continue;
 			} else if(tok.matches(type)) {
 				if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG_TYPE,guarded,fileIn);
@@ -396,12 +402,17 @@ public class Lexer {
 			} else if(tok.matches("[a-zA-Z_][a-zA-Z_0-9]*")){
 				//generic string
 				//identifier
+				if(importNext) {
+					imported.add(tok);
+					importNext=false;
+					continue;
+				}
 				if(fnNameImmediate) {
 					tk = new Token(tok,Token.Type.FUNCTION_NAME,guarded,fileIn);
 				} else if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
 				} else {
-					tk = new Token(tok,Token.Type.IDENTIFIER,guarded,fileIn);
+					tk = new Token(tok,Token.Type.IDENTIFIER,guarded && !imported.contains(tok),fileIn);
 				}
 			} else {
 				throw new RuntimeException("unrecognizable token: "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());
@@ -409,6 +420,8 @@ public class Lexer {
 			if(tok.startsWith("__"))
 				throw new RuntimeException("__ prefix saved for internal use at line "+this.lineNumber+" in "+files.get(0).getName());
 			tk.setLineNum(this.lineNumber+" in "+files.get(0).getName());
+			if(importNext)
+				throw new RuntimeException("cannot import non-identifier "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());
 			tokens.add(tk);
 			functionContext |= fnNameImmediate;
 			fnNameImmediate = functionImmediate;

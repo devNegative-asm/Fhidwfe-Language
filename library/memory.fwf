@@ -1,3 +1,12 @@
+guard
+
+//specifically allow these variables to be accessible in other files
+import heap
+import heaptail
+import null
+import one
+import int_size
+
 null = as 0 ptr
 one = as 1 ptr
 
@@ -18,38 +27,38 @@ function uint sizeof(input:ptr) {
 // ? n is the same as n*int_size
 
 function ptr malloc(size:uint) {
-	_guard_mem_curobj = heap
-	_guard_mem_space = as + size ? 3u ptr
-	//need _guard_mem_space for my object + 3 ints
+	curobj = heap
+	space = as + size ? 3u ptr
+	//need space for my object + 3 ints
 	
-	_guard_mem_next = deref_ptr$ - _guard_mem_curobj as ? 2u ptr
-	_guard_mem_blocksize = deref_ptr$ - _guard_mem_curobj as int_size ptr
+	next = deref_ptr$ - curobj as ? 2u ptr
+	blocksize = deref_ptr$ - curobj as int_size ptr
 	
-	while < - - _guard_mem_next _guard_mem_curobj _guard_mem_blocksize _guard_mem_space {
-		_guard_mem_curobj = _guard_mem_next
-		_guard_mem_next = deref_ptr$ - _guard_mem_curobj as ? 2u ptr
-		_guard_mem_blocksize = deref_ptr$ - _guard_mem_curobj as int_size ptr
+	while < - - next curobj blocksize space {
+		curobj = next
+		next = deref_ptr$ - curobj as ? 2u ptr
+		blocksize = deref_ptr$ - curobj as int_size ptr
 		
-		if = _guard_mem_next null {
+		if = next null {
 			return null//no room
 		} ;
 		
 	}
 	
-	_guard_mem_newobjectloc = + + _guard_mem_curobj _guard_mem_blocksize as ? 3u ptr
+	newobjectloc = + + curobj blocksize as ? 3u ptr
 	
 	//header for the new object
-	put_uint$ - _guard_mem_newobjectloc as int_size ptr size
-	put_ptr$ - _guard_mem_newobjectloc as ? 2u ptr _guard_mem_next
-	put_ptr$ - _guard_mem_newobjectloc as ? 3u ptr _guard_mem_curobj
+	put_uint$ - newobjectloc as int_size ptr size
+	put_ptr$ - newobjectloc as ? 2u ptr next
+	put_ptr$ - newobjectloc as ? 3u ptr curobj
 	
-	//update _guard_mem_previous object's header
-	put_ptr$ - _guard_mem_curobj as ? 2u ptr _guard_mem_newobjectloc
+	//update previous object's header
+	put_ptr$ - curobj as ? 2u ptr newobjectloc
 	
-	//update _guard_mem_next object's header
-	put_ptr$ - _guard_mem_next as ? 3u ptr _guard_mem_newobjectloc
+	//update next object's header
+	put_ptr$ - next as ? 3u ptr newobjectloc
 	
-	return _guard_mem_newobjectloc
+	return newobjectloc
 	
 }
 
@@ -84,9 +93,9 @@ function void free(block:ptr) {
 		return
 	} ;
 	
-	_guard_mem_prev = deref_ptr$ - block as ? 3u ptr
-	_guard_mem_next = deref_ptr$ - block as ? 2u ptr
+	prev = deref_ptr$ - block as ? 3u ptr
+	next = deref_ptr$ - block as ? 2u ptr
 	
-	put_ptr$ - _guard_mem_prev as ? 2u ptr _guard_mem_next
-	put_ptr$ - _guard_mem_next as ? 3u ptr _guard_mem_prev
+	put_ptr$ - prev as ? 2u ptr next
+	put_ptr$ - next as ? 3u ptr prev
 }
