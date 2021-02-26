@@ -2,6 +2,8 @@ Enjoy Fhidwfe!
 This is a C-like language which takes some syntax and feature inspiration from functional languages and python.
 This is not functional at all though, so be warned.
 
+Assembling requires tniasm, so go download that first.
+
 This is the source code for the compiler. Currently it only compiles to z80. to to run in on a terminal, I've included a z80 emulator with unique IO functionality.
 To use the compiler, build it into a jar then run
 java -jar comp.jar "main.fwf" "outputfile"
@@ -12,10 +14,11 @@ Compiler modes:
  emuZ80: Z80 emulated in Java, with support for command line & file IO operations.
 
 
-
-
-
-
+Credits to:
+	Alberto Sánchez Terrén (z80 emulator)
+	Brandonw (creator of ti83plus.inc)
+	detachedsolutions (creator of mirage.inc)
+	The New Image (creators of tniasm, the assembler this compiler targets)
 
 
 
