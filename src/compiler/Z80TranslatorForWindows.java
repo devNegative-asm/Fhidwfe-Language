@@ -1099,7 +1099,4 @@ public class Z80TranslatorForWindows {
 		
 		return comp;
 	}
-	private void todo() {
-		throw new UnsupportedOperationException("unimplemented");
-	}
 }

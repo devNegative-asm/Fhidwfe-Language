@@ -74,31 +74,31 @@ public class MemIoOps {
     }
 
     
-    Supplier<Byte>[] inputters = new Supplier[256];
+    @SuppressWarnings("unchecked")
+	Supplier<Byte>[] inputters = new Supplier[256];
     public void addInPortSupplier(int port, Supplier<Byte> supp) {
     	inputters[port] = supp;
     }
     public int inPort(int port) {
         tstates += 4; // 4 clocks for read byte from bus
         if(inputters[port& 0xff]!=null)
-        	return z80Ports[port & 0xff] = inputters[port& 0xff].get();
-        return z80Ports[port & 0xff] & 0xff;
+        	return z80Ports[port & 0xff] = inputters[port& 0xff].get();// allow Java suppliers to mimic the behavior of IO hardware
+        return z80Ports[port & 0xff] & 0xff; //treat the ports like extra memory???
     }
 
     
-    private Consumer<Byte>[] listeners = new Consumer[256];
+    @SuppressWarnings("unchecked")
+	private Consumer<Byte>[] listeners = new Consumer[256];
     public void addOutPortListener(int port, Consumer<Byte> out) {
     	listeners[port]=out;
     }
     
     public void outPort(int port, int value) {
         tstates += 4; // 4 clocks for write byte to bus
-        z80Ports[port&0xff] = (byte)value;/** as a z80 developer, I have to step in here. OUTPUT PORTS IGNORE THE UPPER ADDRESS BUS!
-        *
-        *
-        */
+        z80Ports[port&0xff] = (byte)value;
+        
         if(listeners[port&0xff]!=null)
-        	listeners[port&0xff].accept((byte)value);
+        	listeners[port&0xff].accept((byte)value);// allow Java consumers to mimic the behavior of IO hardware
     }
 
     public void addressOnBus(int address, int tstates) {

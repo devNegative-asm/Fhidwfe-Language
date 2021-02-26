@@ -30,6 +30,10 @@ public class BaseTree {
 				}
 			}
 		}
+		//puts$ is called by error$ so it is always needed
+		exploredFunctions.add("puts");
+		
+		
 		return (calledCache = exploredFunctions).contains(func);
 		
 		

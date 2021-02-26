@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Scanner;
 import java.util.function.Supplier;
 
@@ -47,7 +46,6 @@ public class Main {
 		
 	};
 	private static final Z80 PROCESSOR = new Z80(MEMORY,operations);
-	private static boolean paused = false;
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException
@@ -156,13 +154,14 @@ public class Main {
 			System.err.println("Could not find "+infile+" to run.");
 			System.exit(1);
 		}
-		FileInputStream fis = new FileInputStream(inf);
 		
+		FileInputStream fis = new FileInputStream(inf); //load binary
 		while(fis.available()>0) {
 			int byteCount = fis.available();
-			fis.read(RAM, maddr, byteCount);
+			fis.read(RAM, maddr, byteCount);//put binary into ROM portion of memory. This might be changable if an OS is built into it
 			maddr+=byteCount;
 		}
+		fis.close();
 		
 		Supplier<Byte> bs = () -> {
 			try {
@@ -175,19 +174,8 @@ public class Main {
 			}
 			return (byte)0;
 		};
-		Supplier<Byte> avail = () -> {
-			try {
-				if(System.in.available()!=0) {
-						return (byte)System.in.read();
-					
-				}
-			} catch (Exception e) {
-				return 0;
-			}
-			return (byte)0;
-		};
 		
-		IODevice port1 = new IODevice() {
+		IODevice port1 = new IODevice() { //FILE IO port
 			IOstate state = IOstate.OTHER;
 			String nextFile = "";
 			byte descriptor = 0;
@@ -293,6 +281,7 @@ public class Main {
 						if((Byte.toUnsignedInt(t)&0xc0)==0xc0)
 							descriptor = (byte) (t&0x3f);
 						else
+							//could optionally allow writes for 0x00 - 0x7f if you want the msb to represent the control bit
 							throw new RuntimeException("invalid control byte: 0x"+Integer.toHexString(Byte.toUnsignedInt(t)));
 					}
 					break;
@@ -347,10 +336,19 @@ public class Main {
 		
 		// we exit when the processor does 2 things: Disable all interrupts and halt
 
+		long startTime = System.currentTimeMillis();
+		long inCount = 0;
 		while(PROCESSOR.isIFF1() || !PROCESSOR.isHalted())
 		{
 			PROCESSOR.execute();
+			inCount++;
 		}
+		long endTime = System.currentTimeMillis();
+		long actualTime = MEMORY.getTstates();
+		System.out.println();
+		System.out.println("Program finished in "+(endTime-startTime)+"ms.");
+		System.out.println("Processed "+inCount+" instructions in "+actualTime+" cycles.");
+		System.out.println("Would run in "+(actualTime/6000)+"ms hardware time.");
 		for(RandomAccessFile f:files) {
 			if(f!=null)
 				f.close();

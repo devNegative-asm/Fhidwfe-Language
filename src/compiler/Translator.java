@@ -1077,9 +1077,5 @@ public class Translator {
 		
 		return comp;
 	}
-	private void todo() {
-		throw new UnsupportedOperationException("unimplemented");
-	}
-
 	ArrayList<String> cache;
 }

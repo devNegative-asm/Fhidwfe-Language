@@ -146,7 +146,6 @@ public class Parser {
 			}
 		}
 		for(String name:fnInputTypesReq.keySet()) {
-			int index = 0;
 			if(!fnInputTypes.containsKey(name)) {
 				throw new RuntimeException("Required function "+name+" not defined");
 			}
@@ -174,7 +173,7 @@ public class Parser {
 	{
 		if(!fnInputTypes.containsKey(functionName))
 			throw new RuntimeException("Function "+functionName+" not found");
-		return (ArrayList<ArrayList<Data>>) fnInputTypes.get(functionName).clone();
+		return new ArrayList<ArrayList<Data>>(fnInputTypes.get(functionName));
 	}
 	public List<Data> getFunctionOutputType(String functionName)
 	{
@@ -1135,9 +1134,9 @@ public class Parser {
 					}
 					t.remove(0);
 				}
-				
-				
 			break;
+			default:
+				throw new RuntimeException(t.toString()+" not recognized as a valid expression token");
 		}
 		return root;
 	}

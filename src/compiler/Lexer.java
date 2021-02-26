@@ -1,16 +1,10 @@
 package compiler;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
-
-import assembler.Assembler;
-import interfaceCore.Main;
-import preprocessor.Preprocessor;
 
 public class Lexer {
 	private ArrayList<Scanner> scan = new ArrayList<Scanner>();

@@ -677,7 +677,8 @@ public class SyntaxTree extends BaseTree{
 			} else if(child.getType()==Parser.Data.Flag)
 			{
 				ret = Parser.Data.Flag;
-			} else if(mathTypes.contains(child.getType()) || child.getType()==Parser.Data.Bool){
+				//truthiness allowed for pointer types only
+			} else if(child.getType()==Parser.Data.Ptr || child.getType()==Parser.Data.Bool){
 				ret = child.getType();
 			} else {
 				throw new RuntimeException("Conditions cannot have type "+child.getType()+" at line "+this.getToken().linenum);
@@ -822,6 +823,29 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case WITH:
 			ret = Parser.Data.SYNTAX;
+			break;
+		case ALIAS:
+			ret = Parser.Data.SYNTAX;
+			break;
+		case IF_EQ:
+		case IF_NE:
+			if(getChild(0).getType()!=getChild(1).getType()) {
+				mismatch(getChild(0).getType(), getChild(1).getType());
+			}
+			getChild(2).getType();
+			getChild(3).getType();
+			break;
+		case IF_GE:
+		case IF_GT:
+		case IF_LE:
+		case IF_LT:
+			if(!mathTypes.contains(getChild(0).getType()))
+				math(getChild(0).getType());
+			if(getChild(0).getType()!=getChild(1).getType()) {
+				mismatch(getChild(0).getType(), getChild(1).getType());
+			}
+			getChild(2).getType();
+			getChild(3).getType();
 			break;
 		
 		}

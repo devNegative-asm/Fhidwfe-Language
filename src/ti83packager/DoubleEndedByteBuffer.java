@@ -2,7 +2,6 @@ package ti83packager;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 public class DoubleEndedByteBuffer{
 	private ArrayList<Byte> frontEnd = new ArrayList<>();
 	private ArrayList<Byte> backEnd = new ArrayList<>();
