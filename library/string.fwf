@@ -109,5 +109,5 @@ function int strcmp(str1:ptr str2:ptr) {
 			str2 = + one str2
 		}
 	}
-	return as - deref_byte$ str1 deref_byte$ str2 int
+	return  - as deref_ubyte$ str1 int as deref_byte$ str2 int
 }
