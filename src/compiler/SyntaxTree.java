@@ -727,6 +727,13 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case OPEN_RANGE_EXCLUSIVE:
 		case OPEN_RANGE_INCLUSIVE:
+			if(inFunction()) {
+				this.addDependent(functionIn(), "malloc");
+				this.addDependent(functionIn(), "free");
+			} else {
+				this.notifyCalled("malloc");
+				this.notifyCalled("free");
+			}
 			//this is a list. of what type? let's find out!
 			Parser.Data save = null; 
 			for(SyntaxTree child1:children())
@@ -758,6 +765,13 @@ public class SyntaxTree extends BaseTree{
 			ret = Parser.Data.Ptr;
 			break;
 		case RANGE_COMMA:
+			if(inFunction()) {
+				this.addDependent(functionIn(), "malloc");
+				this.addDependent(functionIn(), "free");
+			} else {
+				this.notifyCalled("malloc");
+				this.notifyCalled("free");
+			}
 			children = children(4);
 			save =children[1].getType();
 			if(children[2].getType()!=save)
@@ -779,6 +793,9 @@ public class SyntaxTree extends BaseTree{
 				break;
 			case Uint:
 				prefix="u";
+				break;
+			case Ptr:
+				prefix="ptr";
 				break;
 			default:
 				throw new RuntimeException("Expected a numeric type. Found "+save+" instead at line "+this.getToken().linenum);

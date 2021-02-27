@@ -45,13 +45,13 @@ public class Z80TranslatorForWindows {
 				int label = fresh();
 				comp.add("	pop de");
 				//write from hl to de until (hl)==0
-				comp.add("__strcpy_loop_"+label);
+				comp.add("__strcpy_loop_"+label+":");
 				comp.add("	ld a,(hl)");
 				comp.add("	or a");
 				comp.add("	jr z,__strcpy_loop_exit_"+label);
 				comp.add("	ldi");
 				comp.add("	jp __strcpy_loop_"+label);
-				comp.add("__strcpy_loop_exit_"+label);
+				comp.add("__strcpy_loop_exit_"+label+":");
 				comp.add("	ex de,hl");
 				stackDepth--;
 				break;

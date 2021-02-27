@@ -46,17 +46,16 @@
 // no operations can be done on flags
 
 guard
-my_strlist = ["hello" "world" "bye"]
-my_strings = join$ my_strlist '-'
-
-puts$ my_strings
-putln$
-free$ my_strings
-
-puti$ % !3 50
-
-
-free$ my_strlist
+import null
+my_strlist = ["hello1" "hallo" "he" "hello"]
+for ptr my_strlist with strid {
+	copy = capitalize_copy$ strid
+	puts$ copy
+	putln$
+	puti$ strcmp$ copy "HELLO"
+	putln$
+	free$ copy
+}
 
 //file operations only supported on the VM
 //home = fopen$ "test.txt"

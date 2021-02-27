@@ -19,6 +19,7 @@ public class Assembler {
 				errors.read(error);
 				System.err.write(error);
 			}
+			System.exit(result);
 		}
 	}
 }

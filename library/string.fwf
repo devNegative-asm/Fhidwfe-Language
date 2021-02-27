@@ -86,3 +86,28 @@ function ptr join(strlist:ptr delim:ubyte) {
 	
 	return joined
 }
+
+function ptr capitalize_copy(strin:ptr) {
+	rett = stralloc$ strin
+	for ptr [as 0u ptr,as strlen$ rett ptr) with offset {
+		char = deref_ubyte$ +rett offset
+		if in char ['a','z'] {
+			put_ubyte$ +rett offset - + char 'A' 'a'
+		} ;
+	}
+	return rett
+}
+
+import one
+function int strcmp(str1:ptr str2:ptr) {
+	//str1 - str2
+	while = deref_byte$ str1 deref_byte$ str2 {
+		if = 0b deref_byte$ str1 {//they both terminated at the same time
+			return 0
+		} {
+			str1 = + one str1
+			str2 = + one str2
+		}
+	}
+	return as - deref_byte$ str1 deref_byte$ str2 int
+}

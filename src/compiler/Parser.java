@@ -41,20 +41,25 @@ public class Parser {
 		Urangeoc(2,true,Uint,false,true,false),
 		Urangeoo(2,true,Uint,false,false,false),
 		
-		Brangecc(2,true,Uint,true,true,false),//byte ranges
-		Brangeco(2,true,Uint,true,false,false),
-		Brangeoc(2,true,Uint,false,true,false),
-		Brangeoo(2,true,Uint,false,false,false),
+		Brangecc(2,true,Byte,true,true,false),//byte ranges
+		Brangeco(2,true,Byte,true,false,false),
+		Brangeoc(2,true,Byte,false,true,false),
+		Brangeoo(2,true,Byte,false,false,false),
 		
-		Ubrangecc(2,true,Uint,true,true,false),//unsigned byte ranges
-		Ubrangeco(2,true,Uint,true,false,false),
-		Ubrangeoc(2,true,Uint,false,true,false),
-		Ubrangeoo(2,true,Uint,false,false,false),
+		Ubrangecc(2,true,Ubyte,true,true,false),//unsigned byte ranges
+		Ubrangeco(2,true,Ubyte,true,false,false),
+		Ubrangeoc(2,true,Ubyte,false,true,false),
+		Ubrangeoo(2,true,Ubyte,false,false,false),
 		
 		Frangecc(2,true,Uint,true,true,false),//float ranges
 		Frangeco(2,true,Uint,true,false,false),
 		Frangeoc(2,true,Uint,false,true,false),
 		Frangeoo(2,true,Uint,false,false,false),
+		
+		Ptrrangecc(2,true,Ptr,true,true,false),
+		Ptrrangeco(2,true,Ptr,true,false,false),
+		Ptrrangeoc(2,true,Ptr,false,true,false),
+		Ptrrangeoo(2,true,Ptr,false,false,false),
 		
 		SYNTAX(0,false,null,false,false,false),
 		
@@ -513,6 +518,7 @@ public class Parser {
 				Token forLoopType = t.remove(0);
 				switch(forLoopType.s) {
 					case "int":
+					case "ptr":
 					case "uint":
 					case "byte":
 					case "ubyte":

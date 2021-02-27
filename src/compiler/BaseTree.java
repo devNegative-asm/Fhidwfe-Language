@@ -12,6 +12,8 @@ public class BaseTree {
 	public boolean functionIsEverCalled(String func) {
 		if(calledCache!=null)
 			return calledCache.contains(func);
+		
+		
 		HashSet<String> exploredFunctions = new HashSet<String>();
 		ArrayList<String> unexploredFunctions = new ArrayList<String>();
 		
