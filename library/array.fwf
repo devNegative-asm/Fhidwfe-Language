@@ -10,7 +10,7 @@ alias void memcpy(a:listubyte b:listubyte c:uint)
 function int access_word(list:listint index:uint) {
 	index = ? index //turn it into a usable index
 	if < index deref_uint$ - as list ptr one {
-		return deref_int$ + as list ptr index
+		return deref_int$ + as list ptr as index ptr
 	} {
 		error$ ovflow
 	}
@@ -20,7 +20,7 @@ function int access_word(list:listint index:uint) {
 alias ubyte access_byte(a:listubyte a:uint)
 function byte access_byte(list:listbyte index:uint) {
 	if < index deref_uint$ - as list ptr one {
-		return deref_byte$ + as list ptr index
+		return deref_byte$ + as list ptr as index ptr
 	} {
 		error$ ovflow
 	}

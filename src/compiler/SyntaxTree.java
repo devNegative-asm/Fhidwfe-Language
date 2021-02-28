@@ -358,7 +358,7 @@ public class SyntaxTree extends BaseTree{
 				mismatch(children[0].getType(),children[1].getType());
 			else
 			{
-				System.err.println("Implicit cast from "+children[1].getType()+" to "+type+" at line "+this.getToken().linenum);
+				System.err.println("WARNING: Implicit cast from "+children[1].getType()+" to "+type+" at line "+this.getToken().linenum);
 				return type;
 			}
 		} else {
@@ -658,9 +658,19 @@ public class SyntaxTree extends BaseTree{
 			}
 			int argIndex = theParser.getFunctionInputTypes(getTokenString()).indexOf(usedTypes);
 			if(argIndex==-1) {
-				throw new RuntimeException("Could not find function or alias named "+getTokenString()+" with input signature "+usedTypes+" at line "+this.getToken().linenum);
-			}
-			ret = theParser.getFunctionOutputType(getTokenString()).get(argIndex);
+				
+				//attempt implicit cast
+				for(int argc=0;argc<usedTypes.size();argc++) {
+					if(!usedTypes.get(argc).canCastTo(theParser.getFunctionInputTypes(getTokenString()).get(0).get(argc))) {
+						throw new RuntimeException("Could not find function or alias named "+getTokenString()+" with input signature "+usedTypes+" at line "+this.getToken().linenum);
+					}
+				}
+				//if we cast implicitly, we can only do it to the first function definition
+				System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+				ret = theParser.getFunctionOutputType(getTokenString()).get(0);
+			
+			} else
+				ret = theParser.getFunctionOutputType(getTokenString()).get(argIndex);
 			
 			if(inFunction())
 				this.addDependent(this.functionIn(), getTokenString());

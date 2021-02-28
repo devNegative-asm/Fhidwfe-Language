@@ -121,7 +121,7 @@ public class Parser {
 					Listfloat,
 					Uint
 			);
-			implicitlyConvertible.put(Ptr,ptrtypes);
+			implicitlyConvertible.put(Ptr,asList(Uint));
 			for(Data type:ptrtypes) {
 				implicitlyConvertible.put(type, asList(Ptr,Uint));
 			}
@@ -151,9 +151,9 @@ public class Parser {
 		}
 		public boolean canCastTo(Data x) {
 			if(implicitlyConvertible.containsKey(this)) {
-				return implicitlyConvertible.get(this).contains(x);
+				return implicitlyConvertible.get(this).contains(x) || this==x;
 			} else
-				return false;
+				return this==x;
 		}
 		private static ArrayList<Data> asList(Data...datas) {
 			return new ArrayList<>(Arrays.asList(datas));
@@ -1216,7 +1216,7 @@ public class Parser {
 				}
 			break;
 			default:
-				throw new RuntimeException(t.toString()+" not recognized as a valid expression token");
+				throw new RuntimeException(tok.toString()+" not recognized as a valid expression token at line "+tok.linenum);
 		}
 		return root;
 	}

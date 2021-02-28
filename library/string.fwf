@@ -92,7 +92,7 @@ function void capitalize_inplace(strin:ptr) {
 	if = 0u strlen$ strin {
 		return
 	} ;
-	for ptr [strin, + strin strlen$ strin) with location {
+	for ptr [strin, + strin as strlen$ strin ptr) with location {
 		char = deref_ubyte$ location
 		if in char lowers {
 			put_ubyte$ location - + char 'A' 'a'

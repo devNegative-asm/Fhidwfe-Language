@@ -58,7 +58,7 @@ capitalize_inplace$ realstr
 free$ my_strlist
 puts$ realstr
 free$ realstr
-putui$ as - heaptail heap uint
+putui$ - heaptail heap // type inference to the rescue ptr -> uint. This will generate a warning
 puts$ " BYTES OF RAM\n"
 
 
