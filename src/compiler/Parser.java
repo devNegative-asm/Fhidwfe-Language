@@ -23,6 +23,7 @@ public class Parser {
 		Ptr(2,false,null,false,false,false),
 		Void(0,false,null,false,false,false),
 		Relptr(1,false,null,false,false,false),
+		File(1,false,null,false,false,false),
 		
 		Listbyte(2,false,Byte,false,false,true),
 		Listint(2,false,Int,false,false,true),
@@ -30,6 +31,7 @@ public class Parser {
 		Listuint(2,false,Uint,false,false,true),
 		Listfloat(2,false,Float,false,false,true),
 		Listptr(2,false,Ptr,false,false,true),
+		Listfile(2,false,File,false,false,true),
 		
 		Rangecc(2,true,Int,true,true,false),//int ranges
 		Rangeco(2,true,Int,true,false,false),
@@ -61,9 +63,8 @@ public class Parser {
 		Ptrrangeoc(2,true,Ptr,false,true,false),
 		Ptrrangeoo(2,true,Ptr,false,false,false),
 		
-		SYNTAX(0,false,null,false,false,false),
+		SYNTAX(0,false,null,false,false,false);
 		
-		File(1,false,null,false,false,false);
 		
 		private final int size;
 		private final boolean range;
@@ -83,6 +84,79 @@ public class Parser {
 			isList = list;
 			closedLow = cllow;
 			closedHigh=clhigh;
+		}
+		private static HashMap<Data,ArrayList<Data>> implicitlyConvertible = new HashMap<>();
+		static {
+			ArrayList<Data> ptrtypes =asList(
+					Rangecc,
+					Rangeco,
+					Rangeoc,
+					Rangeoo,
+					Urangecc,
+					Urangeco,
+					Urangeoc,
+					Urangeoo,
+					Brangecc,
+					Brangeco,
+					Brangeoc,
+					Brangeoo,
+					Ubrangecc,
+					Ubrangeco,
+					Ubrangeoc,
+					Ubrangeoo,
+					Frangecc,
+					Frangeco,
+					Frangeoc,
+					Frangeoo,
+					Ptrrangecc,
+					Ptrrangeco,
+					Ptrrangeoc,
+					Ptrrangeoo,
+					Listint,
+					Listuint,
+					Listbyte,
+					Listubyte,
+					Listptr,
+					Listfile,
+					Listfloat,
+					Uint
+			);
+			implicitlyConvertible.put(Ptr,ptrtypes);
+			for(Data type:ptrtypes) {
+				implicitlyConvertible.put(type, asList(Ptr,Uint));
+			}
+			/*
+			 * Flag
+				Bool
+				Byte
+				Int
+				Float
+				Uint
+				Ubyte
+				Ptr
+				Void
+				Relptr
+				File
+			 */
+			implicitlyConvertible.put(Flag, asList(Bool));
+			implicitlyConvertible.put(Bool, asList(Byte));
+			implicitlyConvertible.put(Flag, asList(Byte));
+			implicitlyConvertible.put(Byte, asList(Uint));
+			implicitlyConvertible.put(Int, asList(Byte,Ubyte,Ptr));
+			ArrayList<Data> uintTo = asList(Byte,Ubyte,Ptr);
+			uintTo.addAll(ptrtypes);
+			uintTo.remove(Uint);
+			uintTo.removeIf(x -> x.name().contains("list")||x.name().contains("List"));// don't convert uints to list
+			implicitlyConvertible.put(Uint, uintTo);
+		}
+		public boolean canCastTo(Data x) {
+			if(implicitlyConvertible.containsKey(this)) {
+				return implicitlyConvertible.get(this).contains(x);
+			} else
+				return false;
+		}
+		private static ArrayList<Data> asList(Data...datas) {
+			return new ArrayList<>(Arrays.asList(datas));
 		}
 		public Data assignable() {
 			return assignable;

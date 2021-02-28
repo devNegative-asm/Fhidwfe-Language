@@ -47,15 +47,20 @@
 
 guard
 import null
-my_strlist = ["hello1" "hallo" "he" "hello"]
-for ptr my_strlist with strid {
-	copy = capitalize_copy$ strid
-	puts$ copy
-	putln$
-	puti$ strcmp$ copy "HELLO"
-	putln$
-	free$ copy
-}
+import heap
+import heaptail
+my_strlist = ["Congratulations!" "Welcome to fhidwfe" "This should display in all caps" "separated by newlines" "You have "]
+
+
+realstr = join$ my_strlist '\n'
+capitalize_inplace$ realstr
+
+free$ my_strlist
+puts$ realstr
+free$ realstr
+putui$ as - heaptail heap uint
+puts$ " BYTES OF RAM\n"
+
 
 //file operations only supported on the VM
 //home = fopen$ "test.txt"

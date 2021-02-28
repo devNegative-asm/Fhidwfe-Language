@@ -3,6 +3,7 @@ package interfaceCore;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
@@ -143,7 +144,9 @@ public class Main {
 	
 	
 	
-	
+	private static String hs(int i) {
+		return Integer.toHexString(i);
+	}
 	public static void run(String infile) throws InterruptedException, IOException
 	{
 		MEMORY.setPorts(PORTS);
@@ -349,6 +352,9 @@ public class Main {
 		System.out.println("Program finished in "+(endTime-startTime)+"ms.");
 		System.out.println("Processed "+inCount+" instructions in "+actualTime+" cycles.");
 		System.out.println("Would run in "+(actualTime/6000)+"ms hardware time.");
+		FileOutputStream fos = new FileOutputStream(new File("last_mem.bin"));
+		fos.write(RAM);
+		fos.close();
 		for(RandomAccessFile f:files) {
 			if(f!=null)
 				f.close();

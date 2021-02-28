@@ -354,7 +354,13 @@ public class SyntaxTree extends BaseTree{
 		SyntaxTree[] children = children(2);
 		Parser.Data type = children[0].getType(); 
 		if(type != children[1].getType()) {
-			mismatch(children[0].getType(),children[1].getType());
+			if(!children[1].getType().canCastTo(type))
+				mismatch(children[0].getType(),children[1].getType());
+			else
+			{
+				System.err.println("Implicit cast from "+children[1].getType()+" to "+type+" at line "+this.getToken().linenum);
+				return type;
+			}
 		} else {
 			if(!mathTypes.contains(type))
 				math(type);

@@ -1,4 +1,5 @@
 guard
+lowers = ['a','z']
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string
 	len_1 = strlen$ s1
@@ -87,11 +88,26 @@ function ptr join(strlist:ptr delim:ubyte) {
 	return joined
 }
 
+function void capitalize_inplace(strin:ptr) {
+	if = 0u strlen$ strin {
+		return
+	} ;
+	for ptr [strin, + strin strlen$ strin) with location {
+		char = deref_ubyte$ location
+		if in char lowers {
+			put_ubyte$ location - + char 'A' 'a'
+		} ;
+	}
+}
+
 function ptr capitalize_copy(strin:ptr) {
 	rett = stralloc$ strin
+	if = 0u strlen$ strin {
+		return rett
+	} ;
 	for ptr [as 0u ptr,as strlen$ rett ptr) with offset {
 		char = deref_ubyte$ +rett offset
-		if in char ['a','z'] {
+		if in char lowers {
 			put_ubyte$ +rett offset - + char 'A' 'a'
 		} ;
 	}

@@ -1,14 +1,26 @@
+
+null = as 0 ptr
+one = as 1 ptr
 guard
+import one
 ovflow = "Array overflow."
 
 alias void memcpy(a:listbyte b:listbyte c:uint)
 alias void memcpy(a:listubyte b:listubyte c:uint)
-
+function int access_word(list:listint index:uint) {
+	index = ? index //turn it into a usable index
+	if < index deref_uint$ - as list ptr one {
+		return deref_int$ + as list ptr index
+	} {
+		error$ ovflow
+	}
+	return 0
+}
 
 alias ubyte access_byte(a:listubyte a:uint)
 function byte access_byte(list:listbyte index:uint) {
-	if < index deref_uint$ - as list ptr as ? 1 ptr {
-		return deref_byte$ + as list ptr as index ptr
+	if < index deref_uint$ - as list ptr one {
+		return deref_byte$ + as list ptr index
 	} {
 		error$ ovflow
 	}
@@ -17,15 +29,7 @@ function byte access_byte(list:listbyte index:uint) {
 
 alias uint access_word(a:listuint index:uint)
 alias ptr access_word(a:listptr index:uint)
-function int access_word(list:listint index:uint) {
-	index = ? index //turn it into a usable index
-	if < index deref_uint$ - as list ptr as ? 1 ptr {
-		return deref_int$ + as list ptr as index ptr
-	} {
-		error$ ovflow
-	}
-	return 0
-}
+
 
 function listbyte double_len(a:listbyte) {
 	b = as malloc$ << sizeof$ a listbyte
