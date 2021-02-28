@@ -27,12 +27,15 @@ function void getline(str:ptr) {
 	while < size maxlen {
 		char = getc$
 		if = char '\r' {
-			getc$ //get the newline too
-			set consumed
-			return
+		
 		} {
-			put_ubyte$ + as size ptr str char
-			size = + size 1u
+			if = char '\n' {
+				set consumed
+				return
+			} {
+				put_ubyte$ + as size ptr str char
+				size = + size 1u
+			}
 		}
 	}
 	reset consumed

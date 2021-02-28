@@ -2,13 +2,12 @@ package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-public class Z80TranslatorForWindows {
+public class TI83PTranslator {
 	int counter = 0;
 	private int fresh() {
 		return counter++;
 	}
-	public ArrayList<String> translate(List<IntermediateLang.Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
+	public ArrayList<String> translateTI83pz80(List<IntermediateLang.Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
 		
 		boolean debug = false;
 		
@@ -19,9 +18,13 @@ public class Z80TranslatorForWindows {
 		for(IntermediateLang.Instruction instruction:instructions) {
 			if(debug) {
 				System.out.println(instruction);
+				System.out.println(";;;;;;"+stackDepth);
 			}
 			String[] args = instruction.args;
 			switch(instruction.in) {
+			case notify_stack:
+				stackDepth = Integer.parseInt(args[0]);
+				break;
 			case notify_pop:
 				stackDepth--;
 				break;
@@ -42,21 +45,13 @@ public class Z80TranslatorForWindows {
 				stackDepth--;
 				break;
 			case strcpy:
-				int label = fresh();
 				comp.add("	pop de");
-				//write from hl to de until (hl)==0
-				comp.add("__strcpy_loop_"+label+":");
-				comp.add("	ld a,(hl)");
-				comp.add("	or a");
-				comp.add("	jr z,__strcpy_loop_exit_"+label);
-				comp.add("	ldi");
-				comp.add("	jp __strcpy_loop_"+label);
-				comp.add("__strcpy_loop_exit_"+label+":");
+				comp.add("	b_call(_StrCpy)");
 				comp.add("	ex de,hl");
 				stackDepth--;
 				break;
 			case call_function:
-					
+				
 				if(p.getFunctionOutputType(args[0]).get(0)==Parser.Data.Void) {
 					comp.add("	push hl");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
@@ -87,7 +82,7 @@ public class Z80TranslatorForWindows {
 				break;
 			case copy_from_address:
 				//stack is [dest] [src] [n]
-				label = fresh();
+				int label = fresh();
 				comp.addAll(Arrays.asList(
 						"	ld b,h",
 						"	ld c,l",
@@ -196,9 +191,6 @@ public class Z80TranslatorForWindows {
 				comp.add("	push bc");
 				comp.add("	ret");
 				break;
-			case notify_stack:
-				stackDepth = Integer.parseInt(args[0]);
-				break;
 			case exit_routine:
 				comp.addAll(Arrays.asList(
 						"	ld b,iyh",
@@ -206,7 +198,6 @@ public class Z80TranslatorForWindows {
 						"	ld iy,(___flag_save)",
 						"	push bc",
 						"	ret"));
-				stackDepth=0;
 				break;
 			case function_label:
 			case general_label:
@@ -630,12 +621,19 @@ public class Z80TranslatorForWindows {
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
 				break;
+			case getc:
+				if(stackDepth++>0)
+					comp.add("	push hl");
+				comp.add("	b_call(__GetKeyRetOff)");
+				comp.add("	ld l,a");
+				comp.add("	ld h,0");
+				break;
 			case retrieve_local_address://this is a bit complicated because ix doesn't like giving its own value up
 				if(stackDepth++>0)
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
-				comp.add("	push ix");//slower, but at least these are defined instructions
-				comp.add("	pop bc");
+				comp.add("	ld b,ixh");//the ti-83+ explicitly allows these opcodes
+				comp.add("	ld c,ixl");
 				comp.add("	add hl,bc");
 				break;
 			case retrieve_local_byte:
@@ -654,8 +652,8 @@ public class Z80TranslatorForWindows {
 				if(stackDepth++>0)
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
-				comp.add("	push ix");
-				comp.add("	pop bc");
+				comp.add("	ld b,ixh");
+				comp.add("	ld c,ixl");
 				comp.add("	add hl,bc");
 				break;
 			case retrieve_param_byte:
@@ -735,8 +733,11 @@ public class Z80TranslatorForWindows {
 			case stackdiv_unsigned:
 			case stackdiv_unsigned_b:
 				//divide top stack by hl
-				comp.add("	pop de");
-				comp.add("	call _Div16By16");
+				comp.add("	ex de,hl");
+				comp.add("	pop hl");
+				comp.add("	push ix");
+				comp.add("	b_call(_Div16By16)");
+				comp.add("	pop ix");
 				//result is in de
 				comp.add("	ex de,hl");
 				stackDepth--;
@@ -782,9 +783,12 @@ public class Z80TranslatorForWindows {
 			case stackmod_unsigned:
 				//divide top stack by hl
 				label = fresh();
-				comp.add("	pop de");
+				comp.add("	ex de,hl");
+				comp.add("	pop hl");
 				comp.add("	push de");
-				comp.add("	call _Div16By16");
+				comp.add("	push ix");
+				comp.add("	b_call(_Div16By16)");
+				comp.add("	pop ix");
 				comp.add("	pop bc");
 				//result is in hl, but hl might be equal to what de was.
 				comp.add("	xor a");
@@ -951,23 +955,15 @@ public class Z80TranslatorForWindows {
 				comp.add("	push hl");
 				comp.add("	exx");
 				break;
-			case getc:
-				// read from in (0) until the result is not 0.
-				// then store the result in l.
-				label = fresh();
-				if(stackDepth++>0)
-					comp.add("	push hl");
-				comp.add("	ld h,$00");
-				comp.add("__getc_loop_"+label+":");
-				comp.add("	in a,(0)");
-				comp.add("	or a");
-				comp.add("	jp z, __getc_loop_"+label);
-				comp.add("	ld l,a");
-				break;
 			case syscall_noarg:
-				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
+				comp.add("	b_call("+args[0]+")");
+				break;
 			case syscall_arg:
-				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
+				comp.add("	b_call("+args[0]+")");
+				stackDepth--;
+				if(stackDepth!=0)
+					comp.add("	pop hl");
+				break;
 			case truncate:
 				comp.add("	ld h,$00");
 				break;//TODO add direct comparison conditional branches
@@ -994,8 +990,8 @@ public class Z80TranslatorForWindows {
 				comp.add("	rr l");
 				break;
 			case exit_noreturn:
-				comp.add("	di");
-				comp.add("	halt");
+				comp.add("	ld sp,("+args[0]+")");
+				comp.add("	ret");
 				break;
 			case write_sp:
 				comp.add("	ld ("+args[0]+"),sp");
@@ -1004,49 +1000,20 @@ public class Z80TranslatorForWindows {
 				comp.add("	add hl,hl");//ok then
 				break;
 			}
+			cache=comp;
 			if(stackDepth<0)
 				throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 			if(debug)
-				System.out.println(";;;;;;"+stackDepth);
+				comp.add(";;;;"+stackDepth);
 		}
 		if(stackDepth!=0)
 		{
 			throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 		}
-		comp.add("	di");//exiting on windows requires the sequence di halt. This will freeze if run on hardware
-		comp.add("	halt");
+		comp.add("	ret");
 		comp.add("___flag_save:");
 		comp.add("	.dw $0000");
 		
-		//divide de by hl.
-		//store result in de, remainder in hl
-		comp.add("_Div16By16:");
-		comp.add("	ld a,h");//check divide by 0
-		comp.add("	or l");
-		comp.add("	jr nz,__actually_divide");
-		comp.add("	ld de,$0000");//return 0 in both if we divided by 0.
-		comp.add("	ret");
-		comp.add("__actually_divide:");
-		
-		comp.add("	ex de,hl");
-		comp.add("	ld a,h");
-		comp.add("	ld c,l");
-		//brandonw 16/16 division routine
-		comp.add("	ld hl,$0000");
-		comp.add("	ld b,16");
-		comp.add("__divloop__:");
-		comp.add("	sll c");
-		comp.add("	rla");
-		comp.add("	adc hl,hl");
-		comp.add("	sbc hl,de");
-		comp.add("	jr nc, $+4");
-		comp.add("	add hl,de");
-		comp.add("	dec c");
-		comp.add("	djnz __divloop__");
-		//move ac to de
-		comp.add("	ld d,a");
-		comp.add("	ld e,c");
-		comp.add("	ret");
 		//slight optimization
 		final boolean optimize = !debug;
 		
@@ -1099,4 +1066,5 @@ public class Z80TranslatorForWindows {
 		
 		return comp;
 	}
+	ArrayList<String> cache;
 }

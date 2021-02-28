@@ -105,7 +105,7 @@ public class Main {
 		}
 		pr1.close();
 		
-		ArrayList<String> assembly = new Translator().translate(p, VMCode,true);
+		ArrayList<String> assembly = Translator.translate(p, VMCode,true);
 		
 		PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
 		for(String ins:assembly) {
@@ -142,11 +142,6 @@ public class Main {
 		}
 	}
 	
-	
-	
-	private static String hs(int i) {
-		return Integer.toHexString(i);
-	}
 	public static void run(String infile) throws InterruptedException, IOException
 	{
 		MEMORY.setPorts(PORTS);

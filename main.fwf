@@ -60,7 +60,13 @@ puts$ realstr
 free$ realstr
 putui$ - heaptail heap // type inference to the rescue ptr -> uint. This will generate a warning
 puts$ " BYTES OF RAM\n"
+puts$ "type here:"
 
+response = malloc$ 25u
+getline$ response
+puts$ "You said: "
+puts$ response
+free$response
 
 //file operations only supported on the VM
 //home = fopen$ "test.txt"
