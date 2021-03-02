@@ -342,8 +342,9 @@ public class Z80TranslatorForWindows {
 				break;
 			case increment_by_pointer_b:
 				comp.add("	inc (hl)");
-				comp.add("	pop hl");
 				stackDepth--;
+				if(stackDepth>0)
+					comp.add("	pop hl");
 				break;
 			case increment_by_pointer_i:
 				label = fresh();
@@ -352,8 +353,9 @@ public class Z80TranslatorForWindows {
 				comp.add("	inc hl");
 				comp.add("	inc (hl)");
 				comp.add("___increment"+label);
-				comp.add("	pop hl");
 				stackDepth--;
+				if(stackDepth>0)
+					comp.add("	pop hl");
 				break;
 			case less_equal_b:
 				label = fresh();
