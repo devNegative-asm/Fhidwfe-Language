@@ -10,12 +10,13 @@ public class Winx64Translator {
 	}
 	public ArrayList<String> translateWin64(List<IntermediateLang.Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
 		
-		boolean debug = true;
+		boolean debug = false;
 		
 		
 		ArrayList<String> comp = new ArrayList<String>();
 		ArrayList<String> externs = new ArrayList<String>();
 		ArrayList<String> data = new ArrayList<String>();
+		HashMap<String,Integer> depths = new HashMap<String,Integer>();
 		p.settings.target.addHeader(comp);
 		String fndef = "";
 		for(IntermediateLang.Instruction instruction:instructions) {
@@ -39,6 +40,7 @@ public class Winx64Translator {
 						stackDepth>1?"	pop rax":"	",
 						"	jnz "+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case branch_not_address:
 				comp.addAll(Arrays.asList(
@@ -46,6 +48,7 @@ public class Winx64Translator {
 						stackDepth>1?"	pop rax":"	",
 						"	jz "+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case strcpy:
 				//arguments on stack: dest
@@ -173,7 +176,11 @@ public class Winx64Translator {
 				if(args[0].equals("__main"))
 					comp.add("__main PROC");
 				else
+				{
+					if(depths.containsKey(args[0]))
+						stackDepth = depths.get(args[0]);
 					comp.add(args[0]+":");
+				}
 				break;
 			case goto_address:
 				comp.add("	jmp "+args[0]);

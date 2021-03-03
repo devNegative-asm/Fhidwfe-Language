@@ -1,6 +1,7 @@
 package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 public class Z80TranslatorForWindows {
@@ -14,6 +15,7 @@ public class Z80TranslatorForWindows {
 		
 		
 		ArrayList<String> comp = new ArrayList<String>();
+		HashMap<String,Integer> depths = new HashMap<>();
 		p.settings.target.addHeader(comp);
 		
 		for(IntermediateLang.Instruction instruction:instructions) {
@@ -32,6 +34,7 @@ public class Z80TranslatorForWindows {
 						"	or a",
 						"	jp nz,"+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case branch_not_address:
 				comp.addAll(Arrays.asList(
@@ -40,6 +43,7 @@ public class Z80TranslatorForWindows {
 						"	or a",
 						"	jp z,"+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case strcpy:
 				int label = fresh();
@@ -208,8 +212,11 @@ public class Z80TranslatorForWindows {
 						"	ret"));
 				stackDepth=0;
 				break;
-			case function_label:
 			case general_label:
+				if(depths.containsKey(args[0])) {
+					stackDepth = depths.get(args[0]);
+				}
+			case function_label:
 			case data_label:
 				comp.add(args[0]+":");
 				break;

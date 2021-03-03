@@ -71,8 +71,14 @@ public class LibFunctions {
 
 			p.registerLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
 			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Uint, "sizeof");
-			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Ptr, "realloc");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr,Parser.Data.Uint), Parser.Data.Ptr, "realloc");
 			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			
+			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.File, "fopen");
+			p.registerLibFunction(Arrays.asList(Parser.Data.File,Parser.Data.Ubyte), Parser.Data.Void, "fwrite");
+			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Void, "fflush");
+			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Void, "fclose");
+			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Uint, "fread");
 			
 			break;
 		case z80Emulator:
@@ -123,6 +129,12 @@ public class LibFunctions {
 				p.inlineReplace("memcpy");
 				p.inlineReplace("strcpy");
 				p.inlineReplace("putln");
+				p.inlineReplace("fflush");
+				p.inlineReplace("fwrite");
+				p.inlineReplace("fclose");
+				p.inlineReplace("fopen");
+				p.inlineReplace("fread");
+				//p.inlineReplace("favail");
 			}
 			if(architecture==CompilationSettings.Target.TI83pz80) {
 				p.inlineReplace("putln");
@@ -188,10 +200,10 @@ public class LibFunctions {
 						switch(architecture) {
 						case WINx64:
 							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.notify_pop.cv(),
 									IntermediateLang.InstructionType.rawinstruction.cv("mov rdx,rax"),
 									IntermediateLang.InstructionType.rawinstruction.cv("pop rcx"),
-									IntermediateLang.InstructionType.syscall_noarg.cv("__realloc"),
-									IntermediateLang.InstructionType.pop_discard.cv());
+									IntermediateLang.InstructionType.syscall_noarg.cv("__realloc"));
 							break;
 						default:
 							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
@@ -227,6 +239,12 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.pop_discard.cv()
 								);
 								break;
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fclose"),
+										IntermediateLang.InstructionType.pop_discard.cv());
+								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 						}
@@ -243,6 +261,12 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.pop_discard.cv()
 								);
 								break;
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fflush"),
+										IntermediateLang.InstructionType.pop_discard.cv());
+								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 						}
@@ -257,6 +281,11 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.rawinstruction.cv("in a,(1)"),//read_byte
 									IntermediateLang.InstructionType.rawinstruction.cv("ld l,a")
 								);
+								break;
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fread"));
 								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
@@ -296,6 +325,14 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.pop_discard.cv()
 								);
 								break;
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.notify_pop.cv(),
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rdx,rax"),
+										IntermediateLang.InstructionType.rawinstruction.cv("pop rcx"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fflush"),
+										IntermediateLang.InstructionType.pop_discard.cv());
+								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 						}
@@ -317,6 +354,11 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.rawinstruction.cv("ld l,a"),
 									IntermediateLang.InstructionType.rawinstruction.cv("ld h,$0")
 								);
+								break;
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fopen"));
 								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");

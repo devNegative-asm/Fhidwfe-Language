@@ -1,6 +1,7 @@
 package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 public class TI83PTranslator {
 	int counter = 0;
@@ -13,6 +14,7 @@ public class TI83PTranslator {
 		
 		
 		ArrayList<String> comp = new ArrayList<String>();
+		HashMap<String,Integer> depths = new HashMap<String,Integer>();
 		p.settings.target.addHeader(comp);
 		
 		for(IntermediateLang.Instruction instruction:instructions) {
@@ -35,6 +37,7 @@ public class TI83PTranslator {
 						"	or a",
 						"	jp nz,"+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case branch_not_address:
 				comp.addAll(Arrays.asList(
@@ -43,6 +46,7 @@ public class TI83PTranslator {
 						"	or a",
 						"	jp z,"+args[0]));
 				stackDepth--;
+				depths.put(args[0],stackDepth);
 				break;
 			case strcpy:
 				comp.add("	pop de");
@@ -199,8 +203,11 @@ public class TI83PTranslator {
 						"	push bc",
 						"	ret"));
 				break;
-			case function_label:
 			case general_label:
+				if(depths.containsKey(args[0])) {
+					stackDepth = depths.get(args[0]);
+				}
+			case function_label:
 			case data_label:
 				comp.add(args[0]+":");
 				break;
