@@ -52,17 +52,17 @@ public class IntermediateLang {
 		results.add(InstructionType.retrieve_param_int.cv(""+(tree.theParser.settings.intsize*2)));//retrieve string argument
 		results.add(InstructionType.call_function.cv("puts"));//print the error message
 		results.add(InstructionType.exit_noreturn.cv("__ExitLocation"));
-		results.add(InstructionType.general_label.cv("__ExitLocation"));
+		results.add(InstructionType.data_label.cv("__ExitLocation"));
 		results.add(InstructionType.rawspace.cv(""+tree.theParser.settings.intsize));
 		for(String b:lex.stringConstants()) {//create string constants table
-			results.add(InstructionType.general_label.cv("__String_"+stringCount++));
+			results.add(InstructionType.data_label.cv("__String_"+stringCount++));
 			for(byte c:b.getBytes()) {
 				results.add(InstructionType.raw.cv("$"+Integer.toHexString((c+256)%256)));
 			}
 			results.add(InstructionType.raw.cv("$00"));
 		}
 		
-		results.add(InstructionType.general_label.cv("__ErrMessageArray"));
+		results.add(InstructionType.data_label.cv("__ErrMessageArray"));
 		for(byte c:"Array Error!".getBytes()) {
 			results.add(InstructionType.raw.cv("$"+Integer.toHexString((c+256)%256)));
 		}
@@ -87,17 +87,17 @@ public class IntermediateLang {
 		// heap
 		// heaptail
 
-		results.add(InstructionType.general_label.cv("heaphead"));
+		results.add(InstructionType.data_label.cv("heaphead"));
 		results.add(InstructionType.rawint.cv("0"));
 		results.add(InstructionType.rawint.cv("heaptail"));
 		results.add(InstructionType.rawint.cv("0"));
-		results.add(InstructionType.general_label.cv("heap"));
+		results.add(InstructionType.data_label.cv("heap"));
 		results.add(InstructionType.rawspaceints.cv(""+tree.theParser.settings.heapSpace));
 
 		results.add(InstructionType.rawint.cv("heap"));
 		results.add(InstructionType.rawint.cv("0"));
 		results.add(InstructionType.rawint.cv("0"));
-		results.add(InstructionType.general_label.cv("heaptail"));
+		results.add(InstructionType.data_label.cv("heaptail"));
 		
 		
 		results.add(InstructionType.general_label.cv("__main"));
@@ -337,7 +337,7 @@ public class IntermediateLang {
 					results.addAll(generateInstructions(child,lex,metadata));
 				}
 				
-				if(tree.getChild(0).getType().getSize(settings)==2) {
+				if(tree.getChild(0).getType().getSize(settings)>1) {
 					results.add(InstructionType.equal_to_i.cv());
 				} else {
 					results.add(InstructionType.equal_to_b.cv());
@@ -468,15 +468,16 @@ public class IntermediateLang {
 			break;
 		case INT_LITERAL:
 			try {
-				int x;
+				long x;
 				if(str.endsWith("u"))
-					x = Integer.parseInt(str.substring(0,str.length()-1));
+					x = Long.parseLong(str.substring(0,str.length()-1));
 				else
-					x = Integer.parseInt(str);
+					x = Long.parseLong(str);
 				final long MAX_INT = (1l << (settings.intsize*8)) - 1;//maximum possible unsigned value
 				final long MIN_INT = (~MAX_INT)>>1;
-				if(x<MIN_INT||x>MAX_INT)
-					throw new RuntimeException("int value: "+str+" out of range "+MIN_INT+" to "+MAX_INT+" at line "+tree.getToken().linenum);
+				if(MAX_INT>0)
+					if(x<MIN_INT||x>MAX_INT)
+						throw new RuntimeException("int value: "+str+" out of range "+MIN_INT+" to "+MAX_INT+" at line "+tree.getToken().linenum);
 			} catch(NumberFormatException e) {
 				throw new RuntimeException("int value: "+str+" cannot be parsed at line "+tree.getToken().linenum);
 			}
@@ -574,7 +575,7 @@ public class IntermediateLang {
 			{
 				results.add(InstructionType.stacknegfloat.cv());
 			}
-			else if(type.getSize(settings)==2)
+			else if(type.getSize(settings)>1)
 				results.add(InstructionType.stackneg.cv());
 			else if(type.getSize(settings)==1) {
 				results.add(InstructionType.stacknegbyte.cv());
@@ -997,7 +998,7 @@ public class IntermediateLang {
 			//results.add(InstructionType.goto_address.cv("__function_"+id+"_end"));
 			
 			String localSpace = tree.getLocalSpaceNeeded()+""; 
-			String argumentSpace = ""+tree.theParser.getFunctionInputTypes(tree.functionIn()).get(0).size()*2;
+			String argumentSpace = ""+tree.theParser.getFunctionInputTypes(tree.functionIn()).get(0).size()*settings.intsize;
 			results.add(InstructionType.function_label.cv(tree.getChild(1).getTokenString()));
 			results.add(InstructionType.enter_function.cv(localSpace));
 			results.addAll(generateInstructions(tree.getChild(tree.getChildren().size()-1),lex,metadata));
@@ -1177,12 +1178,13 @@ public class IntermediateLang {
 		branch_not_address(1,"address, only goes if false."),
 		enter_routine(1,"pops the return address into iy (same as enter_function without index register or local allocation) and notify translator we have n arguments"),
 		exit_routine(0,"exits a routine"),
-		
-		syscall_arg(1,"uses hl as the argument to a syscall"),
+
+		syscall_2arg(1,"uses 2 stack tops as the argument to a syscall"),
+		syscall_arg(1,"uses stack top as the argument to a syscall"),
 		syscall_noarg(1,"performs a syscall without touching the stack"),
 		//loops
 		general_label(1,"loop name"),
-		
+		data_label(1,"data name"),
 		//conditional
 		less_than_b(0,"compare 2 bytes on stack"),
 		less_than_i(0,"compare 2 ints on stack"),

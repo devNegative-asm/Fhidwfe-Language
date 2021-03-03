@@ -210,6 +210,7 @@ public class Z80TranslatorForWindows {
 				break;
 			case function_label:
 			case general_label:
+			case data_label:
 				comp.add(args[0]+":");
 				break;
 			case goto_address:

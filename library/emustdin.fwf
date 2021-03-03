@@ -20,10 +20,11 @@ function bool line_done() {// returns whether the last consumed character was a 
 function void getline(str:ptr) {
 	//empty the string
 	maxlen = sizeof$ str
-	for uint [0u,maxlen] with x {
+	for uint [0u,maxlen) with x {
 		put_byte$ + as x ptr str 0b
 	}
 	size = 0u
+	maxlen = - maxlen 1u
 	while < size maxlen {
 		char = getc$
 		if = char '\r' {

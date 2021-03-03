@@ -33,8 +33,6 @@ public class LibFunctions {
 		p.registerLibFunction(Arrays.asList(), Parser.Data.Void, "putln");
 		
 		
-		p.requireLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
-		p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
 		
 		p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Rangecc), Parser.Data.Bool, "inrangecc");
 		p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Rangeco), Parser.Data.Bool, "inrangeco");
@@ -55,16 +53,27 @@ public class LibFunctions {
 		p.requireLibFunction(Arrays.asList(Parser.Data.Ubyte,Parser.Data.Ubrangeco), Parser.Data.Bool, "inubrangeco");
 		p.requireLibFunction(Arrays.asList(Parser.Data.Ubyte,Parser.Data.Ubrangeoc), Parser.Data.Bool, "inubrangeoc");
 		p.requireLibFunction(Arrays.asList(Parser.Data.Ubyte,Parser.Data.Ubrangeoo), Parser.Data.Bool, "inubrangeoo");
+		
 		//p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "puts");
-		
-		
 		//architecture specific libraries
 		switch(architecture) {
 		case TI83pz80:
+			p.requireLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			
+			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "sdiv");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "smod");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Byte,Parser.Data.Byte), Parser.Data.Byte, "sbdiv");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Byte,Parser.Data.Byte), Parser.Data.Byte, "sbmod");
 			break;
 		case WINx64:
-			break;
 		case WINx86:
+
+			p.registerLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Uint, "sizeof");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Ptr, "realloc");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			
 			break;
 		case z80Emulator:
 			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.File, "fopen");
@@ -73,6 +82,15 @@ public class LibFunctions {
 			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Void, "fclose");
 			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Ubyte, "fread");
 			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Ubyte, "favail");
+			
+
+			p.requireLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			
+			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "sdiv");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "smod");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Byte,Parser.Data.Byte), Parser.Data.Byte, "sbdiv");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Byte,Parser.Data.Byte), Parser.Data.Byte, "sbmod");
 			break;
 		default:
 			break;
@@ -95,7 +113,17 @@ public class LibFunctions {
 			p.inlineReplace("put_int");
 			p.inlineReplace("put_uint");
 			p.inlineReplace("put_ptr");
-			
+			if(architecture==CompilationSettings.Target.WINx64) {
+				p.inlineReplace("malloc");
+				p.inlineReplace("free");
+				p.inlineReplace("realloc");
+				p.inlineReplace("sizeof");
+				p.inlineReplace("getc");
+				p.inlineReplace("putchar");
+				p.inlineReplace("memcpy");
+				p.inlineReplace("strcpy");
+				p.inlineReplace("putln");
+			}
 			if(architecture==CompilationSettings.Target.TI83pz80) {
 				p.inlineReplace("putln");
 				p.inlineReplace("memcpy");
@@ -122,6 +150,53 @@ public class LibFunctions {
 			
 			if(instr.in==IntermediateLang.InstructionType.call_function) {
 				switch(instr.args[0]) {
+					case "malloc":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+									IntermediateLang.InstructionType.syscall_noarg.cv("__malloc"));
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
+					case "sizeof":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+									IntermediateLang.InstructionType.syscall_noarg.cv("__sizeof"));
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
+					case "free":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+									IntermediateLang.InstructionType.syscall_noarg.cv("__free"),
+									IntermediateLang.InstructionType.pop_discard.cv());
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
+					case "realloc":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("mov rdx,rax"),
+									IntermediateLang.InstructionType.rawinstruction.cv("pop rcx"),
+									IntermediateLang.InstructionType.syscall_noarg.cv("__realloc"),
+									IntermediateLang.InstructionType.pop_discard.cv());
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
 					case "deref_ubyte":
 					case "deref_byte":
 						replacement = Arrays.asList(IntermediateLang.InstructionType.load_b.cv());
@@ -248,17 +323,9 @@ public class LibFunctions {
 						}
 						break;
 					case "memcpy":
-						switch(architecture) {
-						case z80Emulator:
-						case TI83pz80:
-							
-							replacement = Arrays.asList(
-								IntermediateLang.InstructionType.copy_from_address.cv()
-							);
-							break;
-						default:
-							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
-						}
+						replacement = Arrays.asList(
+							IntermediateLang.InstructionType.copy_from_address.cv()
+						);
 						break;
 					case "getc"://block for input
 						replacement = Arrays.asList(
@@ -268,7 +335,6 @@ public class LibFunctions {
 					case "putchar":
 						switch(architecture) {
 							case TI83pz80:
-								
 								replacement = Arrays.asList(
 									IntermediateLang.InstructionType.rawinstruction.cv("ld a,l"),
 									IntermediateLang.InstructionType.syscall_arg.cv("_PutC")//putchar does not take its argument in hl, but we need to pop it anyway
@@ -280,12 +346,29 @@ public class LibFunctions {
 									IntermediateLang.InstructionType.rawinstruction.cv("out (0),a"),
 									IntermediateLang.InstructionType.pop_discard.cv());
 								break;
+							case WINx64:
+								replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("mov rcx,rax"),
+									IntermediateLang.InstructionType.syscall_noarg.cv("__putchar"),
+									IntermediateLang.InstructionType.pop_discard.cv()
+								);
+								break;
 							default:
 								throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 							}
 						break;
 					case "putln":
 						switch(architecture) {
+							case WINx64:
+								replacement = Arrays.asList(
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rdi, rax"),
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx, 13"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__putchar"),
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rcx, 10"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__putchar"),
+										IntermediateLang.InstructionType.rawinstruction.cv("mov rax, rdi")
+								);
+								break;
 							case TI83pz80:
 								replacement = Arrays.asList(
 										IntermediateLang.InstructionType.rawinstruction.cv("ld de,curRow"),//preserve hl and ix
@@ -313,6 +396,7 @@ public class LibFunctions {
 						replacement = Arrays.asList(
 								IntermediateLang.InstructionType.strcpy.cv()
 						);
+						break;
 					default:
 						break;
 				}

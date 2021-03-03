@@ -89,9 +89,9 @@ public class SyntaxTree extends BaseTree{
 				functionVariables.add(new Variable(name,SyntaxTree.Location.ARG,Parser.Data.Uint,theParser));//all args should be of int type in terms of stack operations
 			});//do not sort arguments. They come on the stack.
 			
-			int maxOffset = 2+argorder.size()*2;// +4 gets you the last argument, +6 gets second to last, etc. 
+			int maxOffset = (1+argorder.size())*theParser.settings.intsize;// +4 gets you the last argument, +6 gets second to last, etc. 
 			for(int i=0;i<argorder.size();i++) {
-				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-2*i),Parser.Data.Relptr,theParser));
+				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-theParser.settings.intsize*i),Parser.Data.Relptr,theParser));
 			}
 
 			//look at all sub-blocks that hold local variables.

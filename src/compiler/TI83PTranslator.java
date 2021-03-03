@@ -201,6 +201,7 @@ public class TI83PTranslator {
 				break;
 			case function_label:
 			case general_label:
+			case data_label:
 				comp.add(args[0]+":");
 				break;
 			case goto_address:

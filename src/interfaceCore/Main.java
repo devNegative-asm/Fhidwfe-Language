@@ -105,7 +105,7 @@ public class Main {
 		}
 		pr1.close();
 		
-		ArrayList<String> assembly = Translator.translate(p, VMCode,true);
+		ArrayList<String> assembly = Translator.translate(p, VMCode,false);
 		
 		PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
 		for(String ins:assembly) {

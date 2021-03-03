@@ -105,6 +105,16 @@ public class CompilationSettings {
 						""));
 				break;
 			case WINx64:
+				instructions.addAll(0,Arrays.asList(
+						"__syscall_0 PROC",
+						"	mov r12, rsp",
+						"	sub rsp, 32",
+						"	and rsp, -16",
+						"	call rax",
+						"	mov rsp, r12",
+						"	ret",
+						"__syscall_0 ENDP"
+						));
 				break;
 			case WINx86:
 				break;

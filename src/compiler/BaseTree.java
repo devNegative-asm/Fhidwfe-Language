@@ -126,12 +126,12 @@ public class BaseTree {
 	private int localSpace = 0;
 	public ArrayList<IntermediateLang.Instruction> getGlobalSymbols() {
 		ArrayList<IntermediateLang.Instruction> symbols = new ArrayList<>();
-		symbols.add(IntermediateLang.InstructionType.general_label.cv("__globals"));
+		symbols.add(IntermediateLang.InstructionType.data_label.cv("__globals"));
 		globalVariables.forEach(v->{
-			symbols.add(IntermediateLang.InstructionType.general_label.cv(v.getName()));
+			symbols.add(IntermediateLang.InstructionType.data_label.cv(v.getName()));
 			symbols.add(IntermediateLang.InstructionType.rawspace.cv(""+v.getType().getSize(theParser.settings)));
 		});
-		symbols.add(IntermediateLang.InstructionType.general_label.cv("__global_loop_vars"));
+		symbols.add(IntermediateLang.InstructionType.data_label.cv("__global_loop_vars"));
 		symbols.add(IntermediateLang.InstructionType.rawspace.cv(""+localSpace));
 		return symbols;
 	}

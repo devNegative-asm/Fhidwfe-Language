@@ -68,9 +68,15 @@ alias ptr join(strlist:ptr delim:byte)
 function ptr join(strlist:ptr delim:ubyte) {
 	int_size = ?1
 	list_size = / sizeof$ strlist int_size
+	if = list_size 0u {
+		newjjo = malloc$ 1u
+		put_ubyte$ newjjo 0ub
+		return newjjo
+	} ;
 	final_size = list_size
 	for uint [0u,list_size) with index {
 		str_pointer = deref_ptr$ + strlist as * int_size index ptr
+		puts$ str_pointer
 		final_size = + final_size strlen$ str_pointer
 	}
 	joined = malloc$ final_size
