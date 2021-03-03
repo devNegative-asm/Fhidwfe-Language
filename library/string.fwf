@@ -76,7 +76,6 @@ function ptr join(strlist:ptr delim:ubyte) {
 	final_size = list_size
 	for uint [0u,list_size) with index {
 		str_pointer = deref_ptr$ + strlist as * int_size index ptr
-		puts$ str_pointer
 		final_size = + final_size strlen$ str_pointer
 	}
 	joined = malloc$ final_size

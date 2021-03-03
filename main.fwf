@@ -49,8 +49,10 @@ guard
 import null
 import heap
 import heaptail
-my_strlist = ["Congratulations!" "Welcome to fhidwfe" "This should display in all caps" "separated by newlines" "You have "]
 
+puts$ "hello world\n"
+
+my_strlist = ["Congratulations!" "Welcome to fhidwfe" "This should display in all caps" "separated by newlines" "You have "]
 
 realstr = join$ my_strlist '\n'
 capitalize_inplace$ realstr
@@ -66,11 +68,21 @@ response = malloc$ 25u
 getline$ response
 puts$ "You said: "
 puts$ response
-free$response
+free$ response
 
+putln$
+puti$ ~123456788
+putln$
+putui$ * 512u 512u
+putln$
+puti$ - 5 9
+putln$
+putui$ - 5u 9u
+putln$
 //file operations only supported on the VM
-//home = fopen$ "test.txt"
-//contents = freadmany$ home
-//puts$ contents
-//fclose$ home
+home = fopen$ "C:\\Users\\Zachary\\Desktop\\EclipseFiles\\SimpleCompiler\\test.txt"
+contents = freadmany$ home 256u
+puts$ contents
+free$ contents
+fclose$ home
 

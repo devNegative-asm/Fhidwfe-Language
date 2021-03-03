@@ -955,5 +955,16 @@ public class SyntaxTree extends BaseTree{
 	public Parser getParser() {
 		return theParser;
 	}
+	public SyntaxTree scanReturn() {
+		if(this.getTokenType().equals(Token.Type.RETURN)) {
+			return this;
+		}
+		for(SyntaxTree child:this.getChildren()) {
+			SyntaxTree attempt = child.scanReturn();
+			if(attempt!=null)
+				return attempt;
+		}
+		return null;
+	}
 	
 }

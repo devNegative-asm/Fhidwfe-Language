@@ -330,7 +330,7 @@ public class LibFunctions {
 										IntermediateLang.InstructionType.notify_pop.cv(),
 										IntermediateLang.InstructionType.rawinstruction.cv("mov rdx,rax"),
 										IntermediateLang.InstructionType.rawinstruction.cv("pop rcx"),
-										IntermediateLang.InstructionType.syscall_noarg.cv("__fflush"),
+										IntermediateLang.InstructionType.syscall_noarg.cv("__fwrite"),
 										IntermediateLang.InstructionType.pop_discard.cv());
 								break;
 							default:

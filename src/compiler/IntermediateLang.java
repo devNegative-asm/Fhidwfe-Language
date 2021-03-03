@@ -780,6 +780,7 @@ public class IntermediateLang {
 			break;
 		case FOR:
 			//f'n complicated
+			
 			results.addAll(this.generateInstructions(tree.getChild(1), lex, metadata));
 			boolean freeResult = tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_EXCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_INCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.RANGE_COMMA;
 			
@@ -790,6 +791,10 @@ public class IntermediateLang {
 			//let's find out which
 			
 			SyntaxTree block = tree.getChild(3);
+			SyntaxTree returnloc = block.scanReturn();
+			if(returnloc!=null) {
+				System.err.println("WARNING: Memory leak at line "+returnloc.getToken().linenum+". Do not return from for loop");
+			}
 			Parser.Data loopType = tree.getChild(1).getType();
 			
 			String loopingLocation = block.resolveVariableLocation(tree.getChild(2).getTokenString());

@@ -1,0 +1,34 @@
+guard
+function void fwrites(f:file s:ptr) {
+	len = strlen$ s
+	for uint [0u,len) with index {
+		fwrite$ f deref_ubyte$ + s as index ptr
+	}
+}
+
+alias void fwritebytes(f:file a:listbyte)
+
+function void fwritebytes(f:file lis:listubyte) {
+	for ubyte lis with writer {
+		fwrite$ f writer
+	}
+}
+
+//read as many bytes as possible from the file, up to the given max
+
+function listubyte freadmany(f:file max:uint) {
+	ret = malloc$ + 1u max
+	index = 0u
+	while < index max {
+		result = fread$ f
+		if = ~0u result {
+			put_ubyte$ + as index ptr ret 0ub
+			return as realloc$ ret + 1u index listubyte
+		} {
+			put_ubyte$ + as index ptr ret as result ubyte
+			index = + index 1u
+		}
+	}
+	put_ubyte$ + as max ptr ret 0ub
+	return as ret listubyte
+}
