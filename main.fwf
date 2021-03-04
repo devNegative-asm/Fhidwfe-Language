@@ -85,4 +85,3 @@ contents = freadmany$ home 256u
 puts$ contents
 free$ contents
 fclose$ home
-

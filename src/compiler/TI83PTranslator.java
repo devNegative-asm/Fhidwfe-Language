@@ -1003,6 +1003,11 @@ public class TI83PTranslator {
 				comp.add("	ld sp,("+args[0]+")");
 				comp.add("	ret");
 				break;
+			case exit_global:
+				comp.add("	ld sp,("+args[0]+")");
+				comp.add("	ret");
+				stackDepth--;
+				break;
 			case write_sp:
 				comp.add("	ld ("+args[0]+"),sp");
 				break;

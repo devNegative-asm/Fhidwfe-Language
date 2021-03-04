@@ -1,5 +1,6 @@
 package compiler;
 import java.util.ArrayList;
+import java.util.function.Predicate;
 
 public class IntermediateLang {
 	static String shifts = "top of stack is: [value], [shift ammount]";
@@ -39,11 +40,11 @@ public class IntermediateLang {
 		int stringCount = 0;
 		results.add(InstructionType.define_symbolic_constant.cv("int_size",""+tree.theParser.settings.intsize));
 		
-		
-		
-		results.add(InstructionType.write_sp.cv("__ExitLocation"));
-		results.add(InstructionType.goto_address.cv("__main"));//jump immediately to the main
-		
+		Predicate<CompilationSettings.Target> startsAtBegin = sett -> sett!=CompilationSettings.Target.WINx64 && sett!=CompilationSettings.Target.WINx86;
+		if(startsAtBegin.test(tree.theParser.settings.target)) {
+			results.add(InstructionType.write_sp.cv("__ExitLocation"));
+			results.add(InstructionType.goto_address.cv("__main"));//jump immediately to the main
+		}
 		//equivalent of the error(err_message) function
 		tree.theParser.inlineReplace("error");
 		results.add(InstructionType.function_label.cv("error"));
@@ -101,7 +102,9 @@ public class IntermediateLang {
 		
 		
 		results.add(InstructionType.general_label.cv("__main"));
-		
+		if(!startsAtBegin.test(tree.theParser.settings.target)) {
+			results.add(InstructionType.write_sp.cv("__ExitLocation"));
+		}
 		for(SyntaxTree outer:tree.getChildren()) {//compile functions before anything else
 			if(outer.getTokenType()!=Token.Type.FUNCTION)
 			results.addAll(generateInstructions(outer,lex,metadata));
@@ -712,8 +715,13 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateInstructions(child,lex,metadata));
 			}
-			int popping = tree.getParser().getFunctionInputTypes(tree.functionIn()).get(0).size()*settings.intsize;
-			results.add(InstructionType.exit_function.cv(""+popping));
+			if(tree.functionIn()==null) {
+				//returning from global scope
+				results.add(InstructionType.exit_global.cv("__ExitLocation"));
+			} else {
+				int popping = tree.getParser().getFunctionInputTypes(tree.functionIn()).get(0).size()*settings.intsize;
+				results.add(InstructionType.exit_function.cv(""+popping));
+			}
 			break;
 		case STRING_LITERAL:
 			String stringnum = str.replace("#", "");
@@ -1183,6 +1191,7 @@ public class IntermediateLang {
 		branch_not_address(1,"address, only goes if false."),
 		enter_routine(1,"pops the return address into iy (same as enter_function without index register or local allocation) and notify translator we have n arguments"),
 		exit_routine(0,"exits a routine"),
+		exit_global(1,"exits the global routine"),
 
 		syscall_2arg(1,"uses 2 stack tops as the argument to a syscall"),
 		syscall_arg(1,"uses stack top as the argument to a syscall"),

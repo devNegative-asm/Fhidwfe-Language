@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import assembler.Assembler;
 import compiler.BaseTree;
 import compiler.CompilationSettings;
+import compiler.ConstantPropagater;
 import compiler.IntermediateLang;
 import compiler.Lexer;
 import compiler.Parser;
@@ -106,7 +107,7 @@ public class Main {
 		pr1.close();
 		
 		ArrayList<String> assembly = Translator.translate(p, VMCode,false);
-		
+		ConstantPropagater.propagateConstants(assembly);
 		PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
 		for(String ins:assembly) {
 			pr.println(ins);

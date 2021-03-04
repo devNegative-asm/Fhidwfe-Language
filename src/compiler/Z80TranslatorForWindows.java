@@ -1007,6 +1007,11 @@ public class Z80TranslatorForWindows {
 				comp.add("	di");
 				comp.add("	halt");
 				break;
+			case exit_global:
+				comp.add("	di");
+				comp.add("	halt");
+				stackDepth--;
+				break;
 			case write_sp:
 				comp.add("	ld ("+args[0]+"),sp");
 				break;

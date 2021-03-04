@@ -751,10 +751,9 @@ public class Winx64Translator {
 				comp.add("	xchg QWORD PTR [rsp+8], rax");//this is so much easier
 				break;
 			case swap23:
-				comp.add("	pop r9");
-				comp.add("	pop r10");
-				comp.add("	push r9");
-				comp.add("	push r10");
+				comp.add("	mov rdx, QWORD PTR [rsp]");
+				comp.add("	xchg rdx, QWORD PTR [rsp+8]");
+				comp.add("	mov QWORD PTR [rsp], rdx");
 				break;
 			case syscall_noarg:
 				comp.add("	mov rax, "+args[0]+"");
@@ -793,6 +792,11 @@ public class Winx64Translator {
 				comp.add("	ret");
 				comp.add("error ENDP");
 				break;
+			case exit_global:
+				comp.add("	mov rsp, QWORD PTR ["+args[0]+"]");
+				comp.add("	ret");
+				stackDepth--;
+				break;
 			case write_sp:
 				comp.add("	mov QWORD PTR ["+args[0]+"], rsp");
 				break;
@@ -813,7 +817,6 @@ public class Winx64Translator {
 			throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 		}
 		comp.add("	ret");
-		
 		//slight optimization
 		final boolean optimize = !debug;
 		
@@ -837,8 +840,8 @@ public class Winx64Translator {
 			}
 			//push pop has the side effect of altering the space above the stack. According to our calling convention, this is unnecessary in any circumstance
 			for(int i=0;i<comp.size()-2;i++) {
-				for(String regpair:"rax rbx rcx rdx r8 r9 r10".split(" "))
-				if(comp.get(i).equals("	push "+regpair) && comp.get(i+1).equals("	pop "+regpair)) {
+				for(String regs:"rax rbx rcx rdx r8 r9 r10".split(" "))
+				if(comp.get(i).equals("	push "+regs) && comp.get(i+1).equals("	pop "+regs)) {
 					comp.remove(i);
 					comp.remove(i);
 					i--;
@@ -861,6 +864,22 @@ public class Winx64Translator {
 							}
 				}
 			}
+			for(int i=0;i<comp.size()-2;i++) {
+				//System.out.println(comp.get(i));
+				if(!comp.get(i).startsWith("\tret"))//make the compiler faster, lol
+					continue;
+				if(comp.get(i).startsWith("\tret") && comp.get(i+1).endsWith("ENDP") && (comp.get(i+2).startsWith("\tret")||comp.get(i+2).startsWith("\tjmp"))) {
+					comp.remove(i+2);
+				}
+			}
+			for(int i=0;i<comp.size()-1;i++) {
+				if(!comp.get(i).startsWith("\tret"))
+					continue;
+				if(comp.get(i).startsWith("\tret") && (comp.get(i+1).startsWith("\tret")||comp.get(i+1).startsWith("\tjmp"))) {
+					comp.remove(i+1);
+				}
+			}
+			
 			
 		}
 		//not an optimization, this is just getting the assembler to stop complaining
