@@ -132,3 +132,30 @@ function int strcmp(str1:ptr str2:ptr) {
 	}
 	return  - as deref_ubyte$ str1 int as deref_byte$ str2 int
 }
+
+digits = ['0','9']
+function int str_to_int (num:ptr) {
+	//scans the given string for the longest input that matches
+	//  /-?[0-9]*
+	// parses that as an integer, ignoring overflows
+	// ignores anything after the digits
+	// str_to_int$ "" = 0
+	// str_to_int$ "-" = 0
+	// str_to_int$ "100" = 100
+	// str_to_int$ "-13josh" = -13
+	reset negative
+	read = num
+	num1 = 0
+	if = deref_ubyte$ num '-' {
+		set negative
+		read = + read 1u
+	} ;
+	while in deref_ubyte$ read digits {
+		num1 = + * 10 num1 as - deref_ubyte$ read '0' int
+		read = + one read
+	}
+	if negative {
+		num1 = !num1
+	} ;
+	return num1
+}
