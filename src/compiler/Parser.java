@@ -190,7 +190,7 @@ public class Parser {
 			return Data.valueOf(Character.toUpperCase(s.charAt(0))+s.substring(1));
 		}
 		public boolean signed() {
-			return this==Int || this==Byte;
+			return this==Int || this==Byte || this==Float;
 		}
 	}
 	public void registerLibFunction(List<Data> inputs, Data output, String name) {

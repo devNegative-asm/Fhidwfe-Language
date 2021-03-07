@@ -45,43 +45,37 @@
 // only || && ^ and ~ can be used with booleans
 // no operations can be done on flags
 
+// mult by sign of denom
+// if it was originally negative, add demoninator
+
+
+
+
+
+
 guard
 import null
 import heap
 import heaptail
 
-puts$ "hello world\n"
 
-my_strlist = ["Congratulations!" "Welcome to fhidwfe" "This should display in all caps" "separated by newlines" "You have "]
+fp1 = 11.
+fp2 = 10.
 
-realstr = join$ my_strlist '\n'
-capitalize_inplace$ realstr
+puti$ as % fp1 fp2 int
+putln$
+puti$ as % fp1 !fp2 int
+putln$
+puti$ as % !fp1 fp2 int
+putln$
+puti$ as % !fp1 !fp2 int
+putln$
 
-free$ my_strlist
-puts$ realstr
-free$ realstr
-putui$ - heaptail heap // type inference to the rescue ptr -> uint. This will generate a warning
-puts$ " BYTES OF RAM\n"
-puts$ "type here:"
-
-response = malloc$ 25u
-getline$ response
-puts$ "You said: "
-puts$ response
-free$ response
-
+puti$ as % 11b 10b int
 putln$
-puti$ ~123456788
+puti$ as % 11b !10b int
 putln$
-putui$ * 512u 512u
+puti$ as % !11b 10b int
 putln$
-puti$ - 5 9
+puti$ as % !11b !10b int
 putln$
-putui$ - 5u 9u
-putln$
-//file operations only supported on the VM
-home = fopen$ "C:\\Users\\Zachary\\Desktop\\EclipseFiles\\SimpleCompiler\\test.txt"
-contents = freadmany$ home 256u
-puts$ contents
-free$ contents
-fclose$ home

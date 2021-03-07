@@ -16,6 +16,8 @@ public class Winx64Translator {
 		ArrayList<String> comp = new ArrayList<String>();
 		ArrayList<String> externs = new ArrayList<String>();
 		ArrayList<String> data = new ArrayList<String>();
+		data.add("__mxmode:");
+		data.add("	DD 01111111111000000b");
 		HashMap<String,Integer> depths = new HashMap<String,Integer>();
 		p.settings.target.addHeader(comp);
 		String fndef = "";
@@ -148,7 +150,16 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case equal_to_f:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	comisd QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	mov ax, 0",
+						"	mov bx, 255",
+						"	cmove ax, bx",
+						"	add rsp, 16"));
+				stackDepth--;
+				break;
 			case equal_to_i:
 				comp.addAll(Arrays.asList(
 						"	pop rbx",
@@ -174,7 +185,10 @@ public class Winx64Translator {
 				break;
 			case general_label:
 				if(args[0].equals("__main"))
+				{
 					comp.add("__main PROC");
+					comp.add("	ldmxcsr DWORD PTR [__mxmode]");
+				}
 				else
 				{
 					if(depths.containsKey(args[0]))
@@ -196,7 +210,16 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case greater_equal_f:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	comisd QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	mov ax, 0",
+						"	mov bx, 255",
+						"	cmovle ax, bx",
+						"	add rsp, 16"));
+				stackDepth--;
+				break;
 			case greater_equal_i:
 				comp.addAll(Arrays.asList(
 						"	pop rbx",
@@ -234,7 +257,16 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case greater_than_f:
-				throw new UnsupportedOperationException("z80 does not support floating point");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	comisd QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	mov ax, 0",
+						"	mov bx, 255",
+						"	cmovl ax, bx",
+						"	add rsp, 16"));
+				stackDepth--;
+				break;
 			case greater_than_i:
 				comp.addAll(Arrays.asList(
 						"	pop rbx",
@@ -283,7 +315,16 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case less_equal_f:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	comisd QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	mov ax, 0",
+						"	mov bx, 255",
+						"	cmovge ax, bx",
+						"	add rsp, 16"));
+				stackDepth--;
+				break;
 			case less_equal_i:
 				comp.addAll(Arrays.asList(
 						"	pop rbx",
@@ -322,7 +363,16 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case less_than_f:
-				throw new UnsupportedOperationException("z80 does not support floating point");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	comisd QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	mov ax, 0",
+						"	mov bx, 255",
+						"	cmovg ax, bx",
+						"	add rsp, 16"));
+				stackDepth--;
+				break;
 			case less_than_i:
 				comp.addAll(Arrays.asList(
 						"	pop rbx",
@@ -360,12 +410,13 @@ public class Winx64Translator {
 				comp.add("	nop");//a very useful instruction
 				break;
 			case overwrite_immediate_byte:
-				comp.add("	mov al,"+args[0]);
+				comp.add("	mov al, "+args[0]);
 				break;
 			case overwrite_immediate_float:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	mov rax, "+Double.doubleToRawLongBits(Double.parseDouble(args[0])));
+				break;
 			case overwrite_immediate_int:
-				comp.add("	mov rax,"+args[0]);
+				comp.add("	mov rax, "+args[0]);
 				break;
 			case pop_discard:
 				if(stackDepth>1)
@@ -490,7 +541,10 @@ public class Winx64Translator {
 				comp.add("	mov rax, 255 AND "+args[0]);
 				break;
 			case retrieve_immediate_float:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				if(stackDepth++>0)
+					comp.add("	push rax");
+				comp.add("	mov rax, "+Double.doubleToRawLongBits(Double.parseDouble(args[0])));
+				break;
 			case retrieve_immediate_int:
 				if(stackDepth++>0)
 					comp.add("	push rax");
@@ -513,7 +567,7 @@ public class Winx64Translator {
 			case retrieve_local_byte:
 				if(stackDepth++>0)
 					comp.add("	push rax");
-				comp.add("	xor rax,rax");
+				comp.add("	xor rax, rax");
 				comp.add("	mov al, BYTE PTR [rbp"+args[0]+"]");
 				break;
 			case retrieve_local_int:
@@ -529,7 +583,7 @@ public class Winx64Translator {
 			case retrieve_param_byte:
 				if(stackDepth++>0)
 					comp.add("	push rax");
-				comp.add("	xor rax,rax");
+				comp.add("	xor rax, rax");
 				comp.add("	mov al, BYTE PTR [rbp+"+args[0]+"]");
 				break;
 			case retrieve_param_int:
@@ -543,25 +597,76 @@ public class Winx64Translator {
 				break;
 			case stackadd:
 				comp.add("	pop rbx");
-				comp.add("	add rax,rbx");
+				comp.add("	add rax, rbx");
 				stackDepth--;
 				break;
 			case stackaddfloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	addsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",//add second arg to first
+						"	movsd QWORD PTR [rsp], xmm1",
+						"	pop rax",
+						"	pop rbx"));
+				stackDepth--;
+				break;
 			case stackand:
 				comp.add("	pop rbx");
-				comp.add("	and rax,rbx");
+				comp.add("	and rax, rbx");
 				stackDepth--;
 				break;
 			case stackconvertbtofloat:
-			case stackconverttobyte:
+				comp.add("	movsx rax, al");
+				comp.add("	cvtsi2sd xmm1, rax");
+				comp.add("	push rax");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				break;
 			case stackconverttofloat:
+				comp.add("	cvtsi2sd xmm1, rax");
+				comp.add("	push rax");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				break;
 			case stackconverttoint:
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp]");
+				comp.add("	pop rax");
+				comp.add("	cvtsd2si rax, xmm1");
+				break;
+			case stackconverttobyte:
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp]");
+				comp.add("	pop rax");
+				comp.add("	cvtsd2si rax, xmm1");
+				comp.add("	and rax, 255");
+				break;
 			case stackconverttoubyte:
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp]");
+				comp.add("	pop rax");
+				comp.add("	vcvtsd2usi rax, xmm1");
+				comp.add("	and rax, 255");
+				break;
 			case stackconverttouint:
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp]");
+				comp.add("	pop rax");
+				comp.add("	vcvtsd2usi rax, xmm1");
+				break;
 			case stackconvertubtofloat:
+				comp.add("	and rax, 255");
+				comp.add("	cvtsi2sd xmm1, rax");
+				comp.add("	push rax");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				break;
 			case stackconvertutofloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	vcvtusi2sd xmm1, rax");//pretty long instruction names, huh
+				comp.add("	push rax");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				break;
 			case stackcpl:
 				comp.add("	not rax");
 				break;
@@ -581,7 +686,7 @@ public class Winx64Translator {
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test rax,rax");
+				comp.add("	test rax, rax");
 				comp.add("	jz __div_by_0"+label);
 				comp.add("	xor rdx, rdx");
 				comp.add("	xchg rax, rbx");
@@ -592,46 +697,69 @@ public class Winx64Translator {
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test al,al");
+				comp.add("	test al, al");
 				comp.add("	jz __div_by_0"+label);
-				comp.add("	mov ah,0");
+				comp.add("	mov ah, 0");
 				comp.add("	xchg rax, rbx");
 				comp.add("	div bl");
 				comp.add("__div_by_0"+label+":");
-				comp.add("	mov ah,0");
+				comp.add("	mov ah, 0");
 				break;
 			case stackmod_signed:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test rax,rax");
+				comp.add("	mov rcx, rbx");
+				comp.add("	sar rcx, 63");
+				comp.add("	mov rdx, rcx");
+				comp.add("	mov rdi, rax");
+				comp.add("	sar rdi, 63");
+				comp.add("	test rax, rax");
 				comp.add("	jz __div_by_0"+label);
-				comp.add("	xor rdx, rdx");
+				
 				comp.add("	xchg rax, rbx");
 				comp.add("	idiv rbx");
+				//if the numerator and denominator have mismatching signs, add the denom
+				comp.add("	cmp rcx, rdi");
+				comp.add("	mov rcx, 0");
+				comp.add("	cmovne rcx, rbx");
+				comp.add("	add rdx, rcx");
+
 				comp.add("__div_by_0"+label+":");
 				comp.add("	mov rax, rdx");
 				break;
 			case stackmod_signed_b:
 				stackDepth--;
-				label=fresh();
+				label = fresh();
 				comp.add("	pop rbx");
-				comp.add("	test al,al");
+				comp.add("	test al, al");
 				comp.add("	jz __div_by_0"+label);
-				comp.add("	mov ah,0");
+				comp.add("	movsx bx, bl");
+				comp.add("	mov dl, bh");//dl holds one sign
+				comp.add("	mov cl, al");
+				comp.add("	sar cl, 7");
 				comp.add("	xchg rax, rbx");
 				comp.add("	idiv bl");
+				comp.add("	mov al, ah");
+				comp.add("	mov ah, 0");
+				//if the numerator and denominator have mismatching signs, add the denom
+				comp.add("	cmp cl, dl");
+				comp.add("	mov cl, 0");
+				comp.add("	cmovne cx, bx");
+				comp.add("	add al,cl");
+
 				comp.add("__div_by_0"+label+":");
-				comp.add("	mov al,ah");
-				comp.add("	mov ah,0");
 				break;
 			case stackdiv_signed:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test rax,rax");
+				comp.add("	test rax, rax");
 				comp.add("	jz __div_by_0"+label);
 				comp.add("	xor rdx, rdx");
+				comp.add("	mov rcx, -1");
+				comp.add("	bt rbx, 63");
+				comp.add("	cmovc rdx, rcx");
 				comp.add("	xchg rax, rbx");
 				comp.add("	idiv rbx");
 				comp.add("__div_by_0"+label+":");
@@ -640,32 +768,32 @@ public class Winx64Translator {
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test al,al");
+				comp.add("	test al, al");
 				comp.add("	jz __div_by_0"+label);
-				comp.add("	mov ah,0");
+				comp.add("	movsx bx, bl");
 				comp.add("	xchg rax, rbx");
 				comp.add("	idiv bl");
 				comp.add("__div_by_0"+label+":");
-				comp.add("	mov ah,0");
+				comp.add("	mov ah, 0");
 				break;
 			case stackmod_unsigned_b:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test al,al");
+				comp.add("	test al, al");
 				comp.add("	jz __div_by_0"+label);
-				comp.add("	mov ah,0");
+				comp.add("	mov ah, 0");
 				comp.add("	xchg rax, rbx");
 				comp.add("	div bl");
 				comp.add("__div_by_0"+label+":");
-				comp.add("	mov al,ah");
-				comp.add("	mov ah,0");
+				comp.add("	mov al, ah");
+				comp.add("	mov ah, 0");
 				break;
 			case stackmod_unsigned:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rbx");
-				comp.add("	test rax,rax");
+				comp.add("	test rax, rax");
 				comp.add("	jz __div_by_0"+label);
 				comp.add("	xor rdx, rdx");
 				comp.add("	xchg rax, rbx");
@@ -674,7 +802,14 @@ public class Winx64Translator {
 				comp.add("	mov rax, rdx");
 				break;
 			case stackdivfloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	divsd xmm1, QWORD PTR [rsp]");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				comp.add("	pop rbx");
+				stackDepth--;
+				break;
 			case stackincrement:
 				comp.add("	inc rax");
 				break;
@@ -688,14 +823,36 @@ public class Winx64Translator {
 				comp.add("	add al, "+p.settings.intsize);
 				break;
 			case stackmodfloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");// numerator
+				comp.add("	divsd xmm1, QWORD PTR [rsp]");//denominator
+				//xmm1 holds quotient. We need to round this 
+				comp.add("	roundsd xmm1, xmm1, 1");//1 specifies rounding towards -inf
+				comp.add("	mulsd xmm1, QWORD PTR [rsp]");//multiply by denom
+				//subtract numerator - the result (xmm1)
+				comp.add("	movapd xmm2, xmm1");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	subsd xmm1, xmm2");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				comp.add("	pop rbx");
+				stackDepth--;
+				break;
 			case stackmult:
 				stackDepth--;
 				comp.add("	pop rbx");
 				comp.add("	mul rbx");//much better than the z80 version
 				break;
 			case stackmultfloat:
-				throw new UnsupportedOperationException("z80 does not support floating point");
+				comp.addAll(Arrays.asList(
+						"	push rax",
+						"	movsd xmm1, QWORD PTR [rsp]",
+						"	mulsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",//mult second arg to first
+						"	movsd QWORD PTR [rsp], xmm1",
+						"	pop rax",
+						"	pop rbx"));
+				stackDepth--;
+				break;
 			case stackneg:
 				comp.add("	neg rax");
 				break;
@@ -703,7 +860,8 @@ public class Winx64Translator {
 				comp.add("	neg al");
 				break;
 			case stacknegfloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	btc rax, 63");//flip the sign bit
+				break;
 			case stacknot:
 				comp.add("	not al");
 				break;
@@ -724,7 +882,14 @@ public class Winx64Translator {
 				stackDepth--;
 				break;
 			case stacksubfloat:
-				throw new UnsupportedOperationException("x64 does not support floating point yet");
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	subsd xmm1, QWORD PTR [rsp]");
+				comp.add("	movsd QWORD PTR [rsp], xmm1");
+				comp.add("	pop rax");
+				comp.add("	pop rbx");
+				stackDepth--;
+				break;
 			case stackxor:
 				comp.add("	pop rbx");
 				comp.add("	xor rax, rbx");
