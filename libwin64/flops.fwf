@@ -1,0 +1,114 @@
+guard
+import int_size
+import pi
+import e
+function int shift_r_arithmetic(x:int c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+function uint shift_right(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+alias int shift_left(x:int c:uint)
+function uint shift_left(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = << x
+		c = - c 1u
+	}
+	return x
+}
+
+function uint bitconvert(f:float) {
+	return deref_uint$ @f
+}
+function int exponent_from_float(f:float) {
+	//assuming 64 bit floats
+	exponent = & shift_left$ 2047 52u as bitconvert$ f int
+	return - shift_r_arithmetic$ exponent 52u 1023
+}
+function uint mantissa(f:float) {
+	implicit = shift_left$ 1u 52u
+	return + implicit & - implicit 1u bitconvert$ f
+}
+function uint rawmantissa(f:float) {
+	implicit = - shift_left$ 1u 52u 1u
+	return & implicit bitconvert$ f
+}
+function float biasedmantissa(f:float) {
+	return / as rawmantissa$ f float as shift_left$ 1u 52u float
+}
+
+
+
+function float ln(x:float) {
+	//newton's method
+	// if f has a zero at some number, this approaches it
+	// our function is e^x-input
+	// x2 = x-f(x)/f'(x)
+	if < x 0. {
+		error$ "log of a negative\n"
+	} ;
+	log2 = as exponent_from_float$ x float
+	guess = * log2 0.693147180559945309417232121458
+	//iterate with newton's method a few times
+	l_guess = + guess 10.
+	while > absf$ - guess l_guess .000000000000001 {
+		full = exp$ guess
+		l_guess = guess
+		guess = - guess / - full x full
+	}
+	return guess
+}
+function float absf(x:float) {
+	if < x 0. {
+		return !x
+	} ;
+	return x
+}
+function float exp(x:float) {
+	return exp_accurate$ x
+}
+function float exp_accurate(x:float) {
+	looper = 1.
+	res = 0.
+	count = 1.
+	while ~ = 0. looper {
+		res = + res looper
+		looper = * looper / x count
+		count = + 1. count
+	}
+	return res
+}
+function float lg(x:float) {
+	if = rawmantissa$ x 0u {
+		//the result is simply the exponent
+		return as exponent_from_float$ x float
+	} ;
+	return / ln$ x 0.693147180559945309417232121458
+}
+function float intpart(x:float) {
+	return - x fracpart$ x
+}
+function float fracpart(x:float) {
+	if < x 0. {
+		return ! % x 1.
+	} ;
+	return % x 1.
+}
+function float log(x:float) {
+	return / ln$ x ln$ 10.
+}
+function float pow(x:float y:float) {
+	//e ^ (ln(x) * y)
+	return exp$ * ln$ x y
+}
