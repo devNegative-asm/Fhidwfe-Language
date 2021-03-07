@@ -645,14 +645,14 @@ public class Winx64Translator {
 				comp.add("	push rax");
 				comp.add("	movsd xmm1, QWORD PTR [rsp]");
 				comp.add("	pop rax");
-				comp.add("	vcvtsd2usi rax, xmm1");
+				comp.add("	cvtsd2si rax, xmm1");
 				comp.add("	and rax, 255");
 				break;
 			case stackconverttouint:
 				comp.add("	push rax");
 				comp.add("	movsd xmm1, QWORD PTR [rsp]");
 				comp.add("	pop rax");
-				comp.add("	vcvtsd2usi rax, xmm1");
+				comp.add("	cvtsd2si rax, xmm1");
 				break;
 			case stackconvertubtofloat:
 				comp.add("	and rax, 255");
@@ -957,16 +957,19 @@ public class Winx64Translator {
 				break;
 			case exit_noreturn:
 				comp.add("	mov rsp, QWORD PTR ["+args[0]+"]");
+				comp.add("	mov rbp, QWORD PTR ["+args[0]+"+8]");
 				comp.add("	ret");
 				comp.add("error ENDP");
 				break;
 			case exit_global:
 				comp.add("	mov rsp, QWORD PTR ["+args[0]+"]");
+				comp.add("	mov rbp, QWORD PTR ["+args[0]+"+8]");
 				comp.add("	ret");
 				stackDepth--;
 				break;
 			case write_sp:
 				comp.add("	mov QWORD PTR ["+args[0]+"], rsp");
+				comp.add("	mov QWORD PTR ["+args[0]+"+8], rbp");
 				break;
 			case fix_index:
 				comp.add("	shl rax, 3");
@@ -984,6 +987,7 @@ public class Winx64Translator {
 		{
 			throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 		}
+		comp.add("	mov rax, 0");
 		comp.add("	ret");
 		//slight optimization
 		final boolean optimize = !debug;

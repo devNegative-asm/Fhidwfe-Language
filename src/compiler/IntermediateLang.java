@@ -52,9 +52,10 @@ public class IntermediateLang {
 		//^ according to the calling convention, enter_function isn't exactly needed for the error handler, but it's nice for consistency
 		results.add(InstructionType.retrieve_param_int.cv(""+(tree.theParser.settings.intsize*2)));//retrieve string argument
 		results.add(InstructionType.call_function.cv("puts"));//print the error message
+		results.add(InstructionType.overwrite_immediate_int.cv("-1"));//return -1
 		results.add(InstructionType.exit_noreturn.cv("__ExitLocation"));
 		results.add(InstructionType.data_label.cv("__ExitLocation"));
-		results.add(InstructionType.rawspace.cv(""+tree.theParser.settings.intsize));
+		results.add(InstructionType.rawspace.cv(""+(tree.theParser.settings.intsize+(tree.theParser.settings.intsize>2?8:0))));
 		for(String b:lex.stringConstants()) {//create string constants table
 			results.add(InstructionType.data_label.cv("__String_"+stringCount++));
 			for(byte c:b.getBytes()) {

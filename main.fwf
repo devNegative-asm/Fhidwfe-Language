@@ -62,5 +62,14 @@ import heaptail
 fp1 = 11.
 fp2 = !10.
 
-puti$ as pow$ 6. 6. int
+putfloatdigits$ log$ 10000.
+putln$
+putfloatdigits$ ln$ 10000.
+putln$
+putfloatdigits$ lg$ 10000.
+putln$
+putfloatdigits$ exp$ 4.
+putln$
+putfloatdigits$ lg$ !1.
+putln$
 

@@ -62,7 +62,7 @@ function float ln(x:float) {
 	guess = * log2 0.693147180559945309417232121458
 	//iterate with newton's method a few times
 	l_guess = + guess 10.
-	while > absf$ - guess l_guess .000000000000001 {
+	for uint [0u,32u] with qq {
 		full = exp$ guess
 		l_guess = guess
 		guess = - guess / - full x full
@@ -90,6 +90,9 @@ function float exp_accurate(x:float) {
 	return res
 }
 function float lg(x:float) {
+	if < x 0. {
+		error$ "log of a negative\n"
+	} ;
 	if = rawmantissa$ x 0u {
 		//the result is simply the exponent
 		return as exponent_from_float$ x float
