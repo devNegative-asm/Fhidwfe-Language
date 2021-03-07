@@ -341,7 +341,10 @@ public class IntermediateLang {
 				}
 				
 				if(tree.getChild(0).getType().getSize(settings)>1) {
-					results.add(InstructionType.equal_to_i.cv());
+					if(tree.getChild(0).getType()!=Parser.Data.Float)
+						results.add(InstructionType.equal_to_i.cv());
+					else
+						results.add(InstructionType.equal_to_f.cv());
 				} else {
 					results.add(InstructionType.equal_to_b.cv());
 				}
@@ -395,6 +398,9 @@ public class IntermediateLang {
 				case Byte:
 					results.add(InstructionType.greater_equal_b.cv());
 					break;
+				case Float:
+					results.add(InstructionType.greater_equal_f.cv());
+					break;
 			default:
 				break;
 			}
@@ -416,6 +422,9 @@ public class IntermediateLang {
 					break;
 				case Byte:
 					results.add(InstructionType.greater_than_b.cv());
+					break;
+				case Float:
+					results.add(InstructionType.greater_than_f.cv());
 					break;
 			default:
 				break;
@@ -506,6 +515,8 @@ public class IntermediateLang {
 				case Uint:
 					results.add(InstructionType.less_equal_ui.cv());
 					break;
+				case Byte:
+					results.add(InstructionType.less_equal_b.cv());
 			default:
 				break;
 			}
@@ -539,6 +550,9 @@ public class IntermediateLang {
 				case Ptr:
 				case Uint:
 					results.add(InstructionType.less_than_ui.cv());
+					break;
+				case Byte:
+					results.add(InstructionType.less_than_b.cv());
 					break;
 			default:
 				break;

@@ -60,22 +60,7 @@ import heaptail
 
 
 fp1 = 11.
-fp2 = 10.
+fp2 = !10.
 
-puti$ as % fp1 fp2 int
-putln$
-puti$ as % fp1 !fp2 int
-putln$
-puti$ as % !fp1 fp2 int
-putln$
-puti$ as % !fp1 !fp2 int
-putln$
+puti$ as pow$ 6. 6. int
 
-puti$ as % 11b 10b int
-putln$
-puti$ as % 11b !10b int
-putln$
-puti$ as % !11b 10b int
-putln$
-puti$ as % !11b !10b int
-putln$

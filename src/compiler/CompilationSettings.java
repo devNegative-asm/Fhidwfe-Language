@@ -113,7 +113,9 @@ public class CompilationSettings {
 						"	call rax",
 						"	mov rsp, r12",
 						"	ret",
-						"__syscall_0 ENDP"
+						"__syscall_0 ENDP",
+						"e	equ "+Double.doubleToLongBits(Math.E),
+						"pi	equ "+Double.doubleToLongBits(Math.PI)
 						));
 				break;
 			case WINx86:

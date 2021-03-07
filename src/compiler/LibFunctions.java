@@ -80,6 +80,20 @@ public class LibFunctions {
 			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Void, "fclose");
 			p.registerLibFunction(Arrays.asList(Parser.Data.File), Parser.Data.Uint, "fread");
 			
+			//flops
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "exp");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float, Parser.Data.Float), Parser.Data.Float, "pow");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "log");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "ln");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "exp");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "lg");
+			
+			p.registerLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "sqrt");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "sin");
+			p.registerLibFunction(Arrays.asList(Parser.Data.Float), Parser.Data.Float, "cos");
+			
+			
+			
 			break;
 		case z80Emulator:
 			p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.File, "fopen");
@@ -113,7 +127,6 @@ public class LibFunctions {
 			p.inlineReplace("deref_int");
 			p.inlineReplace("deref_uint");
 			p.inlineReplace("deref_ptr");
-			
 			p.inlineReplace("put_byte");
 			p.inlineReplace("put_ubyte");
 			p.inlineReplace("put_int");
@@ -135,6 +148,9 @@ public class LibFunctions {
 				p.inlineReplace("fopen");
 				p.inlineReplace("fread");
 				//p.inlineReplace("favail");
+				p.inlineReplace("cos");
+				p.inlineReplace("sqrt");
+				p.inlineReplace("sin");
 			}
 			if(architecture==CompilationSettings.Target.TI83pz80) {
 				p.inlineReplace("putln");
@@ -162,6 +178,48 @@ public class LibFunctions {
 			
 			if(instr.in==IntermediateLang.InstructionType.call_function) {
 				switch(instr.args[0]) {
+					case "sin":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("push rax"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fld QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fsin"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("pop rax"));
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
+					case "cos":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("push rax"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fld QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fcos"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("pop rax"));
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
+					case "sqrt":
+						switch(architecture) {
+						case WINx64:
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("push rax"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fld QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fsqrt"),
+									IntermediateLang.InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
+									IntermediateLang.InstructionType.rawinstruction.cv("pop rax"));
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
 					case "malloc":
 						switch(architecture) {
 						case WINx64:
@@ -454,5 +512,9 @@ public class LibFunctions {
 		tree.addConstantValue("heap", Parser.Data.Ptr);
 		tree.addConstantValue("heaptail", Parser.Data.Ptr);
 		tree.addConstantValue("int_size", Parser.Data.Uint);
+		if(architecture.intsize==8) {
+			tree.addConstantValue("e", Parser.Data.Float);
+			tree.addConstantValue("pi", Parser.Data.Float);
+		}
 	}
 }
