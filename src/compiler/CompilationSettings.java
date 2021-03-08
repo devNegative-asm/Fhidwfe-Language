@@ -115,7 +115,10 @@ public class CompilationSettings {
 						"	ret",
 						"__syscall_0 ENDP",
 						"e	equ "+Double.doubleToLongBits(Math.E),
-						"pi	equ "+Double.doubleToLongBits(Math.PI)
+						"pi	equ "+Double.doubleToLongBits(Math.PI),
+						"NaN	equ "+ Double.doubleToLongBits(Double.NaN),
+						"pos_infinity	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
+						"neg_infinity	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
 						));
 				break;
 			case WINx86:

@@ -1,4 +1,5 @@
 guard
+import one
 lowers = ['a','z']
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string
@@ -148,7 +149,7 @@ function int str_to_int (num:ptr) {
 	num1 = 0
 	if = deref_ubyte$ num '-' {
 		set negative
-		read = + read 1u
+		read = + read one
 	} ;
 	while in deref_ubyte$ read digits {
 		num1 = + * 10 num1 as - deref_ubyte$ read '0' int

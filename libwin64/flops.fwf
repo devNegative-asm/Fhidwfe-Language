@@ -2,6 +2,41 @@ guard
 import int_size
 import pi
 import e
+import NaN
+
+function float f_pow_int(base:float exponent:int) {
+	if < exponent 0 {
+		return / 1. f_pow_int$ base !exponent
+	} ;
+	if = 0 exponent {
+		return 1.
+	} ;
+	if = 1 & exponent 1 {
+		return * base f_pow_int$ * base base >> exponent
+	} ;
+	return f_pow_int$ * base base >> exponent
+}
+
+function uint uint_pow(base:uint exponent:uint) {
+	if = 0u exponent {
+		return 1u
+	} ;
+	if = 1u & exponent 1u {
+		return * base uint_pow$ * base base >> exponent
+	} ;
+	return uint_pow$ * base base >> exponent
+}
+
+function float round(f:float d:uint) {
+	//round f*10^d
+	tenp = f_pow_int$ 10. as d int
+	f = * f tenp
+	if >= .5 fracpart$ f {
+		return + 1. intpart$ f
+	} ;
+	return intpart$ f
+}
+
 function int shift_r_arithmetic(x:int c:uint) {
 	c = & c - ?8u 1u
 	while > c 0u {
@@ -58,6 +93,9 @@ function float ln(x:float) {
 	if < x 0. {
 		error$ "log of a negative\n"
 	} ;
+	if isNaN$ x {
+		error$ "log of NaN\n"
+	} ;
 	log2 = as exponent_from_float$ x float
 	guess = * log2 0.693147180559945309417232121458
 	//iterate with newton's method a few times
@@ -76,13 +114,16 @@ function float absf(x:float) {
 	return x
 }
 function float exp(x:float) {
+	if isNaN$ x {
+		error$ "exp of NaN\n"
+	} ;
 	return exp_accurate$ x
 }
 function float exp_accurate(x:float) {
 	looper = 1.
 	res = 0.
 	count = 1.
-	while ~ = 0. looper {
+	whilenot = 0. looper {
 		res = + res looper
 		looper = * looper / x count
 		count = + 1. count
@@ -92,6 +133,9 @@ function float exp_accurate(x:float) {
 function float lg(x:float) {
 	if < x 0. {
 		error$ "log of a negative\n"
+	} ;
+	if isNaN$ x {
+		error$ "log of NaN\n"
 	} ;
 	if = rawmantissa$ x 0u {
 		//the result is simply the exponent
@@ -109,9 +153,57 @@ function float fracpart(x:float) {
 	return % x 1.
 }
 function float log(x:float) {
+	if isNaN$ x {
+		error$ "log of NaN\n"
+	} ;
 	return / ln$ x ln$ 10.
 }
 function float pow(x:float y:float) {
 	//e ^ (ln(x) * y)
+	if isNaN$ x {
+		error$ "NaN ^ y \n"
+	} ;
+	if isNaN$ y {
+		error$ "x ^ NaN \n"
+	} ;
 	return exp$ * ln$ x y
+}
+function uint safecastui(x:float) {
+	if isFinite$ x {
+		if < x 0. {
+			error$ "negative casted to uint"
+		} {
+			if > x as as !1 uint float {
+				error$ "result out of range"
+			} {
+				return as x uint
+			}
+		}
+	} {
+		error$ "Infinite or NaN casted to uint"
+	}
+	return 0u
+}
+function int safecasti(x:float) {
+	if isFinite$ x {
+		if > x as >> as !1 uint float {
+			error$ "result too positive"
+		} {
+			if < x as ~ >> as !1 uint float {
+				error$ "result too negative"
+			} {
+				return as x int
+			}
+		}
+	} {
+		error$ "Infinite or NaN casted to uint"
+	}
+	return 0
+}
+function bool isFinite(x:float) {
+	ex1 = exponent_from_float$ x
+	return ~ = ex1 exponent_from_float$ NaN
+}
+function bool isNaN(x:float) {
+	return ~ || isFinite$ x = 0u rawmantissa$ x
 }

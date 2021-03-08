@@ -515,6 +515,11 @@ public class LibFunctions {
 		if(architecture.intsize==8) {
 			tree.addConstantValue("e", Parser.Data.Float);
 			tree.addConstantValue("pi", Parser.Data.Float);
+			tree.addConstantValue("qNaN", Parser.Data.Float);
+			tree.addConstantValue("sNaN", Parser.Data.Float);
+			tree.addConstantValue("NaN", Parser.Data.Float);
+			tree.addConstantValue("pos_infinity", Parser.Data.Float);
+			tree.addConstantValue("neg_infinity", Parser.Data.Float);
 		}
 	}
 }

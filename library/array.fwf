@@ -2,16 +2,28 @@
 null = as 0 ptr
 one = as 1 ptr
 guard
-import one
+import int_size
 ovflow = "Array overflow."
+
+alias uint sizeof(a:listubyte)
+alias uint sizeof(a:listbyte)
+alias uint sizeof(a:listfloat)
+alias uint sizeof(a:listptr)
+alias uint sizeof(a:listuint)
+alias uint sizeof(a:listint)
 
 alias void memcpy(a:listbyte b:listbyte c:uint)
 alias void memcpy(a:listubyte b:listubyte c:uint)
 function int access_word(list:listint index:uint) {
 	index = ? index //turn it into a usable index
-	if < index deref_uint$ - as list ptr one {
+	if < index sizeof$ list {
 		return deref_int$ + as list ptr as index ptr
 	} {
+		puts$ "index "
+		putui$ index
+		puts$ " of size "
+		putui$ sizeof$ list
+		putln$
 		error$ ovflow
 	}
 	return 0
@@ -19,21 +31,41 @@ function int access_word(list:listint index:uint) {
 
 alias ubyte access_byte(a:listubyte a:uint)
 function byte access_byte(list:listbyte index:uint) {
-	if < index deref_uint$ - as list ptr one {
+	if < index sizeof$ list {
 		return deref_byte$ + as list ptr as index ptr
 	} {
+		puts$ "index "
+		putui$ index
+		puts$ " of size "
+		putui$ sizeof$ list
+		putln$
 		error$ ovflow
 	}
 	return 0b
 }
-
+alias void assign_byte(list:listubyte index:uint b:ubyte)
+function void assign_byte(list:listbyte index:uint b:byte) {
+	if < index sizeof$ list {
+		put_byte$ + as list ptr as index ptr b
+	} {
+		puts$ "index "
+		putui$ index
+		puts$ " of size "
+		putui$ sizeof$ list
+		putln$
+		error$ ovflow
+	}
+}
 alias uint access_word(a:listuint index:uint)
 alias ptr access_word(a:listptr index:uint)
 
 
+
+
+
 function listbyte double_len(a:listbyte) {
 	b = as malloc$ << sizeof$ a listbyte
-	memcpy$ b a sizeof$ a
-	free$ a
+	memcpy$ as b ptr as a ptr sizeof$ a
+	free$ as a ptr
 	return b
 }

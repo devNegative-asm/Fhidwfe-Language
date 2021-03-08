@@ -57,7 +57,8 @@ public class TI83PTranslator {
 			case call_function:
 				
 				if(p.getFunctionOutputType(args[0]).get(0)==Parser.Data.Void) {
-					comp.add("	push hl");//save last value of stack
+					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
+						comp.add("	push hl");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
 					//result is unused
 					stackDepth-=p.getFunctionInputTypes(args[0]).get(0).size();
