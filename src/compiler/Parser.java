@@ -130,7 +130,7 @@ public class Parser {
 				Bool
 				Byte
 				Int
-				Float
+				Float↓
 				Uint
 				Ubyte
 				Ptr
@@ -141,11 +141,9 @@ public class Parser {
 			implicitlyConvertible.put(Flag, asList(Bool));
 			implicitlyConvertible.put(Bool, asList(Byte));
 			implicitlyConvertible.put(Flag, asList(Byte));
-			implicitlyConvertible.put(Byte, asList(Uint));
-			implicitlyConvertible.put(Int, asList(Byte,Ubyte,Ptr));
-			ArrayList<Data> uintTo = asList(Byte,Ubyte,Ptr);
+			implicitlyConvertible.put(Int, asList(Ubyte,Ptr));
+			ArrayList<Data> uintTo = asList(Ptr,Int);
 			uintTo.addAll(ptrtypes);
-			uintTo.remove(Uint);
 			uintTo.removeIf(x -> x.name().contains("list")||x.name().contains("List"));// don't convert uints to list
 			implicitlyConvertible.put(Uint, uintTo);
 		}
@@ -1239,5 +1237,11 @@ public class Parser {
 		}
 		return root;
 	}
-	
+	private ArrayList<String> symbolTable = new ArrayList<>();
+	public void notifySymbol(String string) {
+		symbolTable.add(string);
+	}
+	public boolean isSymbol(String s) {
+		return symbolTable.contains(s);
+	}
 }

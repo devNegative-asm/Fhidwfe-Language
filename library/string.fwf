@@ -121,6 +121,10 @@ function ptr capitalize_copy(strin:ptr) {
 }
 
 import one
+function bool streq(str1:ptr str2:ptr) {
+	return = 0 strcmp$ str1 str2
+}
+
 function int strcmp(str1:ptr str2:ptr) {
 	//str1 - str2
 	while = deref_byte$ str1 deref_byte$ str2 {

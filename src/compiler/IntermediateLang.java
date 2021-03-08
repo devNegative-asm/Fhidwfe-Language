@@ -355,6 +355,8 @@ public class IntermediateLang {
 			results.add(new Instruction(InstructionType.retrieve_immediate_byte,"0"));
 			break;
 		case FLOAT_LITERAL:
+			if(str.endsWith("f")||str.endsWith("F"))
+				str = str.substring(0,str.length()-1);
 			results.add(new Instruction(InstructionType.retrieve_immediate_float,str));
 			break;
 		case FUNCTION_ARG:

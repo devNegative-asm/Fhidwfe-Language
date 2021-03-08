@@ -26,6 +26,22 @@ public class Winx64Translator {
 				System.out.println(instruction);
 			}
 			String[] args = instruction.args;
+			String[] orig = Arrays.copyOf(args, args.length);
+			for(int i=0;i<args.length;i++) {
+				if(args[i].matches("-?[0-9]*"))
+					continue;
+				if(args[i].matches("-?[0-9]*\\.[0-9]+"))
+					continue;
+				if(args[i].matches("-?[0-9]+\\.[0-9]*"))
+					continue;
+				if(p.isSymbol(args[i]))
+					continue;
+				if(args[i].startsWith("_")||args[i].equals("error"))
+					continue;
+				args[i] = "_us_"+args[i];
+				
+			}
+			
 			switch(instruction.in) {
 			case data_label:
 				data.add(args[0]+":");
@@ -42,7 +58,7 @@ public class Winx64Translator {
 						stackDepth>1?"	pop rax":"	",
 						"	jnz "+args[0]));
 				stackDepth--;
-				depths.put(args[0],stackDepth);
+				depths.put(orig[0],stackDepth);
 				break;
 			case branch_not_address:
 				comp.addAll(Arrays.asList(
@@ -50,7 +66,7 @@ public class Winx64Translator {
 						stackDepth>1?"	pop rax":"	",
 						"	jz "+args[0]));
 				stackDepth--;
-				depths.put(args[0],stackDepth);
+				depths.put(orig[0],stackDepth);
 				break;
 			case strcpy:
 				//arguments on stack: dest
@@ -74,20 +90,20 @@ public class Winx64Translator {
 				break;
 			case call_function:
 				
-				if(p.getFunctionOutputType(args[0]).get(0)==Parser.Data.Void) {
-					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
+				if(p.getFunctionOutputType(orig[0]).get(0)==Parser.Data.Void) {
+					if(stackDepth>0||p.getFunctionInputTypes(orig[0]).get(0).size()>0)
 						comp.add("	push rax");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
 					//result is unused
-					stackDepth-=p.getFunctionInputTypes(args[0]).get(0).size();
+					stackDepth-=p.getFunctionInputTypes(orig[0]).get(0).size();
 					//if we consumed all our arguments and there's still something left, pop it
 					if(stackDepth>0)
 						comp.add("	pop rax");
 				} else {
-					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
+					if(stackDepth>0||p.getFunctionInputTypes(orig[0]).get(0).size()>0)
 						comp.add("	push rax");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
-					stackDepth-=p.getFunctionInputTypes(args[0]).get(0).size();
+					stackDepth-=p.getFunctionInputTypes(orig[0]).get(0).size();
 					//we actually do use the result this time
 					stackDepth++;
 				}
@@ -136,7 +152,7 @@ public class Winx64Translator {
 					comp.add("	pop rax");
 				break;
 			case define_symbolic_constant:
-				comp.add(""+args[0]+"\tequ "+args[1]);
+				comp.add(""+orig[0]+"\tequ "+orig[1]);
 				break;
 			case enter_function:
 				int spaceNeeded = Integer.parseInt(args[0]);
@@ -194,15 +210,15 @@ public class Winx64Translator {
 				fndef = args[0];
 				break;
 			case general_label:
-				if(args[0].equals("__main"))
+				if(orig[0].equals("__main"))
 				{
 					comp.add("__main PROC");
 					comp.add("	ldmxcsr DWORD PTR [__mxmode]");
 				}
 				else
 				{
-					if(depths.containsKey(args[0]))
-						stackDepth = depths.get(args[0]);
+					if(depths.containsKey(orig[0]))
+						stackDepth = depths.get(orig[0]);
 					comp.add(args[0]+":");
 				}
 				break;
@@ -486,33 +502,33 @@ public class Winx64Translator {
 					comp.add("	pop rax");
 				break;
 			case raw:
-				if(args[0].startsWith("$"))
-					data.add("	DB "+(args[0].length()==2?"0":"")+args[0].substring(1)+"h");
+				if(orig[0].startsWith("$"))
+					data.add("	DB "+(orig[0].length()==2?"0":"")+orig[0].substring(1)+"h");
 				else
-					data.add("	DB "+args[0]);
+					data.add("	DB "+orig[0]);
 				break;
 			case rawinstruction:
-				comp.add("	"+args[0]);
+				comp.add("	"+orig[0]);
 				break;
 			case rawint:
-				if(args[0].startsWith("$"))
-					data.add("	DQ "+args[0].substring(1)+"h");
+				if(orig[0].startsWith("$"))
+					data.add("	DQ "+orig[0].substring(1)+"h");
 				else
-					data.add("	DQ "+args[0]);
+					data.add("	DQ "+orig[0]);
 				break;
 			case rawspace:
 				if(useDSNotation)
-					data.add("	TIMES "+args[0]+" DB 0 ");
+					data.add("	TIMES "+orig[0]+" DB 0 ");
 				else
-					for(int i=0;i<Integer.parseInt(args[0]);i++) {
+					for(int i=0;i<Integer.parseInt(orig[0]);i++) {
 						data.add("	DB 0");
 					}
 				break;
 			case rawspaceints:
 				if(useDSNotation)
-					data.add("	TIMES "+args[0]+" DQ 0 ");
+					data.add("	TIMES "+orig[0]+" DQ 0 ");
 				else
-					for(int i=0;i<Integer.parseInt(args[0]);i++) {
+					for(int i=0;i<Integer.parseInt(orig[0]);i++) {
 						data.add("	DQ 0");
 					}
 				break;

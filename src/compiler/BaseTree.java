@@ -231,6 +231,7 @@ public class BaseTree {
 	}
 	public void addConstantValue(String string, Parser.Data type) {
 		constants.put(string, type);
+		theParser.notifySymbol(string);
 	}
 	public String functionIn() {
 		// TODO Auto-generated method stub
