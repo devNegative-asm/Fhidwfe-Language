@@ -71,7 +71,8 @@ public class Z80TranslatorForWindows {
 					if(stackDepth>0)
 						comp.add("	pop hl");
 				} else {
-					comp.add("	push hl");//save last value of stack
+					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
+						comp.add("	push hl");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
 					stackDepth-=p.getFunctionInputTypes(args[0]).get(0).size();
 					//we actually do use the result this time

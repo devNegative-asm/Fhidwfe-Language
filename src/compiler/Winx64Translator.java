@@ -84,7 +84,8 @@ public class Winx64Translator {
 					if(stackDepth>0)
 						comp.add("	pop rax");
 				} else {
-					comp.add("	push rax");//save last value of stack
+					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
+						comp.add("	push rax");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
 					stackDepth-=p.getFunctionInputTypes(args[0]).get(0).size();
 					//we actually do use the result this time
