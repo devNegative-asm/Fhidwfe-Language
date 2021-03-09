@@ -679,6 +679,10 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case IDENTIFIER:
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
+			if(ret==Parser.Data.Func)
+			{
+				parent.notifyCalled(getTokenString().replaceAll("_guard_.*?_.*?_.*?_.*?_", ""));
+			}
 			break;
 		case IF:
 		case IFNOT:

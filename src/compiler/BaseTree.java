@@ -1,5 +1,6 @@
 package compiler;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -56,8 +57,15 @@ public class BaseTree {
 	private HashMap<String,Parser.Data> scopeTypings = new HashMap<>();
 	public Parser.Data resolveVariableType(String varname, String linenum)
 	{
-		if(theParser.hasFunction(varname)) {
-			return Parser.Data.Ptr;
+		if(theParser.hasFunction(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", ""))) {
+			if(!theParser.getFunctionInputTypes(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "")).contains(new ArrayList<>(Arrays.asList(Parser.Data.Uint)))) {
+				throw new RuntimeException("cannot make pointer to function which is not uint -> uint at line "+linenum);
+			}
+			if(!theParser.getFunctionOutputType(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "")).contains(Parser.Data.Uint)) {
+				throw new RuntimeException("cannot make pointer to function which is not uint -> uint at line "+linenum);
+			}
+			addConstantValue(varname,Parser.Data.Func);
+			return Parser.Data.Func;
 		} else {
 			if(scopeTypings.containsKey(varname)) {
 				return scopeTypings.get(varname);
@@ -225,6 +233,9 @@ public class BaseTree {
 	private HashMap<String, Parser.Data> constants = new HashMap<>();
 	public String resolveConstant(String var) {
 		if(constants.containsKey(var)) {
+			if(constants.get(var)==Parser.Data.Func) {
+				return var.replaceAll("_guard_.*?_.*?_.*?_.*?_", "");
+			}
 			return var;
 		}
 		throw new RuntimeException("could not find constant "+var);

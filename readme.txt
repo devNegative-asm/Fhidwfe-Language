@@ -63,7 +63,6 @@ variable:			var_name
 pointer-to:			@var_name
 
 
-
 String literals are the same as C except the only escape sequences are \\ \" \r \n \t
 characters are the same as C except they share the escape sequence limitations and they are of type ubyte.
 The syntax #n can be used to refer to the string that comes nth in the program, starting at 0. If the string is not edited and appears multiple times, this is more memory efficient than writing it out several times.
@@ -97,11 +96,10 @@ Builtin operators are called with prefix order. Thus, there is no order of opera
 >=		greater than or equal
 in		test whether a number is inside a range
 ?		multiplies its argument by int_size. This is faster than actually multiplying and is useful for creating list indicies.
+$		(technically a function, not an operator) runs its first argument as a function, passing its second argument as the only parameter to that function
 
 Saved for future use:
-$		(unimplemented) Used to call a function by its pointer
 `		(unimplemented) Used to create format strings for printf-like behavior
-			may alternatively be used for list operations
 
 
 
@@ -113,9 +111,12 @@ int		signed int.
 ubyte	unsigned byte, also usable as a character.
 byte	signed byte.
 ptr		same as uint, but used to access memory locations.
-float	defined to be of size sizeof(float)==sizeof(void*). Float operations are only available on architectures that natively support flops.
+file	a file index. This is NOT equivalent to C's FILE*. File is a 1 byte type with a valid range of 0-62. Any values above 62 represent invalid files. Internally, this byte is used as the index of a FILE*[]
+func	a function pointer. Only single arg uint -> uint functions can be used this way.
+float	defined to be of size sizeof(float)==sizeof(void*). Float operations are only available on architectures that natively support flops. Conversion from uint -> float is lower accuracy than int -> float.
 list	One of the variant types. This acts like a pointer except it can be iterated over in a for loop. It takes a suffix like listbyte to determine its elements. Only the types listed above can be put into a list.
 range	Another variant type. A range can only hold numeric types, and only integer-like ranges can be iterated in a for loop.
+
 
 casting is done by the keyword "as" which can do the following conversions. Anything not listed here has undefined behavior
 any type other than float -> ptr	(no conversion)
@@ -123,8 +124,7 @@ ptr or uint or int -> byte or ubyte	(drop higher order bytes)
 numeric type -> numeric type		(drop higher order bytes if target is smaller)
 byte -> int							(sign extend)
 numeric type -> float				(convert value)
-float -> numeric type				(round) If the float is out of range for the data type, set it to the closest possible value eg: -infinity -> -128 for float -> byte and NAN -> 0
-
+float -> numeric type				(depends on hardware rounding implementation, no error checking)
 
 iteration
 A for loop can iterate over a list or a range. When iterating over the elements of a list, any changes to the list other than its size will be reflected in further loop iterations.
@@ -140,9 +140,16 @@ A for loop iterates over a range with the following protocol. Any changes made t
 Functions:
 functions are defined as
 	function [return_type] func_name(arg1:type1 arg2:type2 ...) {body}
-with "void" denoting no return value.
-All functions must have a return statement be the final statement in their body unless they are void
-Functions can only be defined in a global scope
+	with "void" denoting no return value.
+	All functions must have a return statement be the final statement in their body unless they are void
+	Functions can only be defined in a global scope
+	
+	functions can be called with func_name$ args...
+	without the trailing $, func_name generates a pointer to that function
+	function pointers can be called as such:
+		$ func_variable arg
+	which evaluates to func_name$ arg
+	This can only be done with single argument functions which have a signature or alias which is uint -> uint
 
 Aliases:
 	functions cannot be overloaded, but they can be given alias type signatures. This is done with the same syntax as the function header but with 'alias' instead of 'function', and with no function body. Variable names for aliases are ignored.
@@ -157,7 +164,7 @@ Variables:
 	Type inference is used to give types to local and global variables, but they retain that same type for future uses
 	Like C, variables local to a function will become unusable once the function exits, and pointers to them will give junk data
 	Likewise, variables used for loop control will become unusable when the loop finishes.
-	A raw function name will evaluate to a pointer to that function. Thus puts$ puts is possible and will print the assembled code of puts as if it were a string.
+	A raw function name will evaluate to a pointer to that function, with type func. Thus puts$ as puts ptr is possible and will print the assembled code of puts as if it were a string.
 	Using a raw function name for a function imported from the library such as deref_byte may generate an error at the linking stage if the function is inlined. 
 	
 Scoping rules:
@@ -165,10 +172,10 @@ Scoping rules:
 	In most cases, attempting to shadow a variable will either result in an error, or erroneously use the variable of the same name from the parent scope.
 	Only function arguments can shadow globals.
 	
-	Assigning a value to globals meant to be used in a local context by library functions will result in those variables being clobbered when the library's functions are called, or in a parsing error.
+	Assigning a value to globals meant to be used in a local context in another function will result in those variables being clobbered when the function is called, or in a parsing error.
 	
 	To use global variables in a safer way, give all the variables in a project a unique prefix
-	There is an automated way of doing this, by using the "guard" keyword. This keyword can be inserted anywhere without affecting parsing.
+	There is an automated way of doing this, by using the "guard" keyword. This keyword can be inserted anywhere without affecting parsing and will add a file-specific prefix to all non-function identifiers after it.
 	
 	Adding the guard keyword will cause all further variables used in that file to have a long string prepended to them to almost entirely prevent cross-file name clashes.
 	writing import [var_name] afterward will specifically allow access to that global variable, even if it's in another file.
@@ -194,11 +201,18 @@ Calling convention:
 	In order to write an assembly function which can be called, it is the callee's responsibility to save the frame pointer.
 	
 Heap:
+	(for z80 only, x86 implementations use C's malloc and free)
+
 	The heap is maintained with similar usage requirements as C's malloc and free.
 	The builtin library uses O(n^2) time for mallocing n objects due to its linked list implementation.
+	
+	(for all implementations)	
+
 	All ranges and lists created are stored on the heap and must be manually free'd after use. List or range literals used as the immediate argument of a for loop do not have to be freed.
 	An anonymous range or list object not used in a for loop will create a memory leak.
-	Alternative implementations of malloc and free can be provided after disabling the library. For systems other than the TIz80, this is heavily recommended.
+	Alternative implementations of malloc and free can be provided after disabling the library.
+	
+	(for z80 only)
 	
 	As it is implemented now, restoring both the head and tail of the heap's linked list will effectively free every object.
 	

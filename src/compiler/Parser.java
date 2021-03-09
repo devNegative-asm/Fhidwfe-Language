@@ -24,6 +24,7 @@ public class Parser {
 		Void(0,false,null,false,false,false),
 		Relptr(1,false,null,false,false,false),
 		File(1,false,null,false,false,false),
+		Func(2,false,null,false,false,false),
 		
 		Listbyte(2,false,Byte,false,false,true),
 		Listint(2,false,Int,false,false,true),
@@ -32,6 +33,7 @@ public class Parser {
 		Listfloat(2,false,Float,false,false,true),
 		Listptr(2,false,Ptr,false,false,true),
 		Listfile(2,false,File,false,false,true),
+		Listfunc(2,false,Func,false,false,true),
 		
 		Rangecc(2,true,Int,true,true,false),//int ranges
 		Rangeco(2,true,Int,true,false,false),
@@ -64,6 +66,7 @@ public class Parser {
 		Ptrrangeoo(2,true,Ptr,false,false,false),
 		
 		SYNTAX(0,false,null,false,false,false);
+		
 		
 		
 		private final int size;
@@ -119,7 +122,9 @@ public class Parser {
 					Listptr,
 					Listfile,
 					Listfloat,
-					Uint
+					Uint,
+					Func,
+					Listfunc
 			);
 			implicitlyConvertible.put(Ptr,asList(Uint));
 			for(Data type:ptrtypes) {
@@ -130,7 +135,7 @@ public class Parser {
 				Bool
 				Byte
 				Int
-				Float↓
+				Float
 				Uint
 				Ubyte
 				Ptr

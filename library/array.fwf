@@ -11,12 +11,16 @@ alias uint sizeof(a:listfloat)
 alias uint sizeof(a:listptr)
 alias uint sizeof(a:listuint)
 alias uint sizeof(a:listint)
+alias uint sizeof(a:listfunc)
+alias void free(a:listfunc)
 
 alias void memcpy(a:listbyte b:listbyte c:uint)
 alias void memcpy(a:listubyte b:listubyte c:uint)
+
+
 function int access_word(list:listint index:uint) {
-	index = ? index //turn it into a usable index
-	if < index sizeof$ list {
+	if < index / sizeof$ list int_size {
+		index = ? index //turn it into a usable index
 		return deref_int$ + as list ptr as index ptr
 	} {
 		puts$ "index "
@@ -56,12 +60,112 @@ function void assign_byte(list:listbyte index:uint b:byte) {
 		error$ ovflow
 	}
 }
+alias void assign_word(list:listuint index:uint b:uint)
+function void assign_word(list:listint index:uint b:int) {
+	if < index / sizeof$ list int_size {
+		index = ?index
+		put_int$ + as list ptr as index ptr b
+	} {
+		puts$ "index "
+		putui$ index
+		puts$ " of size "
+		putui$ sizeof$ list
+		putln$
+		error$ ovflow
+	}
+}
 alias uint access_word(a:listuint index:uint)
 alias ptr access_word(a:listptr index:uint)
+alias func access_word(a:listfunc index:uint)
 
+alias uint switch_b(a:ubyte l1:listubyte fns:listfunc args:listuint default:uint)
+function uint switch_b(a:byte l1:listbyte fns:listfunc args:listuint default:uint) {
+	result = default
+	ifnot = ?sizeof$ l1 sizeof$ fns {
+		error$ "switch cases not of the same length"
+	} ;
+	for uint [0u,sizeof$ l1) with test {
+		b = access_byte$ l1 test
+		if = b a {
+			result = $ access_word$ fns test access_word$ args test
+		} ;
+	}
+	return result
+}
 
+alias uint switch_i(a:uint l1:listuint fns:listfunc args:listuint default:uint)
+alias uint switch_i(a:ptr l1:listptr fns:listfunc args:listuint default:uint)
+function uint switch_i(a:int l1:listint fns:listfunc args:listuint default:uint) {
+	result = default
+	ifnot = sizeof$ l1 sizeof$ fns {
+		error$ "switch cases not of the same length"
+	} ;
+	for uint [0u,/ sizeof$ l1 int_size) with test {
+		b = access_word$ l1 test
+		if = b a {
+			result = $ access_word$ fns test access_word$ args test
+		} ;
+	}
+	return result
+}
 
+alias uint switch_b_to(a:ubyte l1:listubyte fns:listfunc args:listuint default:uint)
+function uint switch_b_to(a:byte l1:listbyte fns:listfunc args:listuint default:uint) {
+	result = default
+	ifnot = ?sizeof$ l1 sizeof$ fns {
+		error$ "switch cases not of the same length"
+	} ;
+	for uint [0u,sizeof$ l1) with test {
+		b = access_byte$ l1 test
+		if = b a {
+			result = $ access_word$ fns test access_word$ args test
+		} ;
+	}
+	free$ as l1 ptr
+	free$ as fns ptr
+	free$ as args ptr
+	return result
+}
 
+alias uint switch_i_to(a:uint l1:listuint fns:listfunc args:listuint default:uint)
+alias uint switch_i_to(a:ptr l1:listptr fns:listfunc args:listuint default:uint)
+function uint switch_i_to(a:int l1:listint fns:listfunc args:listuint default:uint) {
+	result = default
+	ifnot = sizeof$ l1 sizeof$ fns {
+		error$ "switch cases not of the same length"
+	} ;
+	for uint [0u,/ sizeof$ l1 int_size) with test {
+		b = access_word$ l1 test
+		if = b a {
+			result = $ access_word$ fns test access_word$ args test
+		} ;
+	}
+	free$ as l1 ptr
+	free$ as fns ptr
+	free$ as args ptr
+	return result
+}
+
+alias listint map(fn:func list:listint)
+alias listptr map(fn:func list:listptr)
+function listuint map(fn:func list:listuint) {
+	result = as malloc$ sizeof$ list listuint
+	for uint [0u,/ sizeof$ list int_size) with index {
+		assign_word$ result index $ fn access_word$ list index
+	}
+	return result
+}
+
+alias listint map_to(fn:func list:listint)
+alias listptr map_to(fn:func list:listptr)
+function listuint map_to(fn:func list:listuint) {
+	result = as malloc$ sizeof$ list listuint
+	for uint [0u,/ sizeof$ list int_size) with index {
+		assign_word$ result index $ fn access_word$ list index
+	}
+	free$ as list ptr
+	return result
+}
 
 function listbyte double_len(a:listbyte) {
 	b = as malloc$ << sizeof$ a listbyte

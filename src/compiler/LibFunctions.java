@@ -19,6 +19,8 @@ public class LibFunctions {
 		p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Uint, "deref_uint");
 		p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Ptr, "deref_ptr");
 		
+		p.registerLibFunction(Arrays.asList(Parser.Data.Func,Parser.Data.Uint), Parser.Data.Uint, "");//call-by-pointer
+		
 		p.registerLibFunction(Arrays.asList(Parser.Data.Ptr,Parser.Data.Byte),Parser.Data.Void, "put_byte");
 		p.registerLibFunction(Arrays.asList(Parser.Data.Ptr, Parser.Data.Ubyte),Parser.Data.Void, "put_ubyte");
 		p.registerLibFunction(Arrays.asList(Parser.Data.Ptr, Parser.Data.Int),Parser.Data.Void, "put_int");
@@ -132,6 +134,7 @@ public class LibFunctions {
 			p.inlineReplace("put_int");
 			p.inlineReplace("put_uint");
 			p.inlineReplace("put_ptr");
+			p.inlineReplace("");
 			if(architecture==CompilationSettings.Target.WINx64) {
 				p.inlineReplace("malloc");
 				p.inlineReplace("free");
@@ -178,6 +181,32 @@ public class LibFunctions {
 			
 			if(instr.in==IntermediateLang.InstructionType.call_function) {
 				switch(instr.args[0]) {
+					case "":
+						//call function
+						switch(architecture) {
+						case WINx64:
+							//the stack holds the function address
+							//rax holds the argument
+							replacement = Arrays.asList(
+									IntermediateLang.InstructionType.rawinstruction.cv("pop rcx"),
+									IntermediateLang.InstructionType.rawinstruction.cv("push rax"),
+									IntermediateLang.InstructionType.rawinstruction.cv("call rcx"));
+							break;
+						case TI83pz80:
+						case z80Emulator:
+							int lbl = fresh();
+							replacement = Arrays.asList(
+								IntermediateLang.InstructionType.rawinstruction.cv("ex (sp),hl"),
+								IntermediateLang.InstructionType.rawinstruction.cv("ld bc,__indirection_"+lbl),
+								IntermediateLang.InstructionType.rawinstruction.cv("push bc"),
+								IntermediateLang.InstructionType.rawinstruction.cv("jp (hl)"),
+								IntermediateLang.InstructionType.general_label.cv("__indirection_"+lbl)
+							);
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
 					case "sin":
 						switch(architecture) {
 						case WINx64:
