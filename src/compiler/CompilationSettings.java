@@ -4,15 +4,17 @@ import java.util.List;
 
 public class CompilationSettings {
 	public enum Target {
-		WINx86("libwin86",4),
-		WINx64("libwin64",8),
-		z80Emulator("libemuz80",2),
-		TI83pz80("libti83pz80",2);
+		WINx86("libwin86",4,true),
+		WINx64("libwin64",8,true),
+		z80Emulator("libemuz80",2,false),
+		TI83pz80("libti83pz80",2,false);
 		public final String libLoc;
 		public final int intsize;
-		private Target(String libLoc, int intsize) {
+		public final boolean needsAlignment;
+		private Target(String libLoc, int intsize, boolean align) {
 			this.libLoc=libLoc;
 			this.intsize=intsize;
+			this.needsAlignment=align;
 		}
 		
 		

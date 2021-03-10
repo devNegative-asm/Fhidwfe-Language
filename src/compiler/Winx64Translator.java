@@ -511,12 +511,17 @@ public class Winx64Translator {
 				comp.add("	"+orig[0]);
 				break;
 			case rawint:
+				if(p.settings.target.needsAlignment)
+					data.add(data.size()-1,"ALIGN "+p.settings.intsize);
 				if(orig[0].startsWith("$"))
 					data.add("	DQ "+orig[0].substring(1)+"h");
 				else
 					data.add("	DQ "+orig[0]);
 				break;
 			case rawspace:
+				if(Integer.parseInt(orig[0])%p.settings.intsize==0)
+					if(p.settings.target.needsAlignment)
+						data.add(data.size()-1,"ALIGN "+p.settings.intsize);
 				if(useDSNotation)
 					data.add("	TIMES "+orig[0]+" DB 0 ");
 				else
@@ -525,6 +530,8 @@ public class Winx64Translator {
 					}
 				break;
 			case rawspaceints:
+				if(p.settings.target.needsAlignment)
+					data.add(data.size()-1,"ALIGN "+p.settings.intsize);
 				if(useDSNotation)
 					data.add("	TIMES "+orig[0]+" DQ 0 ");
 				else

@@ -72,18 +72,18 @@ public class SyntaxTree extends BaseTree{
 	boolean prepared = false;
 	
 	
-	void getNeededLocals(VariableTree parent) {
+	void getNeededLocals(VariableTree parent, boolean align) {
 		if(isFunction()) {
 			return;
 		}
 		VariableTree locals = new VariableTree(parent);
-		this.scopeTypings.forEach((string, type) ->{locals.addVariable(string, type,theParser);});
+		this.scopeTypings.forEach((string, type) ->{locals.addVariable(string, type,theParser,align);});
 		for(SyntaxTree child:children()) {
-			child.getNeededLocals(locals);
+			child.getNeededLocals(locals, align);
 		}
 		prepared = true;
 	}
-	public void prepareVariables() {
+	public void prepareVariables(boolean align) {
 		if(isFunction()) {
 			this.argorder.forEach((name) -> {
 				functionVariables.add(new Variable(name,SyntaxTree.Location.ARG,Parser.Data.Uint,theParser));//all args should be of int type in terms of stack operations
@@ -97,8 +97,8 @@ public class SyntaxTree extends BaseTree{
 			//look at all sub-blocks that hold local variables.
 			//Their names will not conflict with globals or arguments
 			VariableTree localsTree = new VariableTree(null);
-			children()[children().length-1].getNeededLocals(localsTree);
-			this.localSpace = localsTree.getMaxSize();
+			children()[children().length-1].getNeededLocals(localsTree,align);
+			this.localSpace = localsTree.getMaxSize(theParser,align);
 			HashMap<String,Variable> vars = localsTree.getVars();
 			vars.forEach((name, var)->{
 				localPointers.add(var);

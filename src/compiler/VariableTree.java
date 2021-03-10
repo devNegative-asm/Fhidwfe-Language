@@ -35,18 +35,28 @@ public class VariableTree {
 			tree.checkNameConflicts(names);
 		}
 	}
-	public void addVariable(String name, Parser.Data type, Parser p){
+	public void addVariable(String name, Parser.Data type, Parser p, boolean align){
+		int gs = p.settings.intsize;
 		if(doneEditing)
 			throw new RuntimeException("error in resolving variables: local varlist changed after size retrieved");
-		if(parent!=null)
-			myvars.add(new Variable(name,(byte)(-getMySize()-parent.getOverallSize()-type.getSize(p)),type,p));
+		if(!align)
+			if(parent!=null)
+				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-parent.getOverallSize(p,align)-type.getSize(p)),type,p));
+			else
+				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-type.getSize(p)),type,p));
 		else
-			myvars.add(new Variable(name,(byte)(-getMySize()-type.getSize(p)),type,p));
+			if(parent!=null)
+				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-parent.getOverallSize(p,align)-gs),type,p));
+			else
+				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-gs),type,p));
 	}
-	private int getMySize() {
+	private int getMySize(Parser p,boolean align) {
 		int sizeReq = 0;
 		for(Variable b:myvars) {
-			sizeReq+=b.getSize();
+			if(!align)
+				sizeReq+=b.getSize();
+			else
+				sizeReq+=p.settings.intsize;
 		}
 		return sizeReq;
 	}
@@ -59,9 +69,9 @@ public class VariableTree {
 		}
 		return results;
 	}
-	private int getOverallSize() {
+	private int getOverallSize(Parser p,boolean align) {
 		doneEditing();
-		return getMySize() + (parent!=null?parent.getMySize():0);
+		return getMySize(p,align) + (parent!=null?parent.getMySize(p,align):0);
 	}
 	public String toString() {
 		String result = myvars.toString();
@@ -82,15 +92,18 @@ public class VariableTree {
 		}
 		return result;
 	}
-	public int getMaxSize() {
+	public int getMaxSize(Parser p,boolean align) {
 		doneEditing();
 		int sizeReq = 0;
 		for(Variable b:myvars) {
-			sizeReq+=b.getSize();
+			if(!align)
+				sizeReq+=b.getSize();
+			else
+				sizeReq+=p.settings.intsize;
 		}
 		int maxSubReq = 0;
 		for(VariableTree child:children) {
-			int posSubReq = child.getMaxSize();
+			int posSubReq = child.getMaxSize(p,align);
 			if(posSubReq>=maxSubReq)
 				maxSubReq=posSubReq;
 		}

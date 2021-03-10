@@ -88,19 +88,19 @@ public class BaseTree {
 	private ArrayList<Variable> globalVariables = new ArrayList<>();
 	private ArrayList<Variable> globalPointers = new ArrayList<>();
 	
-	private VariableTree getNeededLocals() {
+	private VariableTree getNeededLocals(boolean align) {
 		VariableTree locals = new VariableTree(null);
 		for(SyntaxTree child:getChildren()) {
-			child.getNeededLocals(locals);
+			child.getNeededLocals(locals,align);
 		}
 		return locals;
 	}
 	
 	boolean prepared = false;
-	public void prepareVariables() {
+	public void prepareVariables(boolean align) {
 		if(prepared)
 			return;
-		VariableTree localTree = getNeededLocals();//no need to use stack space in a global scope
+		VariableTree localTree = getNeededLocals(align);//no need to use stack space in a global scope
 		localTree.doneEditing();
 		scopeTypings.forEach((s, type)->{
 			globalVariables.add(new Variable(s,SyntaxTree.Location.GLOBAL,type,theParser));
@@ -116,7 +116,10 @@ public class BaseTree {
 		int globalLocation = 0;
 		for(Variable s:globalVariables){
 			globalPointers.add(new Variable(s.getName(),s.getName(),theParser));
-			globalLocation+=s.getType().getSize(theParser.settings);
+			if(theParser.settings.target.needsAlignment)
+				globalLocation+=theParser.settings.intsize;
+			else
+				globalLocation+=s.getType().getSize(theParser.settings);
 		}
 		int gotGlobal = globalLocation;
 		localTree.getVars().forEach((name, variable)->{
@@ -127,9 +130,9 @@ public class BaseTree {
 		});
 		prepared = true;
 		for(SyntaxTree child:this.getChildren()) {
-			child.prepareVariables();
+			child.prepareVariables(align);
 		}
-		localSpace = localTree.getMaxSize();
+		localSpace = localTree.getMaxSize(theParser,align);
 	}
 	private int localSpace = 0;
 	public ArrayList<IntermediateLang.Instruction> getGlobalSymbols() {
@@ -137,7 +140,10 @@ public class BaseTree {
 		symbols.add(IntermediateLang.InstructionType.data_label.cv("__globals"));
 		globalVariables.forEach(v->{
 			symbols.add(IntermediateLang.InstructionType.data_label.cv(v.getName()));
-			symbols.add(IntermediateLang.InstructionType.rawspace.cv(""+v.getType().getSize(theParser.settings)));
+			if(theParser.settings.target.needsAlignment)
+				symbols.add(IntermediateLang.InstructionType.rawspaceints.cv("1"));
+			else
+				symbols.add(IntermediateLang.InstructionType.rawspace.cv(""+v.getType().getSize(theParser.settings)));
 		});
 		symbols.add(IntermediateLang.InstructionType.data_label.cv("__global_loop_vars"));
 		symbols.add(IntermediateLang.InstructionType.rawspace.cv(""+localSpace));
