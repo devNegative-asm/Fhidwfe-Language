@@ -9,16 +9,26 @@ import java.util.Scanner;
 public class Lexer {
 	private ArrayList<Scanner> scan = new ArrayList<Scanner>();
 	private ArrayList<File> files = new ArrayList<File>();
+	private final Charmap x;
 	int lineNumber = 0;
 	String fileIn ="";
 	private ArrayList<String> stringConstants = new ArrayList<>();
-	public ArrayList<String> stringConstants() {
-		ArrayList<String> ret = new ArrayList<String>();
-		ret.addAll(stringConstants);
+	public ArrayList<Byte[]> stringConstants() {
+		ArrayList<Byte[]> ret = new ArrayList<Byte[]>();
+		stringConstants.forEach(s -> 
+		{
+			int i=0;
+			Byte[] res = new Byte[s.length()];
+			for(char c:s.toCharArray()) {
+				res[i++]=x.charToByte(c);
+			}
+			ret.add(res);
+		});
 		return ret;
 	}
-	public Lexer(File f, CompilationSettings settings) throws FileNotFoundException {
+	public Lexer(File f, CompilationSettings settings, Charmap cm) throws FileNotFoundException {
 		Scanner x = new Scanner(f);
+		this.x=cm;
 		x.useDelimiter("(?<=\n)");
 		for(File fv:new File("./library/").listFiles()) {
 			if(fv.getName().endsWith(".fwf"))
@@ -136,7 +146,7 @@ public class Lexer {
 					char_count=3;
 					break;
 				case 3:
-					ajustedSource.append((int)charValue);
+					ajustedSource.append(Byte.toUnsignedInt(x.charToByte(charValue)));
 					ajustedSource.append("ub");
 					char_count=0;
 					break;

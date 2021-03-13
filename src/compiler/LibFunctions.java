@@ -62,6 +62,7 @@ public class LibFunctions {
 		case TI83pz80:
 			p.requireLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
 			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Uint, "sizeof");
 			
 			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "sdiv");
 			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "smod");
@@ -108,6 +109,7 @@ public class LibFunctions {
 
 			p.requireLibFunction(Arrays.asList(Parser.Data.Uint), Parser.Data.Ptr, "malloc");
 			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "free");
+			p.requireLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Uint, "sizeof");
 			
 			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "sdiv");
 			p.requireLibFunction(Arrays.asList(Parser.Data.Int,Parser.Data.Int), Parser.Data.Int, "smod");
@@ -120,66 +122,67 @@ public class LibFunctions {
 		}
 	}
 	public void correct(List<IntermediateLang.Instruction> instructions, Parser p) {
-		
+		p.inlineReplace("deref_byte");
+		p.inlineReplace("deref_ubyte");
+		p.inlineReplace("deref_int");
+		p.inlineReplace("deref_uint");
+		p.inlineReplace("deref_ptr");
+		p.inlineReplace("put_byte");
+		p.inlineReplace("put_ubyte");
+		p.inlineReplace("put_int");
+		p.inlineReplace("put_uint");
+		p.inlineReplace("put_ptr");
+		p.inlineReplace("");
+		if(architecture==CompilationSettings.Target.WINx64) {
+			p.inlineReplace("malloc");
+			p.inlineReplace("free");
+			p.inlineReplace("realloc");
+			p.inlineReplace("sizeof");
+			p.inlineReplace("getc");
+			p.inlineReplace("putchar");
+			p.inlineReplace("memcpy");
+			p.inlineReplace("strcpy");
+			p.inlineReplace("putln");
+			p.inlineReplace("fflush");
+			p.inlineReplace("fwrite");
+			p.inlineReplace("fclose");
+			p.inlineReplace("fopen");
+			p.inlineReplace("fread");
+			//p.inlineReplace("favail");
+			p.inlineReplace("cos");
+			p.inlineReplace("sqrt");
+			p.inlineReplace("sin");
+		}
+		if(architecture==CompilationSettings.Target.TI83pz80) {
+			p.inlineReplace("putln");
+			p.inlineReplace("memcpy");
+			p.inlineReplace("putchar");
+			p.inlineReplace("strcpy");
+			p.inlineReplace("getc");
+		}
+		if(architecture==CompilationSettings.Target.z80Emulator) {
+			p.inlineReplace("putln");
+			p.inlineReplace("memcpy");
+			p.inlineReplace("putchar");
+			p.inlineReplace("strcpy");
+			p.inlineReplace("getc");
+			
+			p.inlineReplace("fread");
+			p.inlineReplace("fflush");
+			p.inlineReplace("fopen");
+			p.inlineReplace("fclose");
+			p.inlineReplace("fwrite");
+			p.inlineReplace("favail");
+		}
 		for(int loc = 0;loc < instructions.size(); loc++) {
 			IntermediateLang.Instruction instr = instructions.get(loc);
 			List<IntermediateLang.Instruction> replacement = new ArrayList<>();
-			p.inlineReplace("deref_byte");
-			p.inlineReplace("deref_ubyte");
-			p.inlineReplace("deref_int");
-			p.inlineReplace("deref_uint");
-			p.inlineReplace("deref_ptr");
-			p.inlineReplace("put_byte");
-			p.inlineReplace("put_ubyte");
-			p.inlineReplace("put_int");
-			p.inlineReplace("put_uint");
-			p.inlineReplace("put_ptr");
-			p.inlineReplace("");
-			if(architecture==CompilationSettings.Target.WINx64) {
-				p.inlineReplace("malloc");
-				p.inlineReplace("free");
-				p.inlineReplace("realloc");
-				p.inlineReplace("sizeof");
-				p.inlineReplace("getc");
-				p.inlineReplace("putchar");
-				p.inlineReplace("memcpy");
-				p.inlineReplace("strcpy");
-				p.inlineReplace("putln");
-				p.inlineReplace("fflush");
-				p.inlineReplace("fwrite");
-				p.inlineReplace("fclose");
-				p.inlineReplace("fopen");
-				p.inlineReplace("fread");
-				//p.inlineReplace("favail");
-				p.inlineReplace("cos");
-				p.inlineReplace("sqrt");
-				p.inlineReplace("sin");
-			}
-			if(architecture==CompilationSettings.Target.TI83pz80) {
-				p.inlineReplace("putln");
-				p.inlineReplace("memcpy");
-				p.inlineReplace("putchar");
-				p.inlineReplace("strcpy");
-				p.inlineReplace("getc");
-			}
-			if(architecture==CompilationSettings.Target.z80Emulator) {
-				p.inlineReplace("putln");
-				p.inlineReplace("memcpy");
-				p.inlineReplace("putchar");
-				p.inlineReplace("strcpy");
-				p.inlineReplace("getc");
-				
-				p.inlineReplace("fread");
-				p.inlineReplace("fflush");
-				p.inlineReplace("fopen");
-				p.inlineReplace("fclose");
-				p.inlineReplace("fwrite");
-				p.inlineReplace("favail");
-			}
+			
 			
 			
 			
 			if(instr.in==IntermediateLang.InstructionType.call_function) {
+				if(p.isInlined(instr.args[0]))
 				switch(instr.args[0]) {
 					case "":
 						//call function

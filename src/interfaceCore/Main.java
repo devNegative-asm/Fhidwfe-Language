@@ -88,7 +88,7 @@ public class Main {
 		}
 		CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
 		
-		Lexer lx = new Lexer(new File(args[0]),settings);
+		Lexer lx = new Lexer(new File(args[0]),settings, x -> (byte) x);
 		ArrayList<Token> tokens = lx.tokenize();
 		
 		Parser p = new Parser(settings);
@@ -162,17 +162,9 @@ public class Main {
 		}
 		fis.close();
 		
-		Supplier<Byte> bs = () -> {
-			try {
-				if(System.in.available()!=0) {
-						return (byte)System.in.read();
-					
-				}
-			} catch (Exception e) {
-				return 0;
-			}
-			return (byte)0;
-		};
+		Supplier<Byte> bs = () -> {try {
+			
+			return (byte) System.in.read();} catch(Exception e) {return 0;}};
 		
 		IODevice port1 = new IODevice() { //FILE IO port
 			IOstate state = IOstate.OTHER;

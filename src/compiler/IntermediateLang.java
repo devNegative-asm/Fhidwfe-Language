@@ -56,9 +56,9 @@ public class IntermediateLang {
 		results.add(InstructionType.exit_noreturn.cv("__ExitLocation"));
 		results.add(InstructionType.data_label.cv("__ExitLocation"));
 		results.add(InstructionType.rawspace.cv(""+(tree.theParser.settings.intsize+(tree.theParser.settings.intsize>2?8:0))));
-		for(String b:lex.stringConstants()) {//create string constants table
+		for(Byte[] b:lex.stringConstants()) {//create string constants table
 			results.add(InstructionType.data_label.cv("__String_"+stringCount++));
-			for(byte c:b.getBytes()) {
+			for(byte c:b) {
 				results.add(InstructionType.raw.cv("$"+Integer.toHexString((c+256)%256)));
 			}
 			results.add(InstructionType.raw.cv("$00"));

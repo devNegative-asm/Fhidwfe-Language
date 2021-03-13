@@ -211,6 +211,9 @@ public class Parser {
 	public void inlineReplace(String fnName) {
 		inlined.add(fnName);
 	}
+	public boolean isInlined(String fnName) {
+		return inlined.contains(fnName);
+	}
 	public void verify(ArrayList<IntermediateLang.Instruction> ins) {
 		ArrayList<String> alloc = new ArrayList<>();
 		alloc.addAll(libAllocated);

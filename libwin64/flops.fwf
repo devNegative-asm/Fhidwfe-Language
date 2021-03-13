@@ -3,6 +3,26 @@ import int_size
 import pi
 import e
 import NaN
+function void putfloatdigits(num:float) {
+	puti$ as num int//cast num to an int and print that
+	//now the decimal part
+	putchar$'.'
+	fpart = as * 100000. fracpart$ num uint
+	//there could be leading zeroes
+	if < fpart 10000u {
+		putchar$ '0'
+	} ;
+	if < fpart 1000u {
+		putchar$ '0'
+	} ;
+	if < fpart 100u {
+		putchar$ '0'
+	} ;
+	if < fpart 10u {
+		putchar$ '0'
+	} ;
+	putui$ fpart
+}
 
 function float f_pow_int(base:float exponent:int) {
 	if < exponent 0 {
