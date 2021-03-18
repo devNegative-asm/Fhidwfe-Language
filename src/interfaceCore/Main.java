@@ -13,14 +13,15 @@ import java.util.function.Supplier;
 
 import assembler.Assembler;
 import compiler.BaseTree;
-import compiler.CompilationSettings;
-import compiler.ConstantPropagater;
+import compiler.Instruction;
 import compiler.IntermediateLang;
 import compiler.Lexer;
 import compiler.Parser;
 import compiler.Token;
 import compiler.Translator;
 import preprocessor.Preprocessor;
+import settings.CompilationSettings;
+import settings.ConstantPropagater;
 import ti83packager.Packager;
 import z80core.MemIoOps;
 import z80core.Z80;
@@ -97,11 +98,11 @@ public class Main {
 		
 		tree.typeCheck(); // check that typing is valid, and register all variables in use
 		tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
-		ArrayList<IntermediateLang.Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
+		ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
 		settings.library.correct(VMCode, p);
 		PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
 		p.verify(VMCode);
-		for(IntermediateLang.Instruction s:VMCode) {
+		for(Instruction s:VMCode) {
 			pr1.println(s);
 		}
 		pr1.close();

@@ -1,14 +1,16 @@
 package compiler;
 
+import settings.CompilationSettings;
+
 public class Variable implements Comparable<Variable>{
 	final String name;
 	final SyntaxTree.Location scope;
-	final Parser.Data type;
+	final DataType type;
 	final CompilationSettings intSize;
-	final byte value;
+	final long value;
 	final boolean constant;
 	final String compiletimeIdentifier;
-	public Variable(String name, SyntaxTree.Location scope, Parser.Data type, Parser set) {
+	public Variable(String name, SyntaxTree.Location scope, DataType type, Parser set) {
 		if(scope==SyntaxTree.Location.NONE) {
 			throw new RuntimeException("@@call the devs. Use other constructor for constant pointers");
 		}
@@ -20,7 +22,7 @@ public class Variable implements Comparable<Variable>{
 		value = 0;
 		compiletimeIdentifier=null;
 	}
-	public Variable(String name, byte offsetLocation, Parser.Data type, Parser set) {
+	public Variable(String name, byte offsetLocation, DataType type, Parser set) {
 		intSize = set.settings;
 		this.constant=true;
 		this.value=offsetLocation;
@@ -30,7 +32,7 @@ public class Variable implements Comparable<Variable>{
 		compiletimeIdentifier = null;
 	}
 	
-	public Variable(String name, byte offsetLocation, SyntaxTree.Location scope, Parser.Data type, Parser set) {
+	public Variable(String name, byte offsetLocation, SyntaxTree.Location scope, DataType type, Parser set) {
 		this.constant=true;
 		this.value=offsetLocation;
 		intSize = set.settings;
@@ -44,7 +46,7 @@ public class Variable implements Comparable<Variable>{
 		this.constant=true;
 		this.value=0;
 		this.compiletimeIdentifier = compiletimeIdentifier;
-		this.type=Parser.Data.Ptr;
+		this.type=DataType.Ptr;
 		intSize = set.settings;
 		this.scope=SyntaxTree.Location.NONE;
 		this.name=name;
@@ -58,10 +60,10 @@ public class Variable implements Comparable<Variable>{
 		return scope;
 	}
 
-	public Parser.Data getType() {
+	public DataType getType() {
 		return type;
 	}
-	public byte getValue() {
+	public long getValue() {
 		return value;
 	}
 	public String toString() {

@@ -2,39 +2,47 @@ package compiler;
 import java.util.ArrayList;
 import java.util.function.Predicate;
 
+import settings.CompilationSettings;
+/**
+ * The Fhidwfe intermediate language (generated directly from source)
+ *
+ */
 public class IntermediateLang {
-	static String shifts = "top of stack is: [value], [shift ammount]";
-	public static final class Instruction{
-		InstructionType in;
-		String[] args;
-		public Instruction(InstructionType in, String... args) {
-			super();
-			this.in = in;
-			this.args = args;
-		}
-		public String toString() {
-			if(this.in==InstructionType.function_label||this.in==InstructionType.general_label||this.in==InstructionType.define_symbolic_constant)
-				return in.toString()+" "+String.join(", ", args);
-			else
-				return "\t"+in.toString()+" "+String.join(", ", args);
-		}
+	static String shifts = "top of stack is: [value]";
+	/**
+	 * If the given syntaxtree represents a type token, this returns that type
+	 * @param t the tree
+	 * @return the type
+	 */
+	private static DataType typeFromTree(SyntaxTree t) {
+		return DataType.fromLowerCase(t.getTokenString());
 	}
-	
-	
-	private static Parser.Data typeFromTree(SyntaxTree t) {
-		return Parser.Data.fromLowerCase(t.getTokenString());
-	}
+	/**
+	 * Converts a string into one of the 4 possible data segments a variable can be in
+	 * @param resolved the string
+	 * @return the segment
+	 */
 	private static SyntaxTree.Location loc(String resolved) {
 		return SyntaxTree.Location.valueOf(resolved);
 	}
-	int fres = 0;
-	private int fresh()
+	long fres = 0;
+	/**
+	 * Generates a fresh number that can safely be used for loop labels
+	 * @return
+	 */
+	private long fresh()
 	{
 		return fres++;
 	}
 	
 	BaseTree base;
-	public ArrayList<Instruction> generateInstructions(BaseTree tree, Lexer lex, String... metadata) {
+	/**
+	 * Takes a syntax tree base, a lexer (used for string info) and generates a program in the intermediate language
+	 * @param tree
+	 * @param lex
+	 * @return the list of instructions
+	 */
+	public ArrayList<Instruction> generateInstructions(BaseTree tree, Lexer lex) {
 		
 		ArrayList<Instruction> results = new ArrayList<Instruction>();
 		int stringCount = 0;
@@ -74,7 +82,7 @@ public class IntermediateLang {
 			if(outer.getTokenType()==Token.Type.FUNCTION)
 			{
 				if(tree.functionIsEverCalled(outer.getChild(1).getTokenString())) {//only compile functions that are called somewhere in the code
-					results.addAll(generateInstructions(outer,lex,metadata));
+					results.addAll(generateSubInstructions(outer));
 				}
 				
 			}
@@ -108,26 +116,31 @@ public class IntermediateLang {
 		}
 		for(SyntaxTree outer:tree.getChildren()) {//compile functions before anything else
 			if(outer.getTokenType()!=Token.Type.FUNCTION)
-			results.addAll(generateInstructions(outer,lex,metadata));
+			results.addAll(generateSubInstructions(outer));
 		}
 		return results;
 	}
-	public ArrayList<Instruction> generateInstructions(SyntaxTree tree, Lexer lex, String... metadata)
+	/**
+	 * Generates instructions to represent something that resides in the global code rather than the global code itself
+	 * @param tree the syntax tree for which to generate instructions
+	 * @return a list of instructions
+	 */
+	private ArrayList<Instruction> generateSubInstructions(SyntaxTree tree)
 	{
 		
 		ArrayList<Instruction> results = new ArrayList<>();
-		Parser.Data Float = Parser.Data.Float;
-		Parser.Data Uint = Parser.Data.Uint;
-		Parser.Data Int = Parser.Data.Int;
-		Parser.Data Ubyte = Parser.Data.Ubyte;
-		Parser.Data Byte = Parser.Data.Byte;
-		Parser.Data Ptr = Parser.Data.Ptr;
+		DataType Float = DataType.Float;
+		DataType Uint = DataType.Uint;
+		DataType Int = DataType.Int;
+		DataType Ubyte = DataType.Ubyte;
+		DataType Byte = DataType.Byte;
+		DataType Ptr = DataType.Ptr;
 		
 		CompilationSettings settings = tree.getParser().settings;
 		
 		Token tok = tree.getToken();
 		Token.Type toktype = tok.t;
-		Parser.Data type = tree.getType(); 
+		DataType type = tree.getType(); 
 		String str = tok.s;
 		//TODO implement pipelined if branching
 		
@@ -137,9 +150,9 @@ public class IntermediateLang {
 		switch(toktype) {
 		case SHIFT_LEFT:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 				throw new RuntimeException("Cannot bit shift a float");
 			if(type.getSize(settings)==1) {
 				results.add(InstructionType.shift_left_b.cv());
@@ -149,9 +162,9 @@ public class IntermediateLang {
 			break;
 		case SHIFT_RIGHT:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 				throw new RuntimeException("Cannot bit shift a float");
 			if(type.getSize(settings)==1) {
 				if(type.signed())
@@ -167,9 +180,9 @@ public class IntermediateLang {
 			break;
 		case ADD:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 				results.add(InstructionType.stackaddfloat.cv());
 			else 
 				results.add(InstructionType.stackadd.cv());
@@ -179,9 +192,9 @@ public class IntermediateLang {
 			break;
 		case AS:
 			
-			Parser.Data typeFrom = tree.getChildren().get(0).getType();
-			results.addAll(this.generateInstructions(tree.getChild(0), lex, metadata));
-			Parser.Data typeTo = typeFromTree(tree.getChildren().get(1));
+			DataType typeFrom = tree.getChildren().get(0).getType();
+			results.addAll(this.generateSubInstructions(tree.getChild(0)));
+			DataType typeTo = typeFromTree(tree.getChildren().get(1));
 			if(typeFrom == typeTo) {
 				
 			} else if(typeFrom==Int && typeTo==Byte) {
@@ -222,19 +235,19 @@ public class IntermediateLang {
 			break;
 		case BITWISE_AND:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(new Instruction(InstructionType.stackand));
 			break;
 		case BITWISE_OR:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(new Instruction(InstructionType.stackor));
 			break;
 		case BITWISE_XOR:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(new Instruction(InstructionType.stackxor));
 			break;
@@ -258,7 +271,7 @@ public class IntermediateLang {
 			break;
 		case COMPLEMENT:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			if(type.getSize(settings)==1) {
 				results.add(new Instruction(InstructionType.stacknot));
@@ -267,13 +280,13 @@ public class IntermediateLang {
 			break;
 		case DECREMENT_LOC:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(new Instruction(InstructionType.decrement_by_pointer_b));
 			break;
 		case DIVIDE:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(type) {
 			case Byte:
@@ -306,7 +319,7 @@ public class IntermediateLang {
 				int typeSize = tree.getChild(1).getType().getSize(settings);
 				SyntaxTree.Location location = loc(find.split(" ")[0]);
 				String placement = find.split(" ")[1];
-				results.addAll(generateInstructions(tree.getChild(1),lex,metadata));
+				results.addAll(generateSubInstructions(tree.getChild(1)));
 				
 				//load hl into this address
 				switch(location) {
@@ -338,11 +351,11 @@ public class IntermediateLang {
 			} else {
 				//equality test
 				for(SyntaxTree child:tree.getChildren()) {
-					results.addAll(generateInstructions(child,lex,metadata));
+					results.addAll(generateSubInstructions(child));
 				}
 				
 				if(tree.getChild(0).getType().getSize(settings)>1) {
-					if(tree.getChild(0).getType()!=Parser.Data.Float)
+					if(tree.getChild(0).getType()!=DataType.Float)
 						results.add(InstructionType.equal_to_i.cv());
 					else
 						results.add(InstructionType.equal_to_f.cv());
@@ -370,10 +383,10 @@ public class IntermediateLang {
 			break;
 		case FUNC_CALL_NAME:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(new Instruction(InstructionType.call_function,str));
-			if(tree.getParser().getFunctionOutputType(str).get(0)!=Parser.Data.Void)
+			if(tree.getParser().getFunctionOutputType(str).get(0)!=DataType.Void)
 				if(tree.getParent() instanceof SyntaxTree) {
 					SyntaxTree parent =(SyntaxTree) tree.getParent();
 					if(parent.getTokenType()==Token.Type.OPEN_BRACE) {
@@ -385,7 +398,7 @@ public class IntermediateLang {
 			break;
 		case GEQUAL:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(tree.getChild(0).getType()) {
 				case Ptr:
@@ -410,7 +423,7 @@ public class IntermediateLang {
 			break;
 		case GTHAN:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(tree.getChild(0).getType()) {
 				case Ptr:
@@ -470,14 +483,14 @@ public class IntermediateLang {
 			break;
 		case IN:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			type = tree.getChild(1).getType();
 			results.add(InstructionType.call_function.cv("in"+type.name().toLowerCase()));//in is too complicated to be inlined
 			break;
 		case INCREMENT_LOC:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(InstructionType.increment_by_pointer_b.cv());
 			break;
@@ -502,7 +515,7 @@ public class IntermediateLang {
 			throw new RuntimeException("'is' is deprecated. Why did you find this at translation?");
 		case LEQUAL:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(tree.getChild(0).getType()) {
 				case Int:
@@ -526,19 +539,19 @@ public class IntermediateLang {
 			break;
 		case LOGICAL_AND:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(InstructionType.stackand.cv());
 			break;
 		case LOGICAL_OR:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			results.add(InstructionType.stackor.cv());
 			break;
 		case LTHAN:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(tree.getChild(0).getType()) {
 				case Int:
@@ -563,7 +576,7 @@ public class IntermediateLang {
 			break;
 		case MODULO:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			switch(tree.getType()) {
 			case Byte:
@@ -589,9 +602,9 @@ public class IntermediateLang {
 			break;
 		case NEGATE:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 			{
 				results.add(InstructionType.stacknegfloat.cv());
 			}
@@ -603,7 +616,7 @@ public class IntermediateLang {
 			break;
 		case OPEN_BRACE:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			break;
 
@@ -624,7 +637,7 @@ public class IntermediateLang {
 				elemCounter++;
 				if(elemCounter!=elements)
 					results.add(InstructionType.copy.cv());//this pointer will be used for placing the number
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 				if(elemSize==1) {
 					results.add(InstructionType.store_b.cv());
 					if(elemCounter!=elements)
@@ -649,7 +662,7 @@ public class IntermediateLang {
 				SyntaxTree child = tree.getChild(i);
 				if(i==1)
 					results.add(InstructionType.copy.cv());//this pointer will be used for placing the number
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 				if(elemSize==1) {
 					results.add(InstructionType.store_b.cv());
 					if(i==1)
@@ -730,7 +743,7 @@ public class IntermediateLang {
 			break;
 		case RETURN:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
 			if(tree.functionIn()==null) {
 				//returning from global scope
@@ -746,9 +759,9 @@ public class IntermediateLang {
 			break;
 		case SUBTRACT:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 				results.add(InstructionType.stacksubfloat.cv());
 			else 
 				results.add(InstructionType.stacksub.cv());
@@ -758,9 +771,9 @@ public class IntermediateLang {
 			break;
 		case TIMES:
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateInstructions(child,lex,metadata));
+				results.addAll(generateSubInstructions(child));
 			}
-			if(type==Parser.Data.Float) 
+			if(type==DataType.Float) 
 				results.add(InstructionType.stackmultfloat.cv());
 			else 
 				results.add(InstructionType.stackmult.cv());
@@ -780,13 +793,13 @@ public class IntermediateLang {
 			results.add(InstructionType.retrieve_immediate_int.cv(str.replace("u", "")));
 			break;
 		case WHILE:
-			int id;
+			long id;
 			
 			id = fresh();
 			results.add(InstructionType.general_label.cv("__while_"+id+"_cond"));
-			results.addAll(generateInstructions(tree.getChild(0), lex, metadata));
+			results.addAll(generateSubInstructions(tree.getChild(0)));
 			results.add(InstructionType.branch_not_address.cv("__while_"+id+"_exit"));
-			results.addAll(generateInstructions(tree.getChild(1),lex,metadata));
+			results.addAll(generateSubInstructions(tree.getChild(1)));
 			results.add(InstructionType.goto_address.cv("__while_"+id+"_cond"));
 			results.add(InstructionType.general_label.cv("__while_"+id+"_exit"));
 			
@@ -794,9 +807,9 @@ public class IntermediateLang {
 		case WHILENOT:
 			id = fresh();
 			results.add(InstructionType.general_label.cv("__whilenot_"+id+"_cond"));
-			results.addAll(generateInstructions(tree.getChild(0), lex, metadata));
+			results.addAll(generateSubInstructions(tree.getChild(0)));
 			results.add(InstructionType.branch_address.cv("__whilenot_"+id+"_exit"));
-			results.addAll(generateInstructions(tree.getChild(1),lex,metadata));
+			results.addAll(generateSubInstructions(tree.getChild(1)));
 			results.add(InstructionType.goto_address.cv("__whilenot_"+id+"_cond"));
 			results.add(InstructionType.general_label.cv("__whilenot_"+id+"_exit"));
 			
@@ -806,7 +819,7 @@ public class IntermediateLang {
 		case FOR:
 			//f'n complicated
 			
-			results.addAll(this.generateInstructions(tree.getChild(1), lex, metadata));
+			results.addAll(this.generateSubInstructions(tree.getChild(1)));
 			boolean freeResult = tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_EXCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_INCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.RANGE_COMMA;
 			
 			
@@ -820,7 +833,7 @@ public class IntermediateLang {
 			if(returnloc!=null) {
 				System.err.println("WARNING: Memory leak at line "+returnloc.getToken().linenum+". Do not return from for loop");
 			}
-			Parser.Data loopType = tree.getChild(1).getType();
+			DataType loopType = tree.getChild(1).getType();
 			
 			String loopingLocation = block.resolveVariableLocation(tree.getChild(2).getTokenString());
 			location = loc(loopingLocation.split(" ")[0]);
@@ -882,7 +895,7 @@ public class IntermediateLang {
 				results.add(InstructionType.swap23.cv());
 				// ptr size_in_bytes nextindex
 				//this stack setup is perfect for the next iteration
-				results.addAll(this.generateInstructions(block, lex, metadata));
+				results.addAll(this.generateSubInstructions(block));
 				results.add(InstructionType.goto_address.cv("__for_loop_start_"+id));
 				results.add(InstructionType.general_label.cv("__for_loop_exit_"+id));
 				//pop 3 items
@@ -960,7 +973,7 @@ public class IntermediateLang {
 						results.add(InstructionType.put_global_byte.cv(index));
 					else
 						results.add(InstructionType.put_local_byte.cv(index));
-					results.addAll(this.generateInstructions(block, lex, metadata));
+					results.addAll(this.generateSubInstructions(block));
 					results.add(InstructionType.stackincrement_byte.cv());
 					results.add(InstructionType.goto_address.cv("__for_loop_start_"+id));
 					results.add(InstructionType.general_label.cv("__for_loop_exit_"+id));
@@ -1003,7 +1016,7 @@ public class IntermediateLang {
 						results.add(InstructionType.put_global_int.cv(index));
 					else
 						results.add(InstructionType.put_local_int.cv(index));
-					results.addAll(this.generateInstructions(block, lex, metadata));
+					results.addAll(this.generateSubInstructions(block));
 					results.add(InstructionType.stackincrement.cv());
 					results.add(InstructionType.goto_address.cv("__for_loop_start_"+id));
 					results.add(InstructionType.general_label.cv("__for_loop_exit_"+id));
@@ -1031,7 +1044,7 @@ public class IntermediateLang {
 			String argumentSpace = ""+tree.theParser.getFunctionInputTypes(tree.functionIn()).get(0).size()*settings.intsize;
 			results.add(InstructionType.function_label.cv(tree.getChild(1).getTokenString()));
 			results.add(InstructionType.enter_function.cv(localSpace));
-			results.addAll(generateInstructions(tree.getChild(tree.getChildren().size()-1),lex,metadata));
+			results.addAll(generateSubInstructions(tree.getChild(tree.getChildren().size()-1)));
 			if(results.get(results.size()-1).in!=InstructionType.exit_function)
 				results.add(InstructionType.exit_function.cv(argumentSpace));
 			
@@ -1041,14 +1054,14 @@ public class IntermediateLang {
 			boolean hasElseBlock = !tree.getChild(2).getTokenType().equals(Token.Type.EMPTY_BLOCK);
 			
 			id = fresh();
-			results.addAll(generateInstructions(tree.getChild(0), lex, metadata));
+			results.addAll(generateSubInstructions(tree.getChild(0)));
 			results.add(InstructionType.branch_not_address.cv("__if_"+id+"_else"));
-			results.addAll(generateInstructions(tree.getChild(1),lex,metadata));
+			results.addAll(generateSubInstructions(tree.getChild(1)));
 			if(hasElseBlock)
 				results.add(InstructionType.goto_address.cv("__if_"+id+"_exit"));
 			results.add(InstructionType.general_label.cv("__if_"+id+"_else"));
 			if(hasElseBlock)
-				results.addAll(generateInstructions(tree.getChild(2),lex,metadata));
+				results.addAll(generateSubInstructions(tree.getChild(2)));
 			if(hasElseBlock)
 				results.add(InstructionType.general_label.cv("__if_"+id+"_exit"));
 			
@@ -1057,14 +1070,14 @@ public class IntermediateLang {
 			hasElseBlock = !tree.getChild(2).getTokenType().equals(Token.Type.EMPTY_BLOCK);
 			
 			id = fresh();
-			results.addAll(generateInstructions(tree.getChild(0), lex, metadata));
+			results.addAll(generateSubInstructions(tree.getChild(0)));
 			results.add(InstructionType.branch_address.cv("__ifnot_"+id+"_else"));
-			results.addAll(generateInstructions(tree.getChild(1),lex,metadata));
+			results.addAll(generateSubInstructions(tree.getChild(1)));
 			if(hasElseBlock)
 				results.add(InstructionType.goto_address.cv("__ifnot_"+id+"_exit"));
 			results.add(InstructionType.general_label.cv("__ifnot_"+id+"_else"));
 			if(hasElseBlock)
-				results.addAll(generateInstructions(tree.getChild(2),lex,metadata));
+				results.addAll(generateSubInstructions(tree.getChild(2)));
 			if(hasElseBlock)
 				results.add(InstructionType.general_label.cv("__ifnot_"+id+"_exit"));
 			
@@ -1073,243 +1086,11 @@ public class IntermediateLang {
 			break;
 		case CORRECT:
 			for(SyntaxTree child:tree.getChildren())
-				results.addAll(this.generateInstructions(child, lex, metadata));
+				results.addAll(this.generateSubInstructions(child));
 			results.add(InstructionType.fix_index.cv());
 			break;
 		
 		}
 		return results;
-	}
-	
-	public static enum InstructionType{
-		//System use
-		
-		nop(0,"does nothing"),
-		raw(1,"insert raw bytes into the code"),
-		rawint(1,"insert raw ints into the code"),
-		rawspace(1,"insert n bytes of null bytes"),
-		rawspaceints(1,"insert n ints of 0 ints"),
-		rawinstruction(1,"raw instruction to copy to the asm code"),
-		define_symbolic_constant(2,"constant name, and value"),
-		
-		//error handling
-		
-		write_sp(1,"save the stack pointer to an address"),
-		exit_noreturn(1,"read from the given address into the stack pointer, then return"),
-		
-		//Variable operations
-		
-		//push operations
-		retrieve_global_byte(1, "global index"),
-		retrieve_global_int(1, "global int index"),
-		retrieve_global_address(1, "global pointer"),
-		retrieve_param_byte(1, "param index"),
-		retrieve_param_int(1, "param int index"),
-		retrieve_param_address(1, "param pointer"),
-		retrieve_local_byte(1, "local index"),
-		retrieve_local_int(1, "local int index"),
-		retrieve_local_address(1,"local pointer"),
-		
-		retrieve_immediate_int(1, "literal int"),
-		retrieve_immediate_byte(1, "literal byte"),
-		retrieve_immediate_float(1,"literal float"),
-		overwrite_immediate_int(1, "literal int"),//pops and pushes the new immediate value more efficiently
-		overwrite_immediate_byte(1, "literal byte"),
-		overwrite_immediate_float(1,"literal float"),
-		
-		copy(0,"pushes top of stack again, making a copy"),
-		copy2(0,"pushes top 2 elements of stack again, making a copy and alternating abab"),
-		swap12(0,"swaps top 2 elements of the stack"),
-		swap23(0,"swaps second and third elements of the stack"),
-		swap13(0,"swaps first and third elements of the stack"),
-		
-		//pop operations
-		put_global_byte(1, "global index"),
-		put_global_int(1, "global int index"),
-		put_param_byte(1, "param index"),
-		put_param_int(1, "param int index"),
-		put_local_byte(1, "local index"),
-		put_local_int(1, "local int index"),
-
-		pop_discard(0,"pop off the top of the stack"),
-		
-		//math operations
-		stackincrement(0,"adds 1 to top stack"),
-		stackdecrement(0,"adds 1 to top stack"),
-		stackincrement_byte(0,"adds 1 to top stack"),
-		stackdecrement_byte(0,"adds 1 to top stack"),
-		stackincrement_intsize(0,"adds sizeof(ptr) to top stack"),
-		stackdecrement_intsize(0,"subs sizeof(ptr) from top stack"),
-		stackincrement_intsize_byte(0,"adds sizeof(ptr) to top stack"),
-		stackdecrement_intsize_byte(0,"subs sizeof(ptr) from top stack"),
-		stackadd(0,"adds top 2 ints on stack"),
-		stackand(0,"ands top 2 ints on stack"),
-		stackor(0,"ors top 2 ints on stack"),
-		stacksub(0,"subs top 2 ints on stack"),
-		stacksub_opposite_order(0,"subs top 2 ints on stack in reverse order"),
-		stackneg(0,"negates top int on stack"),
-		stacknegbyte(0,"negates top byte on stack"),
-		stackxor(0,"xors top 2 ints on stack"),
-		stackcpl(0,"complements top int on stack"),
-		stacknot(0,"complements top byte on stack"),
-		stackmult(0,"multiplies top 2 ints on stack"),
-		truncate(0,"truncates top stack entry to be a byte"),
-		signextend(0,"converts top stack entry from signed byte to signed int"),
-
-		shift_left_b(0,shifts),
-		shift_left_i(0,shifts),
-		shift_right_b(0,shifts),
-		shift_right_ub(0,shifts),
-		shift_right_i(0,shifts),
-		shift_right_ui(0,shifts),//signed shift right copies the sign bit instead of shifting it
-		
-		//signed operations
-		stackdiv_unsigned(0,"divides top 2 ints on stack"),
-		stackdiv_signed(0,"divides top 2 ints on stack"),
-		stackdiv_unsigned_b(0,"divides top 2 bytes on stack"),
-		stackdiv_signed_b(0,"divides top 2 bytes on stack"),
-		stackmod_unsigned(0,"modulo's top 2 ints on stack"),
-		stackmod_signed(0,"modulo's top 2 ints on stack"),
-		stackmod_unsigned_b(0,"modulo's top 2 bytes on stack"),
-		stackmod_signed_b(0,"modulo's top 2 bytes on stack"),
-		
-		//floatint point ops
-		
-		stackaddfloat(0,"adds top 2 floats on stack"),
-		stacksubfloat(0,"subs top 2 floats on stack"),
-		stackmultfloat(0,"adds top 2 floats on stack"),
-		stackdivfloat(0,"subs top 2 floats on stack"),
-		stackmodfloat(0,"adds top 2 floats on stack"),
-		stacknegfloat(0,"negates top float on stack"),
-
-		stackconverttobyte(0,"casts a float to an byte"),
-		stackconverttoubyte(0,"casts a float to a ubyte"),
-		stackconverttoint(0,"casts a float to an int"),
-		stackconverttouint(0,"casts a float to a uint"),
-		
-		stackconverttofloat(0,"casts an int to a float"),
-		stackconvertbtofloat(0,"casts an byte to a float"),
-		stackconvertutofloat(0,"casts a uint to a float"),
-		stackconvertubtofloat(0,"casts a ubyte to a float"),
-		notify_pop(0,"Notify the translator that a pop occured in an library's inline replacement"),
-		notify_stack(1,"Notify the translator of what the stack depth actually is"),
-		
-		//control flow
-
-		//function specific
-		function_label(1, "func name"),
-		enter_function(1, "local space in bytes"),
-		exit_function(1,"arg space in bytes"),
-		call_function(1,"func name"),
-		
-		//other flow
-		goto_address(1,"address"),
-		branch_address(1,"address, only goes if true."),
-		branch_not_address(1,"address, only goes if false."),
-		enter_routine(1,"pops the return address into iy (same as enter_function without index register or local allocation) and notify translator we have n arguments"),
-		exit_routine(0,"exits a routine"),
-		exit_global(1,"exits the global routine"),
-
-		syscall_2arg(1,"uses 2 stack tops as the argument to a syscall"),
-		syscall_arg(1,"uses stack top as the argument to a syscall"),
-		syscall_noarg(1,"performs a syscall without touching the stack"),
-		//loops
-		general_label(1,"loop name"),
-		data_label(1,"data name"),
-		//conditional
-		less_than_b(0,"compare 2 bytes on stack"),
-		less_than_i(0,"compare 2 ints on stack"),
-		less_than_ub(0,"compare 2 ubytes on stack"),
-		less_than_ui(0,"compare 2 uints on stack"),
-		less_equal_b(0,"compare 2 bytes on stack"),
-		less_equal_i(0,"compare 2 ints on stack"),
-		less_equal_ub(0,"compare 2 ubytes on stack"),
-		less_equal_ui(0,"compare 2 uints on stack"),
-		greater_than_b(0,"compare 2 bytes on stack"),
-		greater_than_i(0,"compare 2 ints on stack"),
-		greater_than_ub(0,"compare 2 ubytes on stack"),
-		greater_than_ui(0,"compare 2 uints on stack"),
-		greater_equal_b(0,"compare 2 bytes on stack"),
-		greater_equal_i(0,"compare 2 ints on stack"),
-		greater_equal_ub(0,"compare 2 ubytes on stack"),
-		greater_equal_ui(0,"compare 2 uints on stack"),
-		equal_to_b(0,"compare 2 bytes on stack"),
-		equal_to_i(0,"compare 2 ints on stack"),
-		equal_to_f(0,"compare 2 floats on stack"),
-		
-		//TODO implement these guys
-		/*
-		branch_less_than_b(0,"compare 2 bytes on stack"),
-		branch_less_than_i(0,"compare 2 ints on stack"),
-		branch_less_than_ub(0,"compare 2 ubytes on stack"),
-		branch_less_than_ui(0,"compare 2 uints on stack"),
-		branch_less_equal_b(0,"compare 2 bytes on stack"),
-		branch_less_equal_i(0,"compare 2 ints on stack"),
-		branch_less_equal_ub(0,"compare 2 ubytes on stack"),
-		branch_less_equal_ui(0,"compare 2 uints on stack"),
-		branch_greater_than_b(0,"compare 2 bytes on stack"),
-		branch_greater_than_i(0,"compare 2 ints on stack"),
-		branch_greater_than_ub(0,"compare 2 ubytes on stack"),
-		branch_greater_than_ui(0,"compare 2 uints on stack"),
-		branch_greater_equal_b(0,"compare 2 bytes on stack"),
-		branch_greater_equal_i(0,"compare 2 ints on stack"),
-		branch_greater_equal_ub(0,"compare 2 ubytes on stack"),
-		branch_greater_equal_ui(0,"compare 2 uints on stack"),
-		branch_equal_to_b(0,"compare 2 bytes on stack"),
-		branch_equal_to_i(0,"compare 2 ints on stack"),
-		branch_not_equal_b(0,"compare 2 bytes on stack"),
-		branch_not_equal_i(0,"compare 2 ints on stack"),
-		branch_equal_to_f(0,"compare 2 floats on stack"),
-		branch_not_equal_f(0,"compare 2 floats on stack"),
-		*/
-		fix_index(0,"convert an index number to a pointer offset for int size arrays"),
-
-		less_than_f(0,"compare 2 floats on stack"),
-		less_equal_f(0,"compare 2 floats on stack"),
-		greater_than_f(0,"compare 2 floats on stack"),
-		greater_equal_f(0,"compare 2 floats on stack"),
-		
-		//memory operations
-		increment_by_pointer_i(0,"increments int pointed to on stack"),
-		decrement_by_pointer_i(0,"decrements int pointed to on stack"),
-		increment_by_pointer_b(0,"increments byte pointed to on stack"),
-		decrement_by_pointer_b(0,"decrements byte pointed to on stack"),
-		copy_from_address(0, "if stack is arranged as [dest] [src] [n], will copy n bytes from [src] to [dest]"),
-		strcpy(0,"copy null terminated string"),
-		
-		load_b(0,"loads a byte pointed to by the top of the stack"),
-		store_b(0,"if stack is arranged as [dest] [val], will store val into [dest]"),
-		load_i(0,"loads an int pointed to by the top of the stack"),
-		store_i(0,"if stack is arranged as [dest] [val], will store val into [dest]"), 
-		getc(0,"blocks for input from user input stream and returns the character entered"),
-		
-		
-		;
-		
-		
-		public Instruction cv() {
-			if(argc>0)
-				throw new RuntimeException("instruction "+InstructionType.this+" constructed without argument");
-			return new Instruction(this);
-		}
-		public Instruction cv(String... args) {
-			if(argc!=args.length)
-				throw new RuntimeException("instruction "+InstructionType.this+" constructed with "+args.length+" arguments instead of "+argc);
-			return new Instruction(this,args);
-		}
-		public String toString() {
-			return this.name();
-		}
-		public String descString() {
-			return desc;
-		}
-		
-		InstructionType(int argnum, String desc)
-		{
-			argc=argnum;
-			this.desc=this.name()+": "+desc;
-		}
-		private final int argc;
-		private final String desc;
 	}
 }

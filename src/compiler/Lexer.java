@@ -6,6 +6,12 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+import settings.Charmap;
+import settings.CompilationSettings;
+/**
+ * Tokenizes fwf files
+ *
+ */
 public class Lexer {
 	private ArrayList<Scanner> scan = new ArrayList<Scanner>();
 	private ArrayList<File> files = new ArrayList<File>();
@@ -13,6 +19,10 @@ public class Lexer {
 	int lineNumber = 0;
 	String fileIn ="";
 	private ArrayList<String> stringConstants = new ArrayList<>();
+	/**
+	 * Using x as a character mapping tool, turn the strings into native string constants
+	 * @return a list of byte[]s representing the strings
+	 */
 	public ArrayList<Byte[]> stringConstants() {
 		ArrayList<Byte[]> ret = new ArrayList<Byte[]>();
 		stringConstants.forEach(s -> 
@@ -26,6 +36,13 @@ public class Lexer {
 		});
 		return ret;
 	}
+	/**
+	 * Create a lexer to parse the given file with the given settings, and a charactermap to map strings to their native representation
+	 * @param f the file containing the main program
+	 * @param settings the compilation settings
+	 * @param cm a character map
+	 * @throws FileNotFoundException if the given file, or a library file is missing
+	 */
 	public Lexer(File f, CompilationSettings settings, Charmap cm) throws FileNotFoundException {
 		Scanner x = new Scanner(f);
 		this.x=cm;
@@ -56,6 +73,11 @@ public class Lexer {
 	{
 		return !scan.isEmpty();
 	}
+	/**
+	 * Generates a string[] which is just each input converted to a string, the turned to lowercase. This is used to turn the list of types into a regex which matches those types
+	 * @param data the list of objects
+	 * @return the list of strings
+	 */
 	private static String[] lowerStringy(Object[] data)
 	{
 		String[] retts = new String[data.length];
@@ -63,8 +85,11 @@ public class Lexer {
 			retts[i] = data[i].toString().toLowerCase();
 		return retts;
 	}
-	static final String type = String.join("|", lowerStringy(Parser.Data.values()));
+	static final String type = String.join("|", lowerStringy(DataType.values()));
 	
+	/**
+	 * @return the next string in the input files which matches the boundary conditions to make a sigle token
+	 */
 	private String getNextString()
 	{
 		//cut on spaces or special characters
@@ -94,6 +119,12 @@ public class Lexer {
 		holding = holding.substring(ret.length()).trim();
 		return ret;
 	}
+	
+	/**
+	 * Parse the given line of code for any comments or string literals
+	 * @param holding2 the line of code to parse
+	 * @return the line of code with string literals replaced by a #n representation, characters replaced with their byte values, and comments removed
+	 */
 	private String parseForStringsAndComments(String holding2) {
 		StringBuilder ajustedSource = new StringBuilder();
 		StringBuilder stringLiteral = new StringBuilder();
@@ -218,6 +249,10 @@ public class Lexer {
 		}
 		return ajustedSource.toString();
 	}
+	/**
+	 * Context needed for the parser to parse ambiguous tokens such as ( and identifiers, as a state machine
+	 *
+	 */
 	private static enum Expecting {
 		OUTER,
 		INNER,
@@ -226,6 +261,10 @@ public class Lexer {
 		FUNC_OPEN_PAREN,
 		FUNC_DETAILS,
 	}
+	/**
+	 * Takes the input files this object was constructed with and turns them into a token list
+	 * @return the token list
+	 */
 	public ArrayList<Token> tokenize()
 	{
 		ArrayDeque<Expecting> whereami = new ArrayDeque<>();
@@ -434,11 +473,6 @@ public class Lexer {
 		}
 		
 		
-		//each of the token types
-		
-		/*
-		ASSIGN_VAR
-		*/
 		return tokens;
 	}
 

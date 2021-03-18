@@ -3,8 +3,12 @@ package compiler;
 import java.util.ArrayList;
 import java.util.List;
 
+import translators.TI83PTranslator;
+import translators.Winx64Translator;
+import translators.Z80TranslatorForWindows;
+
 public class Translator {
-	public static ArrayList<String> translate(Parser p, List<IntermediateLang.Instruction> instructions, boolean useDSNotation) {
+	public static ArrayList<String> translate(Parser p, List<Instruction> instructions, boolean useDSNotation) {
 		switch(p.settings.target) {
 		case WINx64:
 			return new Winx64Translator().translateWin64(instructions, useDSNotation,0,p);

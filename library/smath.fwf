@@ -76,6 +76,7 @@ function int sdiv(a:int b:int) {
 	} {
 		return as / as a uint as b uint int
 	}
+	return 0
 }
 
 function byte sbdiv(a:byte b:byte) {
@@ -92,6 +93,7 @@ function byte sbdiv(a:byte b:byte) {
 	} {
 		return as / as a ubyte as b ubyte byte
 	}
+	return 0b
 }
 
 function int smod(a:int b:int) {

@@ -1,32 +1,33 @@
-package compiler;
+package translators;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-public class TI83PTranslator {
+
+import compiler.DataType;
+import compiler.Instruction;
+import compiler.Parser;
+
+public class Z80TranslatorForWindows {
 	int counter = 0;
 	private int fresh() {
 		return counter++;
 	}
-	public ArrayList<String> translateTI83pz80(List<IntermediateLang.Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
+	public ArrayList<String> translate(List<Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
 		
 		boolean debug = false;
 		
 		
 		ArrayList<String> comp = new ArrayList<String>();
-		HashMap<String,Integer> depths = new HashMap<String,Integer>();
-		p.settings.target.addHeader(comp);
+		HashMap<String,Integer> depths = new HashMap<>();
+		p.getSettings().target.addHeader(comp);
 		
-		for(IntermediateLang.Instruction instruction:instructions) {
+		for(Instruction instruction:instructions) {
 			if(debug) {
 				System.out.println(instruction);
-				System.out.println(";;;;;;"+stackDepth);
 			}
-			String[] args = instruction.args;
+			String[] args = instruction.getArgs();
 			switch(instruction.in) {
-			case notify_stack:
-				stackDepth = Integer.parseInt(args[0]);
-				break;
 			case notify_pop:
 				stackDepth--;
 				break;
@@ -49,14 +50,22 @@ public class TI83PTranslator {
 				depths.put(args[0],stackDepth);
 				break;
 			case strcpy:
+				int label = fresh();
 				comp.add("	pop de");
-				comp.add("	b_call(_StrCpy)");
+				//write from hl to de until (hl)==0
+				comp.add("__strcpy_loop_"+label+":");
+				comp.add("	ld a,(hl)");
+				comp.add("	or a");
+				comp.add("	jr z,__strcpy_loop_exit_"+label);
+				comp.add("	ldi");
+				comp.add("	jp __strcpy_loop_"+label);
+				comp.add("__strcpy_loop_exit_"+label+":");
 				comp.add("	ex de,hl");
 				stackDepth--;
 				break;
 			case call_function:
-				
-				if(p.getFunctionOutputType(args[0]).get(0)==Parser.Data.Void) {
+					
+				if(p.getFunctionOutputType(args[0]).get(0)==DataType.Void) {
 					if(stackDepth>0||p.getFunctionInputTypes(args[0]).get(0).size()>0)
 						comp.add("	push hl");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
@@ -88,7 +97,7 @@ public class TI83PTranslator {
 				break;
 			case copy_from_address:
 				//stack is [dest] [src] [n]
-				int label = fresh();
+				label = fresh();
 				comp.addAll(Arrays.asList(
 						"	ld b,h",
 						"	ld c,l",
@@ -144,14 +153,6 @@ public class TI83PTranslator {
 					throw new RuntimeException("@@contact devs. Unknown stack-related error while translating "+"stack depth not 0 before function def "+args[0]);
 				stackDepth=0;
 				break;
-			case enter_routine:
-				//similar to enter_function, but we preserve de and instead use iy for exiting
-				stackDepth+=Integer.parseInt(args[0]);
-				comp.addAll(Arrays.asList(
-						"	di",
-						"	ld (___flag_save),iy",
-						"	pop iy"));
-				break;
 			case equal_to_b:
 				label = fresh();
 				comp.addAll(Arrays.asList(
@@ -197,13 +198,8 @@ public class TI83PTranslator {
 				comp.add("	push bc");
 				comp.add("	ret");
 				break;
-			case exit_routine:
-				comp.addAll(Arrays.asList(
-						"	ld b,iyh",
-						"	ld c,iyl",
-						"	ld iy,(___flag_save)",
-						"	push bc",
-						"	ret"));
+			case notify_stack:
+				stackDepth = Integer.parseInt(args[0]);
 				break;
 			case general_label:
 				if(depths.containsKey(args[0])) {
@@ -633,19 +629,12 @@ public class TI83PTranslator {
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
 				break;
-			case getc:
-				if(stackDepth++>0)
-					comp.add("	push hl");
-				comp.add("	b_call(__GetKeyRetOff)");
-				comp.add("	ld l,a");
-				comp.add("	ld h,0");
-				break;
 			case retrieve_local_address://this is a bit complicated because ix doesn't like giving its own value up
 				if(stackDepth++>0)
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
-				comp.add("	ld b,ixh");//the ti-83+ explicitly allows these opcodes
-				comp.add("	ld c,ixl");
+				comp.add("	push ix");//slower, but at least these are defined instructions
+				comp.add("	pop bc");
 				comp.add("	add hl,bc");
 				break;
 			case retrieve_local_byte:
@@ -664,8 +653,8 @@ public class TI83PTranslator {
 				if(stackDepth++>0)
 					comp.add("	push hl");
 				comp.add("	ld hl,"+args[0]);
-				comp.add("	ld b,ixh");
-				comp.add("	ld c,ixl");
+				comp.add("	push ix");
+				comp.add("	pop bc");
 				comp.add("	add hl,bc");
 				break;
 			case retrieve_param_byte:
@@ -745,11 +734,8 @@ public class TI83PTranslator {
 			case stackdiv_unsigned:
 			case stackdiv_unsigned_b:
 				//divide top stack by hl
-				comp.add("	ex de,hl");
-				comp.add("	pop hl");
-				comp.add("	push ix");
-				comp.add("	b_call(_Div16By16)");
-				comp.add("	pop ix");
+				comp.add("	pop de");
+				comp.add("	call _Div16By16");
 				//result is in de
 				comp.add("	ex de,hl");
 				stackDepth--;
@@ -795,12 +781,9 @@ public class TI83PTranslator {
 			case stackmod_unsigned:
 				//divide top stack by hl
 				label = fresh();
-				comp.add("	ex de,hl");
-				comp.add("	pop hl");
+				comp.add("	pop de");
 				comp.add("	push de");
-				comp.add("	push ix");
-				comp.add("	b_call(_Div16By16)");
-				comp.add("	pop ix");
+				comp.add("	call _Div16By16");
 				comp.add("	pop bc");
 				//result is in hl, but hl might be equal to what de was.
 				comp.add("	xor a");
@@ -967,15 +950,23 @@ public class TI83PTranslator {
 				comp.add("	push hl");
 				comp.add("	exx");
 				break;
+			case getc:
+				// read from in (0) until the result is not 0.
+				// then store the result in l.
+				label = fresh();
+				if(stackDepth++>0)
+					comp.add("	push hl");
+				comp.add("	ld h,$00");
+				comp.add("__getc_loop_"+label+":");
+				comp.add("	in a,(0)");
+				comp.add("	or a");
+				comp.add("	jp z, __getc_loop_"+label);
+				comp.add("	ld l,a");
+				break;
 			case syscall_noarg:
-				comp.add("	b_call("+args[0]+")");
-				break;
+				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
 			case syscall_arg:
-				comp.add("	b_call("+args[0]+")");
-				stackDepth--;
-				if(stackDepth!=0)
-					comp.add("	pop hl");
-				break;
+				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
 			case truncate:
 				comp.add("	ld h,$00");
 				break;//TODO add direct comparison conditional branches
@@ -1002,12 +993,12 @@ public class TI83PTranslator {
 				comp.add("	rr l");
 				break;
 			case exit_noreturn:
-				comp.add("	ld sp,("+args[0]+")");
-				comp.add("	ret");
+				comp.add("	di");
+				comp.add("	halt");
 				break;
 			case exit_global:
-				comp.add("	ld sp,("+args[0]+")");
-				comp.add("	ret");
+				comp.add("	di");
+				comp.add("	halt");
 				stackDepth--;
 				break;
 			case write_sp:
@@ -1017,20 +1008,49 @@ public class TI83PTranslator {
 				comp.add("	add hl,hl");//ok then
 				break;
 			}
-			cache=comp;
 			if(stackDepth<0)
 				throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 			if(debug)
-				comp.add(";;;;"+stackDepth);
+				System.out.println(";;;;;;"+stackDepth);
 		}
 		if(stackDepth!=0)
 		{
 			throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 		}
-		comp.add("	ret");
+		comp.add("	di");//exiting on windows requires the sequence di halt. This will freeze if run on hardware
+		comp.add("	halt");
 		comp.add("___flag_save:");
 		comp.add("	.dw $0000");
 		
+		//divide de by hl.
+		//store result in de, remainder in hl
+		comp.add("_Div16By16:");
+		comp.add("	ld a,h");//check divide by 0
+		comp.add("	or l");
+		comp.add("	jr nz,__actually_divide");
+		comp.add("	ld de,$0000");//return 0 in both if we divided by 0.
+		comp.add("	ret");
+		comp.add("__actually_divide:");
+		
+		comp.add("	ex de,hl");
+		comp.add("	ld a,h");
+		comp.add("	ld c,l");
+		//brandonw 16/16 division routine
+		comp.add("	ld hl,$0000");
+		comp.add("	ld b,16");
+		comp.add("__divloop__:");
+		comp.add("	sll c");
+		comp.add("	rla");
+		comp.add("	adc hl,hl");
+		comp.add("	sbc hl,de");
+		comp.add("	jr nc, $+4");
+		comp.add("	add hl,de");
+		comp.add("	dec c");
+		comp.add("	djnz __divloop__");
+		//move ac to de
+		comp.add("	ld d,a");
+		comp.add("	ld e,c");
+		comp.add("	ret");
 		//slight optimization
 		final boolean optimize = !debug;
 		
@@ -1083,5 +1103,4 @@ public class TI83PTranslator {
 		
 		return comp;
 	}
-	ArrayList<String> cache;
 }

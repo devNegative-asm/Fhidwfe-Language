@@ -35,7 +35,7 @@ public class VariableTree {
 			tree.checkNameConflicts(names);
 		}
 	}
-	public void addVariable(String name, Parser.Data type, Parser p, boolean align){
+	public void addVariable(String name, DataType type, Parser p, boolean align){
 		int gs = p.settings.intsize;
 		if(doneEditing)
 			throw new RuntimeException("error in resolving variables: local varlist changed after size retrieved");

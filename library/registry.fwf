@@ -1,0 +1,66 @@
+guard
+import null
+base = as null listptr// linked list
+writer = as null listuint
+limits = as null listuint
+
+alias listptr ll_cons(elem:ptr rest:listptr)
+alias listuint ll_cons(elem:uint rest:listuint)
+function ptr ll_cons(elem:ptr rest:ptr) {
+	return as [elem rest] ptr
+}
+
+alias ptr ll_first(llist:listptr)
+alias uint ll_first(llist:listuint)
+alias int ll_first(llist:listint)
+function ptr ll_first(llist:ptr) {
+	return access_word$ as llist listptr 0u
+}
+
+alias listptr ll_rest(llist:listptr)
+alias listuint ll_rest(llist:listuint)
+alias listint ll_rest(llist:listint)
+function ptr ll_rest(llist:ptr) {
+	return access_word$ as llist listptr 1u
+}
+
+
+function void add_context(vars:uint) {
+	base = ll_cons$ malloc$ ?vars base
+	writer = ll_cons$ 0u writer
+	limits = ll_cons$ vars limits
+}
+
+function ptr register(var:ptr) {
+	loc = ll_first$ writer
+	limit = ll_first$ limits
+	list = as ll_first$ base listptr
+	if = loc limit {
+		error$ "Out of room to register variables"
+	} ;
+	assign_word$ list loc var
+	assign_word$ writer 0u + loc 1u
+	return var
+}
+
+function void exit_context() {
+	if = as base ptr null {
+		error$ "No context to exit"
+	} ;
+	l_writer = writer
+	l_limits = limits
+	l_base = base
+	writer = ll_rest$ writer
+	limits = ll_rest$ limits
+	base = ll_rest$ base
+	varlist = as ll_first$ l_base listptr
+	allocated = ll_first$ l_writer
+	ifnot = allocated 0u {
+		for uint [0u,allocated) with index {
+			free$ access_word$ varlist index
+		}
+	} ;
+	free$ l_writer
+	free$ l_limits
+	free$ l_base
+}

@@ -4,7 +4,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-
+/**
+ * Non-root syntax tree nodes
+ *
+ */
 public class SyntaxTree extends BaseTree{
 	private Token myToken;
 	private final BaseTree parent;
@@ -15,10 +18,16 @@ public class SyntaxTree extends BaseTree{
 		this.parent = parent;
 	}
 	@Override
+	/**
+	 * Notify this syntax tree that the given function was called or a pointer-to-function was made at some point in the code
+	 */
 	public void notifyCalled(String fnName) {
 		parent.notifyCalled(fnName);
 	}
 	@Override
+	/**
+	 * Notify this syntax tree that the given caller function relies on the callee function
+	 */
 	public void addDependent(String caller, String callee) {
 		parent.addDependent(caller, callee);
 	}
@@ -28,7 +37,9 @@ public class SyntaxTree extends BaseTree{
 		NONE,
 		LOCAL,
 	}
-	
+	/**
+	 * Whether this syntax tree is a member of a function
+	 */
 	public boolean inFunction() {
 		if(parent.getClass()==BaseTree.class) {
 			return false;
@@ -37,6 +48,9 @@ public class SyntaxTree extends BaseTree{
 			return pp.isFunction() || pp.inFunction();
 		}
 	}
+	/**
+	 * Whether this syntax tree represents a function
+	 */
 	public boolean isFunction(){
 		return getTokenType()==Token.Type.FUNCTION;
 	}
@@ -51,6 +65,9 @@ public class SyntaxTree extends BaseTree{
 	private ArrayList<String> argorder = new ArrayList<>();
 	
 	private int localSpace = 0;
+	/**
+	 * Calculates the number of bytes necessary to hold variables local to a function, rounded up to align the stack pointer even if alignment is disabled
+	 */
 	public int getMyFunctionsLocalspace() {
 		if(this.isFunction()) {
 			return getLocalSpaceNeeded();
@@ -58,6 +75,9 @@ public class SyntaxTree extends BaseTree{
 			return parent.getMyFunctionsLocalspace();
 		}
 	}
+	/**
+	 * Returns 0 if this tree does not represent a function, otherwise ajusts localSpace to align the stack pointer and returns the number of bytes needed to allocate local variables
+	 */
 	public int getLocalSpaceNeeded() {
 		if(prepared)
 		{
@@ -71,7 +91,11 @@ public class SyntaxTree extends BaseTree{
 	}
 	boolean prepared = false;
 	
-	
+	/**
+	 * Calculate the local variable tree and update the parent
+	 * @param parent The variable tree to update
+	 * @param align whether to align byte variables on int boundaries
+	 */
 	void getNeededLocals(VariableTree parent, boolean align) {
 		if(isFunction()) {
 			return;
@@ -83,15 +107,19 @@ public class SyntaxTree extends BaseTree{
 		}
 		prepared = true;
 	}
+	/**
+	 * Prepare this tree for variable offset calculation
+	 * @param align whether to align byte variables on int boundaries
+	 */
 	public void prepareVariables(boolean align) {
 		if(isFunction()) {
 			this.argorder.forEach((name) -> {
-				functionVariables.add(new Variable(name,SyntaxTree.Location.ARG,Parser.Data.Uint,theParser));//all args should be of int type in terms of stack operations
+				functionVariables.add(new Variable(name,SyntaxTree.Location.ARG,DataType.Uint,theParser));//all args should be of int type in terms of stack operations
 			});//do not sort arguments. They come on the stack.
 			
 			int maxOffset = (1+argorder.size())*theParser.settings.intsize;// +4 gets you the last argument, +6 gets second to last, etc. 
 			for(int i=0;i<argorder.size();i++) {
-				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-theParser.settings.intsize*i),Parser.Data.Relptr,theParser));
+				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-theParser.settings.intsize*i),DataType.Relptr,theParser));
 			}
 
 			//look at all sub-blocks that hold local variables.
@@ -107,31 +135,41 @@ public class SyntaxTree extends BaseTree{
 		}
 		prepared = true;
 		
-		
-		
 	}
 	@Override
-	public byte resolveLocalPointerLiteral(String varname) {
-		if(!prepared) {
-			throw new RuntimeException("@@contact devs. attemted to resolve global variables before prepared");
-		}
-		for(Variable v:localPointers) {
-			if(v.getName().equals(varname)) {
-				return v.getValue();
-			}
-		}
-		if(parent!=null)
-			return parent.resolveLocalPointerLiteral(varname);
-		throw new RuntimeException("@@contact devs. Could not resolve variable");
-	}
-	@Override
-	public byte resolveLocalOffset(String varname) {
+	/**
+	 * resolves a local variable name to its pointer
+	 * @param varname the variable name to resolve
+	 * @return the byte offset from the base pointer this variable can be found at
+	 */
+	public long resolveLocalOffset(String varname) {
 		if(!prepared) {
 			throw new RuntimeException("@@contact devs. attemted to resolve global variables before prepared or type checked");
 		}
-		String gettingPointer = varname;
 		for(Variable v:localPointers) {
-			if(v.getName().equals(gettingPointer)) {
+			if(v.getName().equals(varname)) {
+				long ret = v.getValue();
+				switch(theParser.settings.target) {
+				case TI83pz80:
+						if(ret<=-128)
+							throw new RuntimeException("Can store up to 63 local variables on 8 bit systems in function "+functionIn());
+					break;
+				case z80Emulator:
+						if(ret<=-128)
+							throw new RuntimeException("Can store up to 63 local variables on 8 bit systems in function "+functionIn());
+					break;
+				case WINx64:
+						if(ret<=-(1L<<31)) {
+							throw new RuntimeException("That's way too many local variables in function "+functionIn());
+						}
+					break;
+				case WINx86:
+						if(ret<=-(1L<<15)) {
+							throw new RuntimeException("That's way too many local variables in function "+functionIn());
+						}
+					break;
+				}
+				
 				return v.getValue();
 			}
 		}
@@ -140,27 +178,39 @@ public class SyntaxTree extends BaseTree{
 		throw new RuntimeException("@@contact devs. Could not resolve variable");
 	}
 	@Override
-	public byte resolveArgPointerLiteral(String varname) {
+	/**
+	 * resolves an argument variable to its pointer. Similar to resolveLocalOffset, but this always returns non-negative results
+	 * @param varname the variable to generate a pointer to
+	 * @return the byte offset from the base pointer this variable can be found at
+	 */
+	public long resolveArgOffset(String varname) {
 		if(!prepared) {
 			throw new RuntimeException("@@contact devs. attemted to resolve global variables before prepared");
 		}
 		for(Variable v:functionPointers) {
 			if(v.getName().equals(varname)) {
-				return v.getValue();
-			}
-		}
-		if(parent!=null)
-			return parent.resolveArgPointerLiteral(varname);
-		throw new RuntimeException("@@contact devs. Could not resolve variable");
-	}
-	@Override
-	public byte resolveArgOffset(String varname) {
-		if(!prepared) {
-			throw new RuntimeException("@@contact devs. attemted to resolve global variables before prepared");
-		}
-		String gettingPointer = varname;
-		for(Variable v:functionPointers) {
-			if(v.getName().equals(gettingPointer)) {
+				long ret = v.getValue();
+				switch(theParser.settings.target) {
+				case TI83pz80:
+						if(ret>=128)
+							throw new RuntimeException("Can store up to 63 argument variables on 8 bit systems in function "+functionIn());
+					break;
+				case z80Emulator:
+						if(ret>=128)
+							throw new RuntimeException("Can store up to 63 argument variables on 8 bit systems in function "+functionIn());
+					break;
+				case WINx64:
+						if(ret>=(1L<<31)) {
+							throw new RuntimeException("That's way too many argument variables in function "+functionIn());
+						}
+					break;
+				case WINx86:
+						if(ret>=(1L<<15)) {
+							throw new RuntimeException("That's way too many argument variables in function "+functionIn());
+						}
+					break;
+				}
+				
 				return v.getValue();
 			}
 		}
@@ -168,8 +218,11 @@ public class SyntaxTree extends BaseTree{
 			return parent.resolveArgOffset(varname);
 		throw new RuntimeException("@@contact devs. Could not resolve variable");
 	}
-	
-	
+	/**
+	 * Locates a variable and returns a string descibing its location in the current scope
+	 * @param varname the variable name
+	 * @return one of LOCAL, ARG, GLOBAL for variables, or NONE for constants, then 1 space, then its offset for local & args, or its name for globals and constants
+	 */
 	public String resolveVariableLocation(String varname)
 	{
 		try {
@@ -199,20 +252,9 @@ public class SyntaxTree extends BaseTree{
 		return parent.resolveGlobalToString(varname);
 	}
 	@Override
-	public int resolveGlobalLoopVariables(String varname) {
+	public long resolveGlobalLoopVariables(String varname) {
 		return parent.resolveGlobalLoopVariables(varname);
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	
 	
 	public SyntaxTree addChild(SyntaxTree t)
@@ -224,18 +266,33 @@ public class SyntaxTree extends BaseTree{
 	{
 		return this.addChild(new SyntaxTree(t,theParser,this));
 	}
+	/**
+	 * Get the original token string used to construct this syntax tree
+	 * @return the token string
+	 */
 	public String getTokenString()
 	{
 		return myToken.s;
 	}
+	/**
+	 * Get the type of the token used to contstruct this tree
+	 * @return the token type
+	 */
 	public Token.Type getTokenType()
 	{
 		return myToken.t;
 	}
+	/**
+	 * Get the original token used to construct this syntax tree
+	 * @return the token
+	 */
 	public Token getToken()
 	{
 		return myToken;
 	}
+	/**
+	 * Get the name function this syntax tree is a part of
+	 */
 	@Override
 	public String functionIn()
 	{
@@ -268,6 +325,11 @@ public class SyntaxTree extends BaseTree{
 	public String toString() {
 		return this.toString(0);
 	}
+	/**
+	 * Get an array which contains this trees children, while asserting that the number of children this node has must be matched by sizeConstraint
+	 * @param sizeConstraint the number of children this node must have
+	 * @return an array containing this node's children
+	 */
 	private SyntaxTree[] children(int sizeConstraint)
 	{
 		if(sizeConstraint == super.getChildren().size()) {
@@ -277,12 +339,21 @@ public class SyntaxTree extends BaseTree{
 			throw new RuntimeException("Unexpected amount of subexpressions for type "+myToken.t+". Expected: "+sizeConstraint+", Got: "+super.getChildren().size()+" at line "+myToken.linenum);
 		}
 	}
+	/**
+	 * Get an array of this syntax tree's children
+	 * @return the children
+	 */
 	private SyntaxTree[] children()
 	{
 		SyntaxTree[] tree = new SyntaxTree[0];
 		return super.getChildren().toArray(tree);
 	}
-	private void mismatch(Parser.Data one, Parser.Data two)
+	/**
+	 * Throw a TypeMismatchException where one and two are expected to be the same type
+	 * @param one type 1
+	 * @param two type 2
+	 */
+	private void mismatch(DataType one, DataType two)
 	{
 		class TypeMismatchException extends RuntimeException{
 			/**
@@ -297,7 +368,12 @@ public class SyntaxTree extends BaseTree{
 		}
 		throw new TypeMismatchException(myToken.s+" expects matching types. Got instead "+one.name()+" and "+two.name()+" at line "+myToken.linenum);
 	}
-	private void unexpected(Parser.Data one, Parser.Data two)
+	/**
+	 * Throw an IncorrectTypeException where type one was expected and type 2 was given
+	 * @param one type 1
+	 * @param two type 2
+	 */
+	private void unexpected(DataType one, DataType two)
 	{
 		class IncorrectTypeException extends RuntimeException{
 			/**
@@ -312,7 +388,11 @@ public class SyntaxTree extends BaseTree{
 		}
 		throw new IncorrectTypeException(myToken.s+" expects data of type "+one.name()+". Instead found "+two.name()+" at line "+myToken.linenum);
 	}
-	private void math(Parser.Data two)
+	/**
+	 * Throw an error stating the given type is not usable for math
+	 * @param typ the type
+	 */
+	private void math(DataType typ)
 	{
 		class UnusableMathTypeException extends RuntimeException{
 			/**
@@ -325,9 +405,13 @@ public class SyntaxTree extends BaseTree{
 				super(err);
 			}
 		}
-		throw new UnusableMathTypeException(myToken.s+" expects data of a mathematical type. Instead found "+two.name()+" at line "+myToken.linenum);
+		throw new UnusableMathTypeException(myToken.s+" expects data of a mathematical type. Instead found "+typ.name()+" at line "+myToken.linenum);
 	}
-	private void impossible(Parser.Data type) {
+	/**
+	 * Throw an error stating that the given type does not represent valid data
+	 * @param type the type
+	 */
+	private void impossible(DataType type) {
 		class NotDataException extends RuntimeException{
 			/**
 			 * 
@@ -341,18 +425,22 @@ public class SyntaxTree extends BaseTree{
 		}
 		throw new NotDataException(myToken.s+" expects to have a data type. Instead found "+type.name()+" at line "+myToken.linenum);
 	}
-	private static final List<Parser.Data> mathTypes = Arrays.asList(Parser.Data.Byte,
-			Parser.Data.Int,
-			Parser.Data.Float,
-			Parser.Data.Uint,
-			Parser.Data.Ubyte,
-			Parser.Data.Ptr);
-	private static final List<Parser.Data> impossibleForData = Arrays.asList(Parser.Data.Void, Parser.Data.Flag, Parser.Data.SYNTAX);
-	private Parser.Data typeCache = null;
-	private Parser.Data checkBinaryMath()
+	private static final List<DataType> mathTypes = Arrays.asList(DataType.Byte,
+			DataType.Int,
+			DataType.Float,
+			DataType.Uint,
+			DataType.Ubyte,
+			DataType.Ptr);
+	private static final List<DataType> impossibleForData = Arrays.asList(DataType.Void, DataType.Flag, DataType.SYNTAX);
+	private DataType typeCache = null;
+	/**
+	 * Assert that the 2 children of this syntaxtree are both mathematical types and that the second can be casted to the first
+	 * @return the type of the first child
+	 */
+	private DataType checkBinaryMath()
 	{
 		SyntaxTree[] children = children(2);
-		Parser.Data type = children[0].getType(); 
+		DataType type = children[0].getType(); 
 		if(type != children[1].getType()) {
 			if(!children[1].getType().canCastTo(type))
 				mismatch(children[0].getType(),children[1].getType());
@@ -368,23 +456,29 @@ public class SyntaxTree extends BaseTree{
 		}
 		return null;
 	}
-
-	private Parser.Data checkUnaryMath() {
+	/**
+	 * Check that the one and only child of this syntax tree has a mathematical type
+	 * @return the type of the child
+	 */
+	private DataType checkUnaryMath() {
 		SyntaxTree children = children(1)[0];
 		if(!mathTypes.contains(children.getType()))
 			math(children.getType());
 		return children.getType();
 	}
 	
+	/**
+	 * Check that the one and only child of this syntax tree has a ptr type
+	 */
 	private void checkPointer() {
 		SyntaxTree children = children(1)[0];
-		if(children.getType()!=Parser.Data.Ptr)
-			unexpected(Parser.Data.Ptr,children.getType());
+		if(children.getType()!=DataType.Ptr)
+			unexpected(DataType.Ptr,children.getType());
 	}
 	
-	private HashMap<String,Parser.Data> scopeTypings = new HashMap<>();
+	private HashMap<String,DataType> scopeTypings = new HashMap<>();
 	@Override
-	public Parser.Data resolveVariableType(String varname, String linenum)
+	public DataType resolveVariableType(String varname, String linenum)
 	{
 		if(scopeTypings.containsKey(varname)) {
 			return scopeTypings.get(varname);
@@ -393,7 +487,7 @@ public class SyntaxTree extends BaseTree{
 		}
 	}
 	@Override
-	void addVariableToScope(Token assignment, String varname, Parser.Data type)
+	public void addVariableToScope(Token assignment, String varname, DataType type)
 	{
 		if(scopeTypings.containsKey(varname) && scopeTypings.get(varname)!=type)
 		{
@@ -403,35 +497,38 @@ public class SyntaxTree extends BaseTree{
 		}
 	}
 
-	
-	public Parser.Data getType()
+	/**
+	 * Type check the elements of this syntax tree, then find out the type of this tree if it's an expression
+	 * @return the type
+	 */
+	public DataType getType()
 	{
 		//TODO implement pipelined if type checking
 		if(typeCache!=null)
 		{
 			return typeCache;
 		}
-		Parser.Data ret = null;
+		DataType ret = null;
 		switch(myToken.t)
 		{
 		case LOGICAL_AND:
 		case LOGICAL_OR:
 			SyntaxTree[] children = children(2);
-			if(children[0].getType()!=Parser.Data.Bool || children[1].getType()!=Parser.Data.Bool) {
+			if(children[0].getType()!=DataType.Bool || children[1].getType()!=DataType.Bool) {
 				throw new RuntimeException("cannot use non-boolean types with logical operations at line "+this.getToken().linenum);
 			}
-			ret = Parser.Data.Bool;
+			ret = DataType.Bool;
 			break;
 		case MODULO:
 			ret = checkBinaryMath();
-			if(ret==Parser.Data.Int)
+			if(ret==DataType.Int)
 			{
 				if(inFunction())
 					this.addDependent(this.functionIn(), "smod");
 				else
 					notifyCalled("smod");
 				
-			} else if(ret==Parser.Data.Byte) {
+			} else if(ret==DataType.Byte) {
 				if(inFunction())
 					this.addDependent(this.functionIn(), "sbmod");
 				else
@@ -441,14 +538,14 @@ public class SyntaxTree extends BaseTree{
 		case DIVIDE:
 			ret = checkBinaryMath();
 			
-			if(ret==Parser.Data.Int)
+			if(ret==DataType.Int)
 			{
 				if(inFunction())
 					this.addDependent(this.functionIn(), "sdiv");
 				else
 					notifyCalled("sdiv");
 				
-			} else if(ret==Parser.Data.Byte) {
+			} else if(ret==DataType.Byte) {
 				if(inFunction())
 					this.addDependent(this.functionIn(), "sdiv");
 				else
@@ -465,7 +562,7 @@ public class SyntaxTree extends BaseTree{
 		case BITWISE_XOR:
 			children = children(2);
 			if((ret = children[0].getType())==children[1].getType()) {
-				if(mathTypes.contains(children[0].getType())||children[0].getType()==Parser.Data.Bool) {
+				if(mathTypes.contains(children[0].getType())||children[0].getType()==DataType.Bool) {
 					
 				} else {
 					math(ret);
@@ -477,14 +574,14 @@ public class SyntaxTree extends BaseTree{
 		case GEQUAL:
 		case GTHAN:
 			checkBinaryMath();
-			ret = Parser.Data.Bool;
+			ret = DataType.Bool;
 			break;
 		case AS:
 			children = children(2);
 			String targettType = children[1].getTokenString();
-			Parser.Data exprType = children[0].getType();
+			DataType exprType = children[0].getType();
 			String rttype = Character.toUpperCase(targettType.charAt(0))+targettType.substring(1);
-			Parser.Data targetType = Parser.Data.valueOf(rttype);
+			DataType targetType = DataType.valueOf(rttype);
 			if(impossibleForData.contains(targetType) || impossibleForData.contains(exprType))
 			{
 				impossible(targetType);
@@ -492,7 +589,7 @@ public class SyntaxTree extends BaseTree{
 			ret = targetType;
 			break;
 		case BYTE_LITERAL:
-			ret = Parser.Data.Byte;
+			ret = DataType.Byte;
 			break;
 		case CORRECT:
 			children = children(1);
@@ -500,23 +597,23 @@ public class SyntaxTree extends BaseTree{
 				case Int:
 				case Ptr:
 				case Uint:
-					ret = Parser.Data.Uint;
+					ret = DataType.Uint;
 					break;
 				default:
 					throw new RuntimeException(children[0].getType()+" is not a valid index type at line "+children[0].getToken().linenum);
 			}
 			break;
 		case CLOSE_BRACE:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case CLOSE_RANGE_EXCLUSIVE:
 		case CLOSE_RANGE_INCLUSIVE:
 		case EMPTY_BLOCK:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case COMPLEMENT:
 			children=children(1);
-			if((ret = children[0].getType())!=Parser.Data.Bool)//you gotta love this line
+			if((ret = children[0].getType())!=DataType.Bool)//you gotta love this line
 				ret = checkUnaryMath();
 			break;
 		case EQ_SIGN:
@@ -538,18 +635,18 @@ public class SyntaxTree extends BaseTree{
 				}
 				if(typeFlag)
 					unexpected(resolveVariableType(children(2)[0].getTokenString(), getToken().linenum),child.getType());
-				ret = Parser.Data.Void;
+				ret = DataType.Void;
 			} else {
 				ret = checkBinaryMath();
-				ret = Parser.Data.Bool;
+				ret = DataType.Bool;
 			}
 			break;
 		case FALSE:
 		case TRUE:
-			ret = Parser.Data.Bool;
+			ret = DataType.Bool;
 			break;
 		case FLOAT_LITERAL:
-			ret = Parser.Data.Float;
+			ret = DataType.Float;
 			break;
 		case FOR:
 			//we have 4 children
@@ -575,7 +672,7 @@ public class SyntaxTree extends BaseTree{
 			default:
 				break;
 			}
-			Parser.Data loopType = Parser.Data.fromLowerCase(children[0].getTokenString());
+			DataType loopType = DataType.fromLowerCase(children[0].getTokenString());
 			switch(loopType) {
 			case Int:
 			case Uint:
@@ -600,7 +697,7 @@ public class SyntaxTree extends BaseTree{
 			if(except) {
 				throw new RuntimeException("For loop cannot shadow "+children[2].getTokenString()+" from a higher scope at line "+this.getToken().linenum);
 			}
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION:
 			children = children();
@@ -608,52 +705,52 @@ public class SyntaxTree extends BaseTree{
 			SyntaxTree code = children[children.length-1];
 			for(int i=2;i<children.length-1;i++) {
 				this.addVariableToScope(children[i].getToken(), children[i].getTokenString(), 
-						Parser.Data.fromLowerCase(children[i].getChildren().get(0).getTokenString()));
+						DataType.fromLowerCase(children[i].getChildren().get(0).getTokenString()));
 				argorder.add(children[i].getTokenString());
 			}
 			
 			ret = code.getType();//this is necessary to resolve the types of variables in the code before we check the return type
 			
 
-			Parser.Data expectingType = Parser.Data.fromLowerCase(children[0].getTokenString());
+			DataType expectingType = DataType.fromLowerCase(children[0].getTokenString());
 			this.checkReturnTypes(children[1].getTokenString(), expectingType);
 			
 			
-			if(ret!=Parser.Data.SYNTAX)
+			if(ret!=DataType.SYNTAX)
 				throw new RuntimeException("expected block after function definition. Found instead "+ret+" at line "+this.getToken().linenum);
 			break;
 		case FUNCTION_ARG:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_ARG_COLON:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_ARG_TYPE:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_COMMA:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_NAME:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_PAREN_L:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_PAREN_R:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNCTION_RETTYPE:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case FUNC_CALL_NAME:
 			//type check the arguments
 			//then return my return type
 			
-			List<Parser.Data> usedTypes = new ArrayList<>();
+			List<DataType> usedTypes = new ArrayList<>();
 			
 			for(SyntaxTree args:this.getChildren()) {
-				Parser.Data type = args.getType();
+				DataType type = args.getType();
 				usedTypes.add(type);
 			}
 			int argIndex = theParser.getFunctionInputTypes(getTokenString()).indexOf(usedTypes);
@@ -679,7 +776,7 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case IDENTIFIER:
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
-			if(ret==Parser.Data.Func)
+			if(ret==DataType.Func)
 			{
 				parent.notifyCalled(getTokenString().replaceAll("_guard_.*?_.*?_.*?_.*?_", ""));
 			}
@@ -691,14 +788,14 @@ public class SyntaxTree extends BaseTree{
 		case WHILENOT:
 			//argument must be a math type or a flag and cannot be a float
 			SyntaxTree child = this.getChildren().get(0);
-			if(child.getType()==Parser.Data.Float)
+			if(child.getType()==DataType.Float)
 			{
 				throw new RuntimeException("Conditions cannot be floats at line "+this.getToken().linenum);
-			} else if(child.getType()==Parser.Data.Flag)
+			} else if(child.getType()==DataType.Flag)
 			{
-				ret = Parser.Data.Flag;
+				ret = DataType.Flag;
 				//truthiness allowed for pointer types only
-			} else if(child.getType()==Parser.Data.Ptr || child.getType()==Parser.Data.Bool){
+			} else if(child.getType()==DataType.Ptr || child.getType()==DataType.Bool){
 				ret = child.getType();
 			} else {
 				throw new RuntimeException("Conditions cannot have type "+child.getType()+" at line "+this.getToken().linenum);
@@ -717,17 +814,17 @@ public class SyntaxTree extends BaseTree{
 			}
 			
 			if(children[1].getType().assignable(children[0].getType()))
-				ret = Parser.Data.Bool;
+				ret = DataType.Bool;
 			else
 				throw new RuntimeException("cannot check whether "+children[0].getType()+" is a member of "+children[1].getType()+" at line "+this.getToken().linenum);
 			break;
 		case INCREMENT_LOC:
 		case DECREMENT_LOC:
 			checkPointer();
-			ret = Parser.Data.Void;
+			ret = DataType.Void;
 			break;
 		case INT_LITERAL:
-			ret = Parser.Data.Int;
+			ret = DataType.Int;
 			break;
 		case IS:
 			throw new UnsupportedOperationException("'is' is deprecated at line "+this.getToken().linenum);
@@ -743,7 +840,7 @@ public class SyntaxTree extends BaseTree{
 			{
 				child2.getType();//type checks without actually looking at the result
 			}
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case OPEN_RANGE_EXCLUSIVE:
 		case OPEN_RANGE_INCLUSIVE:
@@ -755,7 +852,7 @@ public class SyntaxTree extends BaseTree{
 				this.notifyCalled("free");
 			}
 			//this is a list. of what type? let's find out!
-			Parser.Data save = null; 
+			DataType save = null; 
 			for(SyntaxTree child1:children())
 			{
 				if(save==null) {
@@ -769,9 +866,9 @@ public class SyntaxTree extends BaseTree{
 			}
 			if(save == null)
 			{
-				save = Parser.Data.Int;//empty lists are all int lists. If you want a different kind of empty list, cast it.
+				save = DataType.Int;//empty lists are all int lists. If you want a different kind of empty list, cast it.
 			}
-			for(Parser.Data data : Parser.Data.values()) {
+			for(DataType data : DataType.values()) {
 				if(data.assignable(save)&&!data.isRange()) {
 					ret = data;
 				}
@@ -782,7 +879,7 @@ public class SyntaxTree extends BaseTree{
 			}
 			break;
 		case POINTER_TO:
-			ret = Parser.Data.Ptr;
+			ret = DataType.Ptr;
 			break;
 		case RANGE_COMMA:
 			if(inFunction()) {
@@ -825,44 +922,44 @@ public class SyntaxTree extends BaseTree{
 			String postfix2 = children[3].getTokenType()==Token.Type.CLOSE_RANGE_EXCLUSIVE?"o":"c";
 			String tryit = prefix+"range"+postfix1+postfix2;
 			tryit = Character.toUpperCase(tryit.charAt(0))+tryit.substring(1);
-			ret = Parser.Data.valueOf(tryit);
+			ret = DataType.valueOf(tryit);
 			break;
 		case RESET:
 		case SET:
 			child = children()[0];
 			try {
-				if(child.getType()!=Parser.Data.Flag)
-					unexpected(Parser.Data.Flag,child.getType());
+				if(child.getType()!=DataType.Flag)
+					unexpected(DataType.Flag,child.getType());
 				
 			} catch(Exception e) {
-				parent.addVariableToScope(getToken(), child.getTokenString(), Parser.Data.Flag);
+				parent.addVariableToScope(getToken(), child.getTokenString(), DataType.Flag);
 			}
-			ret = Parser.Data.Void;
+			ret = DataType.Void;
 			break;
 		case RETURN:
 			//I guess I'm in a function.
 			//anything that follows me must type check, regardless of whether it matches the return value.
 			if(children().length>0)
 				children()[0].getType();
-			ret = Parser.Data.Void;
+			ret = DataType.Void;
 			break;
 		case STRING_LITERAL:
-			ret = Parser.Data.Ptr;
+			ret = DataType.Ptr;
 			break;
 		case TYPE:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case UBYTE_LITERAL:
-			ret = Parser.Data.Ubyte;
+			ret = DataType.Ubyte;
 			break;
 		case UINT_LITERAL:
-			ret = Parser.Data.Uint;
+			ret = DataType.Uint;
 			break;
 		case WITH:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case ALIAS:
-			ret = Parser.Data.SYNTAX;
+			ret = DataType.SYNTAX;
 			break;
 		case IF_EQ:
 		case IF_NE:
@@ -904,6 +1001,10 @@ public class SyntaxTree extends BaseTree{
 		typeCache  = ret;
 		return ret;
 	}
+	/**
+	 * Flatten out the syntax tree into a linear list of statements
+	 * @return the list of statements
+	 */
 	private ArrayList<SyntaxTree> flatten() {
 		ArrayList<SyntaxTree> results = new ArrayList<SyntaxTree>();
 		ArrayList<SyntaxTree> children = this.getChildren();
@@ -916,29 +1017,43 @@ public class SyntaxTree extends BaseTree{
 		}
 		return results;
 	}
-	private void checkEndsWithAReturn(String functionName, ArrayList<SyntaxTree> elements)
+	/**
+	 * Assert that this function has a return as its last statement
+	 */
+	private void checkEndsWithAReturn()
 	{
-		//last "token" must be a return
-		if(elements.get(elements.size()-1).getTokenType()!=Token.Type.RETURN) {
-			throw new RuntimeException("Function "+functionName+" does not end with a return at line "+elements.get(elements.size()-1).getToken().linenum);
-		}
+		//last "token" in the code block must be a return
+		if(this.children()[this.children().length-1].children()[this.children()[this.children().length-1].children().length-1].getTokenType()!=Token.Type.RETURN)		
+			throw new RuntimeException("Function "+this.getChild(1).getTokenString()+" does not end with a return at line "+myToken.linenum);
 	}
-	private void unexpectedReturn(String functionName, Parser.Data expected, Token returnStatement, Parser.Data actual) {
+	/**
+	 * Throw an error specifying that the function is returning a value that does not match its return type
+	 * @param functionName the function name
+	 * @param expected the expected return type
+	 * @param returnStatement the return statement
+	 * @param actual the type of the return
+	 */
+	private void unexpectedReturn(String functionName, DataType expected, Token returnStatement, DataType actual) {
 		throw new RuntimeException("Function "+functionName+" should return "+expected+". Instead returned "+actual+" at line "+returnStatement.linenum);
 	}
-	private void checkReturnTypes(String functionName, Parser.Data expected)
+	/**
+	 * Assert that every return statement in this function matches the required return type
+	 * @param functionName the name of the function
+	 * @param expected the required return type
+	 */
+	private void checkReturnTypes(String functionName, DataType expected)
 	{
 		
 		ArrayList<SyntaxTree> elements = flatten();
-		if(expected != Parser.Data.Void)
-			checkEndsWithAReturn(functionName,elements);
+		if(expected != DataType.Void)
+			checkEndsWithAReturn();
 		for(SyntaxTree me:elements) {
 			if(me.getTokenType()==Token.Type.RETURN) {
-				if(expected==Parser.Data.Void&&!me.getChildren().isEmpty()) {
-					unexpectedReturn(functionName,Parser.Data.Void,me.getToken(),me.getChildren().get(0).getType());
-				}else if(expected!=Parser.Data.Void&&me.getChildren().isEmpty()) {
-					unexpectedReturn(functionName,expected,me.getToken(),Parser.Data.Void);
-				}else if(expected!=Parser.Data.Void&&!me.getChildren().isEmpty()) {
+				if(expected==DataType.Void&&!me.getChildren().isEmpty()) {
+					unexpectedReturn(functionName,DataType.Void,me.getToken(),me.getChildren().get(0).getType());
+				}else if(expected!=DataType.Void&&me.getChildren().isEmpty()) {
+					unexpectedReturn(functionName,expected,me.getToken(),DataType.Void);
+				}else if(expected!=DataType.Void&&!me.getChildren().isEmpty()) {
 					if(me.children()[0].getType()!=expected) {
 						unexpectedReturn(functionName,expected,me.getToken(),me.children()[0].getType());
 					}
@@ -946,6 +1061,11 @@ public class SyntaxTree extends BaseTree{
 			}
 		}
 	}
+	/**
+	 * Make a copy of this syntax tree, but tie it to a different parent (used for restructuring the syntax tree)
+	 * @param p the different parent
+	 * @return the new syntax tree
+	 */
 	protected SyntaxTree copyWithDifferentParent(BaseTree p)
 	{
 		SyntaxTree copy = new SyntaxTree(myToken,theParser,p);
@@ -959,6 +1079,10 @@ public class SyntaxTree extends BaseTree{
 	public Parser getParser() {
 		return theParser;
 	}
+	/**
+	 * Scan this syntax tree to find any return statements (currently only used for generating memory leak warnings)
+	 * @return any found return statements
+	 */
 	public SyntaxTree scanReturn() {
 		if(this.getTokenType().equals(Token.Type.RETURN)) {
 			return this;

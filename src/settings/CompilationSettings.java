@@ -1,6 +1,8 @@
-package compiler;
+package settings;
 import java.util.Arrays;
 import java.util.List;
+
+import compiler.LibFunctions;
 
 public class CompilationSettings {
 	public enum Target {

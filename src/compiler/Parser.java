@@ -6,203 +6,36 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import settings.CompilationSettings;
+
 public class Parser {
 	final CompilationSettings settings;
 	public Parser(CompilationSettings s) {
 		settings = s;
 		s.getLibrary().loadLibraryFunctions(this);
 	}
-	public enum Data{
-		Flag(1,false,null,false,false,false),
-		Bool(1,false,null,false,false,false),
-		Byte(1,false,null,false,false,false),
-		Int(2,false,null,false,false,false),
-		Float(2,false,null,false,false,false),
-		Uint(2,false,null,false,false,false),
-		Ubyte(1,false,null,false,false,false),
-		Ptr(2,false,null,false,false,false),
-		Void(0,false,null,false,false,false),
-		Relptr(1,false,null,false,false,false),
-		File(1,false,null,false,false,false),
-		Func(2,false,null,false,false,false),
-		
-		Listbyte(2,false,Byte,false,false,true),
-		Listint(2,false,Int,false,false,true),
-		Listubyte(2,false,Ubyte,false,false,true),
-		Listuint(2,false,Uint,false,false,true),
-		Listfloat(2,false,Float,false,false,true),
-		Listptr(2,false,Ptr,false,false,true),
-		Listfile(2,false,File,false,false,true),
-		Listfunc(2,false,Func,false,false,true),
-		
-		Rangecc(2,true,Int,true,true,false),//int ranges
-		Rangeco(2,true,Int,true,false,false),
-		Rangeoc(2,true,Int,false,true,false),
-		Rangeoo(2,true,Int,false,false,false),
-		
-		Urangecc(2,true,Uint,true,true,false),//unsigned int ranges
-		Urangeco(2,true,Uint,true,false,false),
-		Urangeoc(2,true,Uint,false,true,false),
-		Urangeoo(2,true,Uint,false,false,false),
-		
-		Brangecc(2,true,Byte,true,true,false),//byte ranges
-		Brangeco(2,true,Byte,true,false,false),
-		Brangeoc(2,true,Byte,false,true,false),
-		Brangeoo(2,true,Byte,false,false,false),
-		
-		Ubrangecc(2,true,Ubyte,true,true,false),//unsigned byte ranges
-		Ubrangeco(2,true,Ubyte,true,false,false),
-		Ubrangeoc(2,true,Ubyte,false,true,false),
-		Ubrangeoo(2,true,Ubyte,false,false,false),
-		
-		Frangecc(2,true,Uint,true,true,false),//float ranges
-		Frangeco(2,true,Uint,true,false,false),
-		Frangeoc(2,true,Uint,false,true,false),
-		Frangeoo(2,true,Uint,false,false,false),
-		
-		Ptrrangecc(2,true,Ptr,true,true,false),
-		Ptrrangeco(2,true,Ptr,true,false,false),
-		Ptrrangeoc(2,true,Ptr,false,true,false),
-		Ptrrangeoo(2,true,Ptr,false,false,false),
-		
-		SYNTAX(0,false,null,false,false,false);
-		
-		
-		
-		private final int size;
-		private final boolean range;
-		private final Data assignable;
-		
-		
-		public final boolean closedLow;
-		public final boolean closedHigh;
-		public final boolean isList;
-		
-		
-		private Data(int siz, boolean Range, Data assignable, boolean cllow, boolean clhigh, boolean list)
-		{
-			size=siz;
-			this.range=Range;
-			this.assignable=assignable;
-			isList = list;
-			closedLow = cllow;
-			closedHigh=clhigh;
-		}
-		private static HashMap<Data,ArrayList<Data>> implicitlyConvertible = new HashMap<>();
-		static {
-			ArrayList<Data> ptrtypes =asList(
-					Rangecc,
-					Rangeco,
-					Rangeoc,
-					Rangeoo,
-					Urangecc,
-					Urangeco,
-					Urangeoc,
-					Urangeoo,
-					Brangecc,
-					Brangeco,
-					Brangeoc,
-					Brangeoo,
-					Ubrangecc,
-					Ubrangeco,
-					Ubrangeoc,
-					Ubrangeoo,
-					Frangecc,
-					Frangeco,
-					Frangeoc,
-					Frangeoo,
-					Ptrrangecc,
-					Ptrrangeco,
-					Ptrrangeoc,
-					Ptrrangeoo,
-					Listint,
-					Listuint,
-					Listbyte,
-					Listubyte,
-					Listptr,
-					Listfile,
-					Listfloat,
-					Uint,
-					Func,
-					Listfunc
-			);
-			implicitlyConvertible.put(Ptr,asList(Uint));
-			for(Data type:ptrtypes) {
-				implicitlyConvertible.put(type, asList(Ptr,Uint));
-			}
-			/*
-			 * Flag
-				Bool
-				Byte
-				Int
-				Float
-				Uint
-				Ubyte
-				Ptr
-				Void
-				Relptr
-				File
-			 */
-			implicitlyConvertible.put(Flag, asList(Bool));
-			implicitlyConvertible.put(Bool, asList(Byte));
-			implicitlyConvertible.put(Flag, asList(Byte));
-			implicitlyConvertible.put(Int, asList(Ubyte,Ptr));
-			ArrayList<Data> uintTo = asList(Ptr,Int);
-			uintTo.addAll(ptrtypes);
-			uintTo.removeIf(x -> x.name().contains("list")||x.name().contains("List"));// don't convert uints to list
-			implicitlyConvertible.put(Uint, uintTo);
-		}
-		public boolean canCastTo(Data x) {
-			if(implicitlyConvertible.containsKey(this)) {
-				return implicitlyConvertible.get(this).contains(x) || this==x;
-			} else
-				return this==x;
-		}
-		private static ArrayList<Data> asList(Data...datas) {
-			return new ArrayList<>(Arrays.asList(datas));
-		}
-		public Data assignable() {
-			return assignable;
-		}
-		public int getSize(Parser p)
-		{
-			if(size==1)
-				return 1;
-			if(size==0)
-				return 0;
-			return p.settings.intsize;
-		}
-		public int getSize(CompilationSettings p)
-		{
-			if(size==1)
-				return 1;
-			if(size==0)
-				return 0;
-			return p.intsize;
-		}
-		public boolean assignable(Data x)
-		{
-			return x==assignable;
-		}
-		public boolean isRange()
-		{
-			return range;
-		}
-		public static Data fromLowerCase(String s)
-		{
-			return Data.valueOf(Character.toUpperCase(s.charAt(0))+s.substring(1));
-		}
-		public boolean signed() {
-			return this==Int || this==Byte || this==Float;
-		}
+	public CompilationSettings getSettings() {
+		return settings;
 	}
-	public void registerLibFunction(List<Data> inputs, Data output, String name) {
-		fnInputTypes.put(name, new ArrayList<ArrayList<Parser.Data>>(Arrays.asList(new ArrayList<Data>(inputs))));
-		fnOutputTypes.put(name, new ArrayList<Parser.Data>(Arrays.asList(output)));
+	/**
+	 * Register an external or inlined function with some type signature
+	 * @param inputs input types
+	 * @param output output type
+	 * @param name function name
+	 */
+	public void registerLibFunction(List<DataType> inputs, DataType output, String name) {
+		fnInputTypes.put(name, new ArrayList<ArrayList<DataType>>(Arrays.asList(new ArrayList<DataType>(inputs))));
+		fnOutputTypes.put(name, new ArrayList<DataType>(Arrays.asList(output)));
 		libAllocated.add(name);
 	}
-	public void aliasLibFunction(List<Data> inputs, Data output, String name) {
-		fnInputTypes.get(name).add(new ArrayList<Data>(inputs));
+	/**
+	 * Give a type alias to library functions
+	 * @param inputs aliased input types
+	 * @param output aliased output type
+	 * @param name function name
+	 */
+	public void aliasLibFunction(List<DataType> inputs, DataType output, String name) {
+		fnInputTypes.get(name).add(new ArrayList<DataType>(inputs));
 		fnOutputTypes.get(name).add(output);
 	}
 	
@@ -211,20 +44,28 @@ public class Parser {
 	public void inlineReplace(String fnName) {
 		inlined.add(fnName);
 	}
+	/**
+	 * @param fnName the function name
+	 * @return whether this parser has been notified of an inline implementation of the given function
+	 */
 	public boolean isInlined(String fnName) {
 		return inlined.contains(fnName);
 	}
-	public void verify(ArrayList<IntermediateLang.Instruction> ins) {
+	/**
+	 * Verify that the given list of instructions has implementations for each required function that was not already inlined, throws runtimeexception otherwise
+	 * @param ins the list of instructions
+	 */
+	public void verify(ArrayList<Instruction> ins) {
 		ArrayList<String> alloc = new ArrayList<>();
 		alloc.addAll(libAllocated);
 		alloc.removeAll(inlined);
-		for(IntermediateLang.Instruction in:ins) {
-			if(in.in==IntermediateLang.InstructionType.general_label || in.in==IntermediateLang.InstructionType.function_label)
+		for(Instruction in:ins) {
+			if(in.in==InstructionType.general_label || in.in==InstructionType.function_label)
 			{
 				String labelName = in.args[0];
 				alloc.remove(labelName);
 			}
-			if(in.in==IntermediateLang.InstructionType.define_symbolic_constant)
+			if(in.in==InstructionType.define_symbolic_constant)
 			{
 				String labelName = in.args[0];
 				alloc.remove(labelName);
@@ -246,24 +87,42 @@ public class Parser {
 			return;
 		throw new RuntimeException("imported constants and/or functions not resolved: "+alloc.toString());
 	}
+	/**
+	 * Get a list of all the function names
+	 * @return the function names
+	 */
 	public ArrayList<String> functionNames() {
 		ArrayList<String> names = new ArrayList<>();
 		names.addAll(fnInputTypes.keySet());
 		names.sort(String::compareTo);
 		return names;
 	}
-	private HashMap<String, ArrayList<ArrayList<Data>>> fnInputTypes = new HashMap<>();
-	private HashMap<String, ArrayList<Data>> fnOutputTypes = new HashMap<>();
-	public ArrayList<ArrayList<Data>> getFunctionInputTypes(String functionName)
+	private HashMap<String, ArrayList<ArrayList<DataType>>> fnInputTypes = new HashMap<>();
+	private HashMap<String, ArrayList<DataType>> fnOutputTypes = new HashMap<>();
+	/**
+	 * Get the set of each possible list of input types as defined by this function's aliases
+	 * @param functionName the function
+	 * @return a list of aliased input type signatures
+	 */
+	public ArrayList<ArrayList<DataType>> getFunctionInputTypes(String functionName)
 	{
 		if(!fnInputTypes.containsKey(functionName))
 			throw new RuntimeException("Function "+functionName+" not found");
-		return new ArrayList<ArrayList<Data>>(fnInputTypes.get(functionName));
+		return new ArrayList<ArrayList<DataType>>(fnInputTypes.get(functionName));
 	}
-	public List<Data> getFunctionOutputType(String functionName)
+	/**
+	 * Get the set of each possible output type as defined by this function's aliases
+	 * @param functionName the function
+	 * @return a list of aliased output types
+	 */
+	public List<DataType> getFunctionOutputType(String functionName)
 	{
 		return fnOutputTypes.get(functionName);
 	}
+	/**
+	 * Whether the given function exists
+	 * @param functionName the function
+	 */
 	public boolean hasFunction(String functionName)
 	{
 		return fnOutputTypes.containsKey(functionName);
@@ -271,12 +130,23 @@ public class Parser {
 	
 	
 	
-	private HashMap<String, ArrayList<ArrayList<Data>>> fnInputTypesReq = new HashMap<>();
-	private HashMap<String, ArrayList<Data>> fnOutputTypesReq = new HashMap<>();
-	public void requireLibFunction(List<Data> asList, Data ptr, String string) {
-		fnInputTypesReq.put(string, new ArrayList<ArrayList<Parser.Data>>(Arrays.asList(new ArrayList<Data>(asList))));
-		fnOutputTypesReq.put(string, new ArrayList<Parser.Data>(Arrays.asList(ptr)));
+	private HashMap<String, ArrayList<ArrayList<DataType>>> fnInputTypesReq = new HashMap<>();
+	private HashMap<String, ArrayList<DataType>> fnOutputTypesReq = new HashMap<>();
+	/**
+	 * Notify the parser that the given function must be implemented and that the implementation must be given in .fwf rather than be external or inlined
+	 * @param asList the required input types
+	 * @param ptr the required output type
+	 * @param string the function name
+	 */
+	public void requireLibFunction(List<DataType> asList, DataType ptr, String string) {
+		fnInputTypesReq.put(string, new ArrayList<ArrayList<DataType>>(Arrays.asList(new ArrayList<DataType>(asList))));
+		fnOutputTypesReq.put(string, new ArrayList<DataType>(Arrays.asList(ptr)));
 	}
+	/**
+	 * Parse the given token list into a syntaxtree
+	 * @param t the token list
+	 * @return the syntax tree
+	 */
 	public BaseTree parse(ArrayList<Token> t)
 	{
 		functionSignatures(t);
@@ -288,6 +158,10 @@ public class Parser {
 		
 		return tree;
 	}
+	/**
+	 * To allow mutually recursive functions and defining functions out of order with the code that calls them, this method scans the token list for functions and stores their signatures
+	 * @param t token list
+	 */
 	private void functionSignatures(ArrayList<Token> t) {
 		try {
 			for(int i=0;i<t.size();i++)
@@ -298,9 +172,9 @@ public class Parser {
 					{
 						String rettype = t.get(i+1).s;
 						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
-						Data returnType = null;
+						DataType returnType = null;
 						try{
-							returnType = Data.valueOf(rttype);
+							returnType = DataType.valueOf(rttype);
 						} catch(Exception e)
 						{
 							printFuncError("not a valid type",t.get(i+1));
@@ -311,20 +185,20 @@ public class Parser {
 							if(this.hasFunction(name)){
 								throw new RuntimeException("Function "+name+" defined in multiple places at line "+t.get(i+2).linenum);
 							}
-							fnOutputTypes.put(name, new ArrayList<Parser.Data>(Arrays.asList(returnType)));
+							fnOutputTypes.put(name, new ArrayList<DataType>(Arrays.asList(returnType)));
 							if(t.get(i+3).t==Token.Type.FUNCTION_PAREN_L)
 							{
 								int argCount = 0;
-								ArrayList<Data> args = new ArrayList<Data>();
+								ArrayList<DataType> args = new ArrayList<DataType>();
 								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
 										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
 										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
 								{
-									Data argtype = null;
+									DataType argtype = null;
 									String type =  t.get(i+6+argCount*3).s;
 									type = Character.toUpperCase(type.charAt(0))+type.substring(1);
 									try{
-										argtype = Data.valueOf(type);
+										argtype = DataType.valueOf(type);
 									} catch(Exception e)
 									{
 										printFuncError("not a valid type",t.get(i+6+argCount*3));
@@ -340,7 +214,7 @@ public class Parser {
 								}
 								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
 								{
-									fnInputTypes.put(name, new ArrayList<ArrayList<Parser.Data>>(Arrays.asList(args)));
+									fnInputTypes.put(name, new ArrayList<ArrayList<DataType>>(Arrays.asList(args)));
 								} else {
 									printFuncError("missing function close paren",t.get(i+1));
 								}
@@ -363,9 +237,9 @@ public class Parser {
 					{
 						String rettype = t.get(i+1).s;
 						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
-						Data returnType = null;
+						DataType returnType = null;
 						try{
-							returnType = Data.valueOf(rttype);
+							returnType = DataType.valueOf(rttype);
 						} catch(Exception e)
 						{
 							printFuncError("not a valid type",t.get(i+1));
@@ -376,23 +250,23 @@ public class Parser {
 							if(!this.hasFunction(name)){
 								throw new RuntimeException("Aliasing nonexistant function "+name+" at line "+t.get(i+2).linenum);
 							}
-							List<Parser.Data> outTypes = fnOutputTypes.get(name);
+							List<DataType> outTypes = fnOutputTypes.get(name);
 							if(outTypes.get(0).size!=returnType.size)
 								throw new RuntimeException("Attempted to alias "+name+" which returns "+outTypes.get(0)+" to different sized type "+returnType+" at line "+t.get(i+2).linenum);
 							
 							if(t.get(i+3).t==Token.Type.FUNCTION_PAREN_L)
 							{
 								int argCount = 0;
-								ArrayList<Data> args = new ArrayList<Data>();
+								ArrayList<DataType> args = new ArrayList<DataType>();
 								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
 										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
 										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
 								{
-									Data argtype = null;
+									DataType argtype = null;
 									String type =  t.get(i+6+argCount*3).s;
 									type = Character.toUpperCase(type.charAt(0))+type.substring(1);
 									try{
-										argtype = Data.valueOf(type);
+										argtype = DataType.valueOf(type);
 									} catch(Exception e)
 									{
 										printFuncError("not a valid type",t.get(i+6+argCount*3));
@@ -406,7 +280,7 @@ public class Parser {
 									if(fnInputTypes.get(name).contains(args))
 										throw new RuntimeException("Aliased function "+name+" must have a different input signature than its alias at line "+t.get(i+2).linenum);
 									int argCounter = 0;
-									for(Data typeIn:args) {
+									for(DataType typeIn:args) {
 										if(typeIn.size!=fnInputTypes.get(name).get(0).get(argCounter++).size) {
 											throw new RuntimeException("Function alias "+name+"'s inputs must be equivalently sized to the original. First failure at arg #"+argCounter+" of type "+typeIn+" at line "+t.get(i+2).linenum);
 										}
@@ -444,6 +318,12 @@ public class Parser {
 		printParseError(e);
 	}
 	Token tok;
+	/**
+	 * parse code in the global scope
+	 * @param t token list
+	 * @param parent the base of the syntax tree
+	 * @return a syntax tree representing this expression or statement
+	 */
 	private SyntaxTree parseOuter(ArrayList<Token> t, BaseTree parent) {
 		final boolean ENABLE_IF_PIPELINING = false;
 		//not implemented yet
@@ -1078,8 +958,8 @@ public class Parser {
 						//use no return value
 					}
 				} else {
-					Data retType = fnOutputTypes.get(function).get(0);
-					if(retType!=Data.Void)
+					DataType retType = fnOutputTypes.get(function).get(0);
+					if(retType!=DataType.Void)
 					{
 						root.addChild(parseExpr(t,root,true)); //return from this
 					}
@@ -1133,6 +1013,13 @@ public class Parser {
 		}
 		return root;
 	}
+	/**
+	 * Parse the token list token for an expected expression
+	 * @param t the token list
+	 * @param parent the parent syntax tree
+	 * @param inAssignment whether this expression is in an assignment (I don't think this is used and I actually forgot its purpose)
+	 * @return the syntax tree representing this expression
+	 */
 	private SyntaxTree parseExpr(ArrayList<Token> t, BaseTree parent, boolean inAssignment) {
 		tok = t.remove(0);
 		SyntaxTree root = new SyntaxTree(tok,this,parent);
@@ -1226,6 +1113,12 @@ public class Parser {
 		}
 		return root;
 	}
+	/**
+	 * Parse a block of code used in a for loop, if statement, function, etc.
+	 * @param t the token list
+	 * @param parent this block's parent
+	 * @return a syntaxtree representing this block of code
+	 */
 	private SyntaxTree parseBlock(ArrayList<Token> t, SyntaxTree parent) {
 		tok = t.remove(0);
 		SyntaxTree root = new SyntaxTree(tok,this,parent);
@@ -1246,9 +1139,17 @@ public class Parser {
 		return root;
 	}
 	private ArrayList<String> symbolTable = new ArrayList<>();
+	/**
+	 * Notify the parser that the given identifier string represents a global constant
+	 * @param string the symbol name
+	 */
 	public void notifySymbol(String string) {
 		symbolTable.add(string);
 	}
+	/**
+	 * 
+	 * @return Whether or not the given string represents a global constant
+	 */
 	public boolean isSymbol(String s) {
 		return symbolTable.contains(s);
 	}

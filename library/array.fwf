@@ -3,6 +3,7 @@ null = as 0 ptr
 one = as 1 ptr
 guard
 import int_size
+import null
 ovflow = "Array overflow."
 
 alias uint sizeof(a:listubyte)
@@ -19,6 +20,10 @@ alias void memcpy(a:listubyte b:listubyte c:uint)
 
 
 function int access_word(list:listint index:uint) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
+
 	if < index / sizeof$ list int_size {
 		index = ? index //turn it into a usable index
 		return deref_int$ + as list ptr as index ptr
@@ -35,6 +40,9 @@ function int access_word(list:listint index:uint) {
 
 alias ubyte access_byte(a:listubyte a:uint)
 function byte access_byte(list:listbyte index:uint) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
 	if < index sizeof$ list {
 		return deref_byte$ + as list ptr as index ptr
 	} {
@@ -49,6 +57,9 @@ function byte access_byte(list:listbyte index:uint) {
 }
 alias void assign_byte(list:listubyte index:uint b:ubyte)
 function void assign_byte(list:listbyte index:uint b:byte) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
 	if < index sizeof$ list {
 		put_byte$ + as list ptr as index ptr b
 	} {
@@ -61,7 +72,11 @@ function void assign_byte(list:listbyte index:uint b:byte) {
 	}
 }
 alias void assign_word(list:listuint index:uint b:uint)
+alias void assign_word(list:listptr index:uint b:ptr)
 function void assign_word(list:listint index:uint b:int) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
 	if < index / sizeof$ list int_size {
 		index = ?index
 		put_int$ + as list ptr as index ptr b
@@ -149,6 +164,9 @@ function uint switch_i_to(a:int l1:listint fns:listfunc args:listuint default:ui
 alias listint map(fn:func list:listint)
 alias listptr map(fn:func list:listptr)
 function listuint map(fn:func list:listuint) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
 	result = as malloc$ sizeof$ list listuint
 	for uint [0u,/ sizeof$ list int_size) with index {
 		assign_word$ result index $ fn access_word$ list index
@@ -159,6 +177,9 @@ function listuint map(fn:func list:listuint) {
 alias listint map_to(fn:func list:listint)
 alias listptr map_to(fn:func list:listptr)
 function listuint map_to(fn:func list:listuint) {
+	if = as list ptr null {
+		error$ "nullptr"
+	} ;
 	result = as malloc$ sizeof$ list listuint
 	for uint [0u,/ sizeof$ list int_size) with index {
 		assign_word$ result index $ fn access_word$ list index

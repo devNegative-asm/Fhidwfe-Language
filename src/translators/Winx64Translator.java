@@ -1,14 +1,18 @@
-package compiler;
+package translators;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+
+import compiler.DataType;
+import compiler.Instruction;
+import compiler.Parser;
 public class Winx64Translator {
 	int counter = 0;
 	private int fresh() {
 		return counter++;
 	}
-	public ArrayList<String> translateWin64(List<IntermediateLang.Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
+	public ArrayList<String> translateWin64(List<Instruction> instructions, boolean useDSNotation, int stackDepth, Parser p) {
 		
 		boolean debug = false;
 		
@@ -19,13 +23,13 @@ public class Winx64Translator {
 		data.add("__mxmode:");
 		data.add("	DD 01111111111000000b");
 		HashMap<String,Integer> depths = new HashMap<String,Integer>();
-		p.settings.target.addHeader(comp);
+		p.getSettings().target.addHeader(comp);
 		String fndef = "";
-		for(IntermediateLang.Instruction instruction:instructions) {
+		for(Instruction instruction:instructions) {
 			if(debug) {
 				System.out.println(instruction);
 			}
-			String[] args = instruction.args;
+			String[] args = instruction.getArgs();
 			String[] orig = Arrays.copyOf(args, args.length);
 			for(int i=0;i<args.length;i++) {
 				if(args[i].matches("-?[0-9]*"))
@@ -90,7 +94,7 @@ public class Winx64Translator {
 				break;
 			case call_function:
 				
-				if(p.getFunctionOutputType(orig[0]).get(0)==Parser.Data.Void) {
+				if(p.getFunctionOutputType(orig[0]).get(0)==DataType.Void) {
 					if(stackDepth>0||p.getFunctionInputTypes(orig[0]).get(0).size()>0)
 						comp.add("	push rax");//save last value of stack
 					comp.add("	call "+args[0]);//call the function
@@ -164,8 +168,6 @@ public class Winx64Translator {
 					throw new RuntimeException("@@contact devs. Unknown stack-related error while translating "+"stack depth not 0 before function def "+args[0]);
 				stackDepth=0;
 				break;
-			case enter_routine:
-				throw new RuntimeException("@@contact devs. Routines not available on x64");
 			case equal_to_b:
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
@@ -181,7 +183,7 @@ public class Winx64Translator {
 						"	mov rax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	comisd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
 						"	cmove ax, cx",
 						"	add rsp, 16"));
 				stackDepth--;
@@ -203,8 +205,6 @@ public class Winx64Translator {
 				comp.add(fndef+" ENDP");
 				stackDepth=0;
 				break;
-			case exit_routine:
-				throw new RuntimeException("@@contact devs. Routines not available on x64");
 			case function_label:
 				comp.add(args[0]+" PROC");
 				fndef = args[0];
@@ -241,7 +241,7 @@ public class Winx64Translator {
 						"	mov rax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	comisd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
 						"	cmovbe ax, cx",
 						"	add rsp, 16"));
 				stackDepth--;
@@ -288,7 +288,7 @@ public class Winx64Translator {
 						"	mov rax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	comisd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
 						"	cmovb ax, cx",
 						"	add rsp, 16"));
 				stackDepth--;
@@ -346,7 +346,7 @@ public class Winx64Translator {
 						"	mov rax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	comisd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
 						"	cmovae ax, cx",
 						"	add rsp, 16"));
 				stackDepth--;
@@ -394,7 +394,7 @@ public class Winx64Translator {
 						"	mov rax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	comisd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",
+						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
 						"	cmova ax, cx",
 						"	add rsp, 16"));
 				stackDepth--;
@@ -511,17 +511,17 @@ public class Winx64Translator {
 				comp.add("	"+orig[0]);
 				break;
 			case rawint:
-				if(p.settings.target.needsAlignment)
-					data.add(data.size()-1,"ALIGN "+p.settings.intsize);
+				if(p.getSettings().target.needsAlignment)
+					data.add(data.size()-1,"ALIGN "+p.getSettings().intsize);
 				if(orig[0].startsWith("$"))
 					data.add("	DQ "+orig[0].substring(1)+"h");
 				else
 					data.add("	DQ "+orig[0]);
 				break;
 			case rawspace:
-				if(Integer.parseInt(orig[0])%p.settings.intsize==0)
-					if(p.settings.target.needsAlignment)
-						data.add(data.size()-1,"ALIGN "+p.settings.intsize);
+				if(Integer.parseInt(orig[0])%p.getSettings().intsize==0)
+					if(p.getSettings().target.needsAlignment)
+						data.add(data.size()-1,"ALIGN "+p.getSettings().intsize);
 				if(useDSNotation)
 					data.add("	TIMES "+orig[0]+" DB 0 ");
 				else
@@ -530,8 +530,8 @@ public class Winx64Translator {
 					}
 				break;
 			case rawspaceints:
-				if(p.settings.target.needsAlignment)
-					data.add(data.size()-1,"ALIGN "+p.settings.intsize);
+				if(p.getSettings().target.needsAlignment)
+					data.add(data.size()-1,"ALIGN "+p.getSettings().intsize);
 				if(useDSNotation)
 					data.add("	TIMES "+orig[0]+" DQ 0 ");
 				else
@@ -639,7 +639,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	push rax",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	addsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",//add second arg to first
+						"	addsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",//add second arg to first
 						"	movsd QWORD PTR [rsp], xmm1",
 						"	pop rax",
 						"	pop rcx"));
@@ -715,10 +715,10 @@ public class Winx64Translator {
 				comp.add("	dec al");
 				break;
 			case stackdecrement_intsize:
-				comp.add("	sub rax, "+p.settings.intsize);
+				comp.add("	sub rax, "+p.getSettings().intsize);
 				break;
 			case stackdecrement_intsize_byte:
-				comp.add("	sub al, "+p.settings.intsize);
+				comp.add("	sub al, "+p.getSettings().intsize);
 				break;
 			case stackdiv_unsigned://technically we have defined division by 0, so this can no longer fault
 				stackDepth--;
@@ -843,7 +843,7 @@ public class Winx64Translator {
 				break;
 			case stackdivfloat:
 				comp.add("	push rax");
-				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]");
 				comp.add("	divsd xmm1, QWORD PTR [rsp]");
 				comp.add("	movsd QWORD PTR [rsp], xmm1");
 				comp.add("	pop rax");
@@ -857,21 +857,21 @@ public class Winx64Translator {
 				comp.add("	inc al");
 				break;
 			case stackincrement_intsize:
-				comp.add("	add rax, "+p.settings.intsize);
+				comp.add("	add rax, "+p.getSettings().intsize);
 				break;
 			case stackincrement_intsize_byte:
-				comp.add("	add al, "+p.settings.intsize);
+				comp.add("	add al, "+p.getSettings().intsize);
 				break;
 			case stackmodfloat:
 				comp.add("	push rax");
-				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");// numerator
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]");// numerator
 				comp.add("	divsd xmm1, QWORD PTR [rsp]");//denominator
 				//xmm1 holds quotient. We need to round this 
 				comp.add("	roundsd xmm1, xmm1, 1");//1 specifies rounding towards -inf
 				comp.add("	mulsd xmm1, QWORD PTR [rsp]");//multiply by denom
 				//subtract numerator - the result (xmm1)
 				comp.add("	movapd xmm2, xmm1");
-				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]");
 				comp.add("	subsd xmm1, xmm2");
 				comp.add("	movsd QWORD PTR [rsp], xmm1");
 				comp.add("	pop rax");
@@ -887,7 +887,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	push rax",
 						"	movsd xmm1, QWORD PTR [rsp]",
-						"	mulsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]",//mult second arg to first
+						"	mulsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",//mult second arg to first
 						"	movsd QWORD PTR [rsp], xmm1",
 						"	pop rax",
 						"	pop rcx"));
@@ -923,7 +923,7 @@ public class Winx64Translator {
 				break;
 			case stacksubfloat:
 				comp.add("	push rax");
-				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.settings.intsize+"]");
+				comp.add("	movsd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]");
 				comp.add("	subsd xmm1, QWORD PTR [rsp]");
 				comp.add("	movsd QWORD PTR [rsp], xmm1");
 				comp.add("	pop rax");
