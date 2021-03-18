@@ -9,7 +9,8 @@ To use the compiler, build it into a jar then run
 java -jar comp.jar "main.fwf" "outputfile"
 
 Compiler modes:
- x86, x64: Unsupported
+ x86, 
+ x64: Generates a file .asm which can be linked with bootstrap.C and assembled with MASM
  Ti83+Z80: Generates a files outputfile.asm (assembly) and outputfile.prc (preprocessed). outputfile.prc can be assembled by tniasm. The resulting file will run on a Ti83+
  emuZ80: Z80 emulated in Java, with support for command line & file IO operations.
 
