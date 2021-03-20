@@ -44,23 +44,25 @@ function ptr register(var:ptr) {
 }
 
 function void exit_context() {
-	if = as base ptr null {
-		error$ "No context to exit"
-	} ;
+	
 	l_writer = writer
 	l_limits = limits
 	l_base = base
+	if = as base ptr null {
+		error$ "No context to exit"
+	} ;
 	writer = ll_rest$ writer
 	limits = ll_rest$ limits
 	base = ll_rest$ base
 	varlist = as ll_first$ l_base listptr
 	allocated = ll_first$ l_writer
+	
 	ifnot = allocated 0u {
-		for uint [0u,allocated) with index {
-			free$ access_word$ varlist index
+		for uint [0u,allocated) with uiu {
+			free$ access_word$ varlist uiu
 		}
 	} ;
-	free$ l_writer
-	free$ l_limits
 	free$ l_base
+	free$ l_limits
+	free$ l_writer
 }

@@ -169,7 +169,6 @@ public class SyntaxTree extends BaseTree{
 						}
 					break;
 				}
-				
 				return v.getValue();
 			}
 		}

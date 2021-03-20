@@ -69,9 +69,9 @@ public class VariableTree {
 		}
 		return results;
 	}
-	private int getOverallSize(Parser p,boolean align) {
+	public int getOverallSize(Parser p,boolean align) {
 		doneEditing();
-		return getMySize(p,align) + (parent!=null?parent.getMySize(p,align):0);
+		return getMySize(p,align) + (parent!=null?parent.getOverallSize(p,align):0);
 	}
 	public String toString() {
 		String result = myvars.toString();

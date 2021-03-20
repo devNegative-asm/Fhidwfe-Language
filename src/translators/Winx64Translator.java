@@ -172,7 +172,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp al, cl",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmove ax, cx"));
 				stackDepth--;
@@ -180,7 +180,7 @@ public class Winx64Translator {
 			case equal_to_f:
 				comp.addAll(Arrays.asList(
 						"	push rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
 						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
@@ -192,7 +192,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rax, rcx",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmove ax, cx"));
 				stackDepth--;
@@ -230,7 +230,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovge ax, cx"));
 				stackDepth--;
@@ -238,7 +238,7 @@ public class Winx64Translator {
 			case greater_equal_f:
 				comp.addAll(Arrays.asList(
 						"	push rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
 						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
@@ -250,7 +250,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovge ax, cx"));
 				stackDepth--;
@@ -259,7 +259,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovg ax, cx"));
 				stackDepth--;
@@ -268,7 +268,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovae ax, cx"));
 				stackDepth--;
@@ -277,7 +277,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovae ax, cx"));
 				stackDepth--;
@@ -285,7 +285,7 @@ public class Winx64Translator {
 			case greater_than_f:
 				comp.addAll(Arrays.asList(
 						"	push rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
 						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
@@ -297,7 +297,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovg ax, cx"));
 				stackDepth--;
@@ -306,7 +306,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmova ax, cx"));
 				stackDepth--;
@@ -315,7 +315,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmova ax, cx"));
 				stackDepth--;
@@ -335,7 +335,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovle ax, cx"));
 				stackDepth--;
@@ -343,7 +343,7 @@ public class Winx64Translator {
 			case less_equal_f:
 				comp.addAll(Arrays.asList(
 						"	push rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
 						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
@@ -355,7 +355,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovle ax, cx"));
 				stackDepth--;
@@ -364,7 +364,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovbe ax, cx"));
 				stackDepth--;
@@ -373,7 +373,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovbe ax, cx"));
 				stackDepth--;
@@ -383,7 +383,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovl ax, cx"));
 				stackDepth--;
@@ -391,7 +391,7 @@ public class Winx64Translator {
 			case less_than_f:
 				comp.addAll(Arrays.asList(
 						"	push rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	movsd xmm1, QWORD PTR [rsp]",
 						"	comisd xmm1, QWORD PTR [rsp+"+p.getSettings().intsize+"]",
@@ -403,7 +403,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovl ax, cx"));
 				stackDepth--;
@@ -412,7 +412,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp cl, al",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovb ax, cx"));
 				stackDepth--;
@@ -421,7 +421,7 @@ public class Winx64Translator {
 				comp.addAll(Arrays.asList(
 						"	pop rcx",
 						"	cmp rcx, rax",
-						"	mov rax, 0",
+						"	mov eax, 0",
 						"	mov cx, 255",
 						"	cmovb ax, cx"));
 				stackDepth--;
@@ -1024,7 +1024,7 @@ public class Winx64Translator {
 		{
 			throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 		}
-		comp.add("	mov rax, 0");
+		comp.add("	mov eax, 0");
 		comp.add("	ret");
 		//slight optimization
 		final boolean optimize = !debug;
