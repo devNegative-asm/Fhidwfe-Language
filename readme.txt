@@ -1,6 +1,7 @@
 Enjoy Fhidwfe!
 This is a C-like language which takes some syntax and feature inspiration from functional languages and python.
-This is not functional at all though, so be warned.
+This is not a functional language at all though, so be warned.
+This software is provided as-is. This compiler is does not come with any warranty, implied or otherwise.
 
 Assembling requires tniasm, so go download that first.
 
