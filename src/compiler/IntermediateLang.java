@@ -47,8 +47,14 @@ public class IntermediateLang {
 		ArrayList<Instruction> results = new ArrayList<Instruction>();
 		int stringCount = 0;
 		results.add(InstructionType.define_symbolic_constant.cv("int_size",""+tree.theParser.settings.intsize));
-		
-		Predicate<CompilationSettings.Target> startsAtBegin = sett -> sett!=CompilationSettings.Target.WINx64 && sett!=CompilationSettings.Target.WINx86;
+		if(tree.theParser.settings.target==CompilationSettings.Target.LINx64)
+		{
+			results.add(InstructionType.rawinstruction.cv("global __main"));
+		}
+		Predicate<CompilationSettings.Target> startsAtBegin =
+				sett -> sett!=CompilationSettings.Target.WINx64
+				&& sett!=CompilationSettings.Target.WINx86
+				&& sett!=CompilationSettings.Target.LINx64;
 		if(startsAtBegin.test(tree.theParser.settings.target)) {
 			results.add(InstructionType.write_sp.cv("__ExitLocation"));
 			results.add(InstructionType.goto_address.cv("__main"));//jump immediately to the main

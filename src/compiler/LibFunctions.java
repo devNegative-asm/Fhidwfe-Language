@@ -591,7 +591,7 @@ public class LibFunctions {
 							case LINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rbx, rax"),
-										InstructionType.rawinstruction.cv("mov rcx, 10"),
+										InstructionType.rawinstruction.cv("mov rdi, 10"),
 										InstructionType.syscall_noarg.cv("__putchar"),
 										InstructionType.rawinstruction.cv("mov rax, rbx")
 								);

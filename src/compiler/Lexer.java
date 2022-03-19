@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -47,7 +48,9 @@ public class Lexer {
 		Scanner x = new Scanner(f);
 		this.x=cm;
 		x.useDelimiter("(?<=\n)");
-		for(File fv:new File("./library/").listFiles()) {
+		File[] libFiles = new File("./library/").listFiles();
+		Arrays.sort(libFiles,File::compareTo);
+		for(File fv:libFiles) {
 			if(fv.getName().endsWith(".fwf"))
 			{
 				files.add(fv);
@@ -55,7 +58,9 @@ public class Lexer {
 			}
 		}
 		if(new File("./"+settings.target.libLoc+"/").exists()) {
-			for(File fv:new File("./"+settings.target.libLoc+"/").listFiles()) {
+			libFiles = new File("./"+settings.target.libLoc+"/").listFiles();
+			Arrays.sort(libFiles,File::compareTo);
+			for(File fv:libFiles) {
 				if(fv.getName().endsWith(".fwf"))
 				{
 					files.add(fv);

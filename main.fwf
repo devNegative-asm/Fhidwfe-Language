@@ -55,42 +55,21 @@
 
 guard
 import null
-import heap
-import heaptail
 import NaN
 
-function uint square(x:uint) {
-	return * x x
-}
-function uint add1(x:uint) {
-	return + x 1u
-}
-//switch does not free the argument lists, but switch_to does
-putui$ switch_i_to$ 5//take case 5
-	[1 2 3 4 5]
-	[square add1 square add1 square]
-	[5u 4u 3u 2u 1u]// the square of 1
-	69u
+g = 3
+putui$ as @g uint
 putln$
-
-putui$ switch_i_to$ 2//take case 2
-	[1 2 3 4 5]
-	[square add1 square add1 square]// 4 + 1
-	[5u 4u 3u 2u 1u]
-	69u
-putln$
-	
-putui$ switch_i_to$ 12//take the default case
-	[1 2 3 4 5]
-	[square add1 square add1 square]
-	[5u 4u 3u 2u 1u]
-	69u//69
-putln$
-
-numbers = [0 2 3 5 8]
-numbers = map_to$ square numbers// map the numbers to their squares and free the original list
-for int numbers with result {
-	puti$ result
-	putchar$ ' '
+for uint [1u,10u] with limit {
+	written = getc$
+	getc$
+	if in written ['0','9'] {
+		putui$ + 1u as - written '0' uint
+	} {
+		puts$ "smh, not even a number"
+	}
+	puts$ "\nyou have "
+	putui$ - 10u limit
+	puts$ " tries left"
+	putln$
 }
-free$ numbers

@@ -541,9 +541,9 @@ public class Unix64Translator {
 					comp.add("	push rax");
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	lea rax, __globals+"+args[0]);
+					comp.add("	lea rax, [__globals+"+args[0]+"]");
 				} catch(NumberFormatException e) {
-					comp.add("	lea rax, "+args[0]);
+					comp.add("	lea rax, ["+args[0]+"]");
 				}
 				break;
 			case retrieve_global_byte:
@@ -570,7 +570,7 @@ public class Unix64Translator {
 			case retrieve_immediate_byte:
 				if(stackDepth++>0)
 					comp.add("	push rax");
-				comp.add("	mov rax, 255 AND "+args[0]);
+				comp.add("	mov rax, 255 & "+args[0]);
 				break;
 			case retrieve_immediate_float:
 				if(stackDepth++>0)
@@ -585,7 +585,7 @@ public class Unix64Translator {
 			case getc:
 				if(stackDepth++>0)
 					comp.add("	push rax");
-				comp.add("	lea rax, __getc");
+				comp.add("	lea rax, [__getc]");
 				comp.add("	call __syscall_0");
 				if(!externs.contains("extern __getc")) {
 					externs.add("extern __getc");
