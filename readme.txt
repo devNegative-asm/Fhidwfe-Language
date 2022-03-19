@@ -3,15 +3,20 @@ This is a C-like language which takes some syntax and feature inspiration from f
 This is not a functional language at all though, so be warned.
 This software is provided as-is. This compiler is does not come with any warranty, implied or otherwise.
 
-Assembling requires tniasm, so go download that first.
+Assembling for z80 requires tniasm, so go download that first.
 
-This is the source code for the compiler. Currently it only compiles to z80. to to run in on a terminal, I've included a z80 emulator with unique IO functionality.
 To use the compiler, build it into a jar then run
-java -jar comp.jar "main.fwf" "outputfile"
+java -jar comp.jar "main.fwf" "outputfile" architecture heap_size
+
+architecture may be any of
+1. WINx64:
+2. TI83pz80:
+3. z80Emulator:
+4. LINx64
 
 Compiler modes:
  x86, 
- x64: Generates a file .asm which can be linked with bootstrap.C and assembled with MASM
+ x64: Generates a file .asm which can be linked with bootstrap.c and assembled with MASM / NASM
  Ti83+Z80: Generates a files outputfile.asm (assembly) and outputfile.prc (preprocessed). outputfile.prc can be assembled by tniasm. The resulting file will run on a Ti83+
  emuZ80: Z80 emulated in Java, with support for command line & file IO operations.
 
@@ -21,12 +26,6 @@ Credits to:
 	Brandonw (creator of ti83plus.inc)
 	detachedsolutions (creator of mirage.inc)
 	The New Image (creators of tniasm, the assembler this compiler targets)
-
-
-
-
-
-
 
 
 
