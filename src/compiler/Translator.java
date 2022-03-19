@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import translators.TI83PTranslator;
+import translators.Unix64Translator;
 import translators.Winx64Translator;
 import translators.Z80TranslatorForWindows;
 
@@ -16,6 +17,8 @@ public class Translator {
 			return new TI83PTranslator().translateTI83pz80(instructions, useDSNotation,0,p);
 		case z80Emulator:
 			return new Z80TranslatorForWindows().translate(instructions, useDSNotation,0,p);
+		case LINx64:
+			return new Unix64Translator().translate(instructions, useDSNotation,0,p);
 		default:
 			throw new UnsupportedOperationException("Architecture "+p.settings.target+" does not have a translator yet.");
 		}

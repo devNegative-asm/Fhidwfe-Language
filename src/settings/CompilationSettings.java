@@ -9,7 +9,8 @@ public class CompilationSettings {
 		WINx86("libwin86",4,true),
 		WINx64("libwin64",8,true),
 		z80Emulator("libemuz80",2,false),
-		TI83pz80("libti83pz80",2,false);
+		TI83pz80("libti83pz80",2,false),
+		LINx64("liblin64",8,true);
 		public final String libLoc;
 		public final int intsize;
 		public final boolean needsAlignment;
@@ -127,6 +128,20 @@ public class CompilationSettings {
 				break;
 			case WINx86:
 				break;
+			case LINx64:
+				instructions.addAll(0,Arrays.asList(
+						"__syscall_0:",
+						"	mov r12, rsp",
+						"	and rsp, -16",
+						"	call rax",
+						"	mov rsp, r12",
+						"	ret",
+						"e:	equ "+Double.doubleToLongBits(Math.E),
+						"pi:	equ "+Double.doubleToLongBits(Math.PI),
+						"NaN:	equ "+ Double.doubleToLongBits(Double.NaN),
+						"pos_infinity:	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
+						"neg_infinity:	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
+						));
 			}
 		}
 	}

@@ -81,7 +81,7 @@ public class LibFunctions {
 			break;
 		case WINx64:
 		case WINx86:
-
+		case LINx64:
 			p.registerLibFunction(Arrays.asList(DataType.Uint), DataType.Ptr, "malloc");
 			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "sizeof");
 			p.registerLibFunction(Arrays.asList(DataType.Ptr,DataType.Uint), DataType.Ptr, "realloc");
@@ -148,7 +148,7 @@ public class LibFunctions {
 		p.inlineReplace("put_uint");
 		p.inlineReplace("put_ptr");
 		p.inlineReplace("");
-		if(architecture==CompilationSettings.Target.WINx64) {
+		if(architecture==CompilationSettings.Target.WINx64 || architecture==CompilationSettings.Target.LINx64) {
 			p.inlineReplace("malloc");
 			p.inlineReplace("free");
 			p.inlineReplace("realloc");
@@ -193,15 +193,13 @@ public class LibFunctions {
 			Instruction instr = instructions.get(loc);
 			List<Instruction> replacement = new ArrayList<>();
 			
-			
-			
-			
 			if(instr.in==InstructionType.call_function) {
 				if(p.isInlined(instr.args[0]))
 				switch(instr.args[0]) {
 					case "":
 						//call function
 						switch(architecture) {
+						case LINx64:
 						case WINx64:
 							//the stack holds the function address
 							//rax holds the argument
@@ -235,6 +233,14 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
 									InstructionType.rawinstruction.cv("pop rax"));
 							break;
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("push rax"),
+									InstructionType.rawinstruction.cv("fld [rsp]"),
+									InstructionType.rawinstruction.cv("fsin"),
+									InstructionType.rawinstruction.cv("fstp [rsp]"),
+									InstructionType.rawinstruction.cv("pop rax"));
+							break;
 						default:
 							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 						}
@@ -247,6 +253,14 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("fld QWORD PTR [rsp]"),
 									InstructionType.rawinstruction.cv("fcos"),
 									InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
+									InstructionType.rawinstruction.cv("pop rax"));
+							break;
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("push rax"),
+									InstructionType.rawinstruction.cv("fld [rsp]"),
+									InstructionType.rawinstruction.cv("fcos"),
+									InstructionType.rawinstruction.cv("fstp [rsp]"),
 									InstructionType.rawinstruction.cv("pop rax"));
 							break;
 						default:
@@ -263,12 +277,25 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("fstp QWORD PTR [rsp]"),
 									InstructionType.rawinstruction.cv("pop rax"));
 							break;
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("push rax"),
+									InstructionType.rawinstruction.cv("fld [rsp]"),
+									InstructionType.rawinstruction.cv("fsqrt"),
+									InstructionType.rawinstruction.cv("fstp [rsp]"),
+									InstructionType.rawinstruction.cv("pop rax"));
+							break;
 						default:
 							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
 						}
 						break;
 					case "malloc":
 						switch(architecture) {
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("mov rdi,rax"),
+									InstructionType.syscall_noarg.cv("__malloc"));
+							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -280,6 +307,11 @@ public class LibFunctions {
 						break;
 					case "sizeof":
 						switch(architecture) {
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("mov rdi,rax"),
+									InstructionType.syscall_noarg.cv("__sizeof"));
+							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -291,6 +323,12 @@ public class LibFunctions {
 						break;
 					case "free":
 						switch(architecture) {
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("mov rdi,rax"),
+									InstructionType.syscall_noarg.cv("__free"),
+									InstructionType.pop_discard.cv());
+							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -303,6 +341,13 @@ public class LibFunctions {
 						break;
 					case "realloc":
 						switch(architecture) {
+						case LINx64:
+							replacement = Arrays.asList(
+									InstructionType.notify_pop.cv(),
+									InstructionType.rawinstruction.cv("mov rsi,rax"),
+									InstructionType.rawinstruction.cv("pop rdi"),
+									InstructionType.syscall_noarg.cv("__realloc"));
+							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.notify_pop.cv(),
@@ -344,6 +389,12 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.rawinstruction.cv("mov rdi,rax"),
+										InstructionType.syscall_noarg.cv("__fclose"),
+										InstructionType.pop_discard.cv());
+								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -366,6 +417,12 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.rawinstruction.cv("mov rdi,rax"),
+										InstructionType.syscall_noarg.cv("__fflush"),
+										InstructionType.pop_discard.cv());
+								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -386,6 +443,11 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("in a,(1)"),//read_byte
 									InstructionType.rawinstruction.cv("ld l,a")
 								);
+								break;
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.rawinstruction.cv("mov rdi,rax"),
+										InstructionType.syscall_noarg.cv("__fread"));
 								break;
 							case WINx64:
 								replacement = Arrays.asList(
@@ -430,6 +492,14 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.notify_pop.cv(),
+										InstructionType.rawinstruction.cv("mov rsi,rax"),
+										InstructionType.rawinstruction.cv("pop rdi"),
+										InstructionType.syscall_noarg.cv("__fwrite"),
+										InstructionType.pop_discard.cv());
+								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.notify_pop.cv(),
@@ -459,6 +529,11 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("ld l,a"),
 									InstructionType.rawinstruction.cv("ld h,$0")
 								);
+								break;
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.rawinstruction.cv("mov rdi,rax"),
+										InstructionType.syscall_noarg.cv("__fopen"));
 								break;
 							case WINx64:
 								replacement = Arrays.asList(
@@ -493,6 +568,13 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("out (0),a"),
 									InstructionType.pop_discard.cv());
 								break;
+							case LINx64:
+								replacement = Arrays.asList(
+									InstructionType.rawinstruction.cv("mov rdi,rax"),
+									InstructionType.syscall_noarg.cv("__putchar"),
+									InstructionType.pop_discard.cv()
+								);
+								break;
 							case WINx64:
 								replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -506,6 +588,14 @@ public class LibFunctions {
 						break;
 					case "putln":
 						switch(architecture) {
+							case LINx64:
+								replacement = Arrays.asList(
+										InstructionType.rawinstruction.cv("mov rbx, rax"),
+										InstructionType.rawinstruction.cv("mov rcx, 10"),
+										InstructionType.syscall_noarg.cv("__putchar"),
+										InstructionType.rawinstruction.cv("mov rax, rbx")
+								);
+								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rdi, rax"),

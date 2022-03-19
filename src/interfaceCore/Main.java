@@ -122,7 +122,7 @@ public class Main {
 			Packager.to8xp(binFile+".bin");
 			break;
 		case WINx64:
-			break;
+		case LINx64:
 		case WINx86:
 			break;
 		case z80Emulator:
