@@ -1,0 +1,5 @@
+tniasm.*
+.project
+.settings*
+.classpath
+bin/

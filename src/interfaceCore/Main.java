@@ -63,7 +63,8 @@ public class Main {
 			System.err.println("Possible architectures:");
 			System.err.println("\t\"TI83pz80\": Ti83+ program");
 			System.err.println("\t\"z80Emulator\": z80 ROM, run in emulator");
-			System.err.println("\t\"WINx64\": unsupported");
+			System.err.println("\t\"WINx64\": windows x64");
+			System.err.println("\t\"LINx64\": unix x64");
 			System.err.println("\t\"WINx86\": unsupported");
 			System.exit(-1);
 		}

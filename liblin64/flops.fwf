@@ -1,0 +1,229 @@
+guard
+import int_size
+import pi
+import e
+import NaN
+function void putfloatdigits(num:float) {
+	puti$ as num int//cast num to an int and print that
+	//now the decimal part
+	putchar$'.'
+	fpart = as * 100000. fracpart$ num uint
+	//there could be leading zeroes
+	if < fpart 10000u {
+		putchar$ '0'
+	} ;
+	if < fpart 1000u {
+		putchar$ '0'
+	} ;
+	if < fpart 100u {
+		putchar$ '0'
+	} ;
+	if < fpart 10u {
+		putchar$ '0'
+	} ;
+	putui$ fpart
+}
+
+function float f_pow_int(base:float exponent:int) {
+	if < exponent 0 {
+		return / 1. f_pow_int$ base !exponent
+	} ;
+	if = 0 exponent {
+		return 1.
+	} ;
+	if = 1 & exponent 1 {
+		return * base f_pow_int$ * base base >> exponent
+	} ;
+	return f_pow_int$ * base base >> exponent
+}
+
+function uint uint_pow(base:uint exponent:uint) {
+	if = 0u exponent {
+		return 1u
+	} ;
+	if = 1u & exponent 1u {
+		return * base uint_pow$ * base base >> exponent
+	} ;
+	return uint_pow$ * base base >> exponent
+}
+
+function float round(f:float d:uint) {
+	//round f*10^d
+	tenp = f_pow_int$ 10. as d int
+	f = * f tenp
+	if >= .5 fracpart$ f {
+		return + 1. intpart$ f
+	} ;
+	return intpart$ f
+}
+
+function int shift_r_arithmetic(x:int c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+function uint shift_right(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+alias int shift_left(x:int c:uint)
+function uint shift_left(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = << x
+		c = - c 1u
+	}
+	return x
+}
+
+function uint bitconvert(f:float) {
+	return deref_uint$ @f
+}
+function int exponent_from_float(f:float) {
+	//assuming 64 bit floats
+	exponent = & shift_left$ 2047 52u as bitconvert$ f int
+	return - shift_r_arithmetic$ exponent 52u 1023
+}
+function uint mantissa(f:float) {
+	implicit = shift_left$ 1u 52u
+	return + implicit & - implicit 1u bitconvert$ f
+}
+function uint rawmantissa(f:float) {
+	implicit = - shift_left$ 1u 52u 1u
+	return & implicit bitconvert$ f
+}
+function float biasedmantissa(f:float) {
+	return / as rawmantissa$ f float as shift_left$ 1u 52u float
+}
+
+
+
+function float ln(x:float) {
+	//newton's method
+	// if f has a zero at some number, this approaches it
+	// our function is e^x-input
+	// x2 = x-f(x)/f'(x)
+	if < x 0. {
+		error$ "log of a negative\n"
+	} ;
+	if isNaN$ x {
+		error$ "log of NaN\n"
+	} ;
+	log2 = as exponent_from_float$ x float
+	guess = * log2 0.693147180559945309417232121458
+	//iterate with newton's method a few times
+	l_guess = + guess 10.
+	for uint [0u,32u] with qq {
+		full = exp$ guess
+		l_guess = guess
+		guess = - guess / - full x full
+	}
+	return guess
+}
+function float absf(x:float) {
+	if < x 0. {
+		return !x
+	} ;
+	return x
+}
+function float exp(x:float) {
+	if isNaN$ x {
+		error$ "exp of NaN\n"
+	} ;
+	return exp_accurate$ x
+}
+function float exp_accurate(x:float) {
+	looper = 1.
+	res = 0.
+	count = 1.
+	whilenot = 0. looper {
+		res = + res looper
+		looper = * looper / x count
+		count = + 1. count
+	}
+	return res
+}
+function float lg(x:float) {
+	if < x 0. {
+		error$ "log of a negative\n"
+	} ;
+	if isNaN$ x {
+		error$ "log of NaN\n"
+	} ;
+	if = rawmantissa$ x 0u {
+		//the result is simply the exponent
+		return as exponent_from_float$ x float
+	} ;
+	return / ln$ x 0.693147180559945309417232121458
+}
+function float intpart(x:float) {
+	return - x fracpart$ x
+}
+function float fracpart(x:float) {
+	if < x 0. {
+		return ! % x 1.
+	} ;
+	return % x 1.
+}
+function float log(x:float) {
+	if isNaN$ x {
+		error$ "log of NaN\n"
+	} ;
+	return / ln$ x ln$ 10.
+}
+function float pow(x:float y:float) {
+	//e ^ (ln(x) * y)
+	if isNaN$ x {
+		error$ "NaN ^ y \n"
+	} ;
+	if isNaN$ y {
+		error$ "x ^ NaN \n"
+	} ;
+	return exp$ * ln$ x y
+}
+function uint safecastui(x:float) {
+	if isFinite$ x {
+		if < x 0. {
+			error$ "negative casted to uint"
+		} {
+			if > x as as !1 uint float {
+				error$ "result out of range"
+			} {
+				return as x uint
+			}
+		}
+	} {
+		error$ "Infinite or NaN casted to uint"
+	}
+	return 0u
+}
+function int safecasti(x:float) {
+	if isFinite$ x {
+		if > x as >> as !1 uint float {
+			error$ "result too positive"
+		} {
+			if < x as ~ >> as !1 uint float {
+				error$ "result too negative"
+			} {
+				return as x int
+			}
+		}
+	} {
+		error$ "Infinite or NaN casted to uint"
+	}
+	return 0
+}
+function bool isFinite(x:float) {
+	ex1 = exponent_from_float$ x
+	return ~ = ex1 exponent_from_float$ NaN
+}
+function bool isNaN(x:float) {
+	return ~ || isFinite$ x = 0u rawmantissa$ x
+}
