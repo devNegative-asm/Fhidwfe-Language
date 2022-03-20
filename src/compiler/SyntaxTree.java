@@ -325,7 +325,7 @@ public class SyntaxTree extends BaseTree{
 		return this.toString(0);
 	}
 	/**
-	 * Get an array which contains this trees children, while asserting that the number of children this node has must be matched by sizeConstraint
+	 * Get an array which contains this tree's children, while asserting that the number of children this node has must be matched by sizeConstraint
 	 * @param sizeConstraint the number of children this node must have
 	 * @return an array containing this node's children
 	 */
@@ -336,6 +336,21 @@ public class SyntaxTree extends BaseTree{
 			return super.getChildren().toArray(tree);
 		} else {
 			throw new RuntimeException("Unexpected amount of subexpressions for type "+myToken.t+". Expected: "+sizeConstraint+", Got: "+super.getChildren().size()+" at line "+myToken.linenum);
+		}
+	}
+	
+	/**
+	 * Get an array which contains this tree's children, while asserting that the number of children this node must have be within a certain range
+	 * @param minSize the minimum number of children
+	 * @param maxSize the maximum number of children
+	 * @return an array containing this node's children
+	 */
+	private SyntaxTree[] children(int minSize, int maxSize) {
+		if(minSize<= super.getChildren().size() && super.getChildren().size()<=maxSize) {
+			SyntaxTree[] tree = new SyntaxTree[0];
+			return super.getChildren().toArray(tree);
+		} else {
+			throw new RuntimeException("Unexpected amount of subexpressions for type "+myToken.t+". Expected: "+minSize+"<=children<="+maxSize+", Got: "+super.getChildren().size()+" at line "+myToken.linenum);
 		}
 	}
 	/**
@@ -608,6 +623,7 @@ public class SyntaxTree extends BaseTree{
 		case CLOSE_RANGE_EXCLUSIVE:
 		case CLOSE_RANGE_INCLUSIVE:
 		case EMPTY_BLOCK:
+		case TEMP:
 			ret = DataType.SYNTAX;
 			break;
 		case COMPLEMENT:
@@ -618,22 +634,22 @@ public class SyntaxTree extends BaseTree{
 		case EQ_SIGN:
 			if(getTokenString().equals("assign"))
 			{
-				SyntaxTree child = children(2)[1];
+				SyntaxTree child = children(2,3)[1];
 				if(impossibleForData.contains(child.getType())) {
 					impossible(child.getType());
 				}
 				boolean typeFlag = false;
 				try {
-					if(resolveVariableType(children(2)[0].getTokenString(), getToken().linenum)==child.getType()) {
+					if(resolveVariableType(children(2,3)[0].getTokenString(), getToken().linenum)==child.getType()) {
 						
 					} else {
 						typeFlag = true;
 					}
 				} catch(Exception e) {
-					parent.addVariableToScope(getToken(), children(2)[0].getTokenString(), child.getType());
+					parent.addVariableToScope(getToken(), children(2,3)[0].getTokenString(), child.getType());
 				}
 				if(typeFlag)
-					unexpected(resolveVariableType(children(2)[0].getTokenString(), getToken().linenum),child.getType());
+					unexpected(resolveVariableType(children(2,3)[0].getTokenString(), getToken().linenum),child.getType());
 				ret = DataType.Void;
 			} else {
 				ret = checkBinaryMath();

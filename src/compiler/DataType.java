@@ -3,6 +3,7 @@ package compiler;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import settings.CompilationSettings;
 /**
@@ -86,7 +87,47 @@ public enum DataType{
 		closedHigh=clhigh;
 	}
 	private static HashMap<DataType,ArrayList<DataType>> implicitlyConvertible = new HashMap<>();
+	private static HashSet<DataType> freeable = new HashSet<>();
+	public boolean isFreeable() {
+		return freeable.contains(this);
+	}
 	static {
+		freeable.addAll(asList(
+				Rangecc,
+				Rangeco,
+				Rangeoc,
+				Rangeoo,
+				Urangecc,
+				Urangeco,
+				Urangeoc,
+				Urangeoo,
+				Brangecc,
+				Brangeco,
+				Brangeoc,
+				Brangeoo,
+				Ubrangecc,
+				Ubrangeco,
+				Ubrangeoc,
+				Ubrangeoo,
+				Frangecc,
+				Frangeco,
+				Frangeoc,
+				Frangeoo,
+				Ptrrangecc,
+				Ptrrangeco,
+				Ptrrangeoc,
+				Ptrrangeoo,
+				Listint,
+				Listuint,
+				Listbyte,
+				Listubyte,
+				Listptr,
+				Listfile,
+				Listfloat,
+				Ptr,
+				Listfunc
+
+		));
 		ArrayList<DataType> ptrtypes =asList(
 				Rangecc,
 				Rangeco,

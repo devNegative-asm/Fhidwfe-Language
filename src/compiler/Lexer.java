@@ -309,6 +309,9 @@ public class Lexer {
 			} else if(tok.equals("="))
 			{
 				tk = new Token(tok,Token.Type.EQ_SIGN,guarded,fileIn);
+			} else if(tok.equals("temp"))
+			{
+				tk = new Token(tok,Token.Type.TEMP,guarded,fileIn);
 			} else if(tok.equals("import")) {
 				importNext =true;
 				continue;

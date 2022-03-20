@@ -1,5 +1,6 @@
 package compiler;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.function.Predicate;
 
 import settings.CompilationSettings;
@@ -88,7 +89,9 @@ public class IntermediateLang {
 			if(outer.getTokenType()==Token.Type.FUNCTION)
 			{
 				if(tree.functionIsEverCalled(outer.getChild(1).getTokenString())) {//only compile functions that are called somewhere in the code
-					results.addAll(generateSubInstructions(outer));
+					ArrayList<Instruction> instructions = generateSubInstructions(outer);
+					deferDeletion(instructions);
+					results.addAll(instructions);
 				}
 				
 			}
@@ -122,9 +125,26 @@ public class IntermediateLang {
 		}
 		for(SyntaxTree outer:tree.getChildren()) {//compile functions before anything else
 			if(outer.getTokenType()!=Token.Type.FUNCTION)
-			results.addAll(generateSubInstructions(outer));
+				results.addAll(generateSubInstructions(outer));
 		}
 		return results;
+	}
+	private void deferDeletion(ArrayList<Instruction> instructions) {
+		ArrayList<Instruction> deletions = new ArrayList<>();
+		for(int i=0;i<instructions.size();i++) {
+			if(instructions.get(i).in==InstructionType.deffered_delete) {				
+				deletions.add(InstructionType.retrieve_local_int.cv(instructions.get(i).getArgs()[0]));
+				deletions.add(InstructionType.call_function.cv("free"));
+				instructions.remove(i--);
+			}
+		}
+		
+		for(int i=0;i<instructions.size();i++) {
+			if(instructions.get(i).in==InstructionType.exit_function) {				
+				instructions.addAll(i,deletions);
+				i+=deletions.size();
+			}
+		}
 	}
 	/**
 	 * Generates instructions to represent something that resides in the global code rather than the global code itself
@@ -327,7 +347,6 @@ public class IntermediateLang {
 				String placement = find.split(" ")[1];
 				results.addAll(generateSubInstructions(tree.getChild(1)));
 				
-				//load hl into this address
 				switch(location) {
 				case ARG:
 					if(typeSize==1)
@@ -351,7 +370,12 @@ public class IntermediateLang {
 					throw new RuntimeException("attempt to assign to constant symbol at line "+tree.getToken().linenum);
 				default:
 					throw new RuntimeException(tree.getChild(0).getTokenString()+"@@contact devs variable somehow evaluated to NONE location");
-				
+				}
+				if(tree.getChildren().size()==3 && tree.getChild(2).getToken().t==Token.Type.TEMP) {
+					if(tree.getChild(1).getType().isFreeable())
+						results.add(new Instruction(InstructionType.deffered_delete,placement));
+					else
+						throw new RuntimeException("only pointer-type variables can be temp at line "+tree.getToken().linenum);
 				}
 				
 			} else {

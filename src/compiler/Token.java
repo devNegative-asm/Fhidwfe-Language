@@ -122,6 +122,7 @@ public class Token {
 		SHIFT_RIGHT,
 		SHIFT_LEFT,
 		CORRECT,
+		TEMP,
 		ALIAS;
 		
 	}

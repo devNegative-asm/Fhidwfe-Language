@@ -388,6 +388,7 @@ public class Parser {
 		cache = t;
 		SyntaxTree root = new SyntaxTree(t.get(0),this,parent);
 		tok = t.remove(0);
+		Token myTok = tok;
 		switch(tok.t) {
 			case ALIAS:
 				//similar to function parsing except that we don't use a body
@@ -572,7 +573,7 @@ public class Parser {
 				pe("no function identified");
 				break;
 			case FUNC_CALL_NAME:
-				String callname = tok.s.substring(0, tok.s.length()-1);
+				String callname = myTok.s.substring(0, myTok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 				if(this.fnInputTypes.containsKey(callname))	{
 					int args = fnInputTypes.get(callname).get(0).size();
@@ -589,6 +590,9 @@ public class Parser {
 				break;
 			case GTHAN:
 				pe("result from > unused");
+				break;
+			case TEMP:
+				pe("global variables cannot be temp");
 				break;
 			case IDENTIFIER:
 				Token secondToken = t.remove(0);
@@ -735,6 +739,7 @@ public class Parser {
 		cache = t;
 		SyntaxTree root = new SyntaxTree(t.get(0),this,parent);
 		tok = t.remove(0);
+		Token myTok = tok;
 		switch(tok.t) {
 			case CORRECT:
 				pe("result from index corrector '?' unused");
@@ -862,8 +867,32 @@ public class Parser {
 			case GTHAN:
 				pe("result from > unused");
 				break;
-			case IDENTIFIER:
+			case TEMP:
+				String function = root.functionIn();
+				if(function==null)
+				{
+					pe("cannot declare temp without an enclosing function");
+				}
+				Token varname = t.remove(0);
+				root = new SyntaxTree(varname,this,parent);
 				Token secondToken = t.remove(0);
+				if(secondToken.t!=Token.Type.EQ_SIGN)
+				{
+					if(this.fnInputTypes.containsKey(root.getToken().s))
+					{
+						pe("bare identifier. Function calls must be suffixed with $");
+					} else {
+						pe("bare identifier not used for assignment");
+					}
+				} else {
+					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+					return newRoot.addChild(new SyntaxTree(root.getToken(),this,newRoot))
+							.addChild(parseExpr(t,newRoot,true))
+							.addChild(new SyntaxTree(myTok,this,newRoot));
+				}
+				break;
+			case IDENTIFIER:
+				secondToken = t.remove(0);
 				if(secondToken.t!=Token.Type.EQ_SIGN)
 				{
 					if(this.fnInputTypes.containsKey(root.getToken().s))
@@ -949,7 +978,7 @@ public class Parser {
 				}
 				break;
 			case RETURN:
-				String function = root.functionIn();
+				function = root.functionIn();
 				if(function==null)
 				{
 					try{

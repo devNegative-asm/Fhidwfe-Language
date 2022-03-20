@@ -44,6 +44,8 @@ public enum InstructionType{
 	overwrite_immediate_byte(1, "literal byte"),
 	overwrite_immediate_float(1,"literal float"),
 	
+	deffered_delete(1,"frees the provided pointer at the end of the current block"),
+	
 	//the following are used under the assumption only the top 2 stack values are easily accessible, which is true on certain 8 or 16 bit machines. They are much less useful in x86 and may be optimized out 
 	copy(0,"pushes top of stack again, making a copy"),
 	copy2(0,"pushes top 2 elements of stack again, making a copy and alternating abab"),
