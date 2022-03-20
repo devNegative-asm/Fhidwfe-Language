@@ -90,7 +90,6 @@ public class IntermediateLang {
 			{
 				if(tree.functionIsEverCalled(outer.getChild(1).getTokenString())) {//only compile functions that are called somewhere in the code
 					ArrayList<Instruction> instructions = generateSubInstructions(outer);
-					deferDeletion(instructions);
 					results.addAll(instructions);
 				}
 				
@@ -129,7 +128,8 @@ public class IntermediateLang {
 		}
 		return results;
 	}
-	private void deferDeletion(ArrayList<Instruction> instructions) {
+	private ArrayList<Instruction> deferDeletion(ArrayList<Instruction> instructions) {
+		
 		ArrayList<Instruction> deletions = new ArrayList<>();
 		for(int i=0;i<instructions.size();i++) {
 			if(instructions.get(i).in==InstructionType.deffered_delete) {				
@@ -138,13 +138,16 @@ public class IntermediateLang {
 				instructions.remove(i--);
 			}
 		}
-		
 		for(int i=0;i<instructions.size();i++) {
 			if(instructions.get(i).in==InstructionType.exit_function) {				
 				instructions.addAll(i,deletions);
 				i+=deletions.size();
 			}
 		}
+		instructions.addAll(deletions);
+		if(deletions.size()!=0)
+			System.out.println(instructions);
+		return instructions;
 	}
 	/**
 	 * Generates instructions to represent something that resides in the global code rather than the global code itself
@@ -170,8 +173,6 @@ public class IntermediateLang {
 		String str = tok.s;
 		//TODO implement pipelined if branching
 		
-		
-
 		
 		switch(toktype) {
 		case SHIFT_LEFT:
@@ -292,6 +293,7 @@ public class IntermediateLang {
 			}
 		case CLOSE_BRACE:
 			break;
+		case TEMP:
 		case CLOSE_RANGE_EXCLUSIVE:
 		case CLOSE_RANGE_INCLUSIVE:
 			break;
@@ -645,9 +647,12 @@ public class IntermediateLang {
 			}
 			break;
 		case OPEN_BRACE:
+			ArrayList<Instruction> blockElems = new ArrayList<>();
+
 			for(SyntaxTree child:tree.getChildren()) {
-				results.addAll(generateSubInstructions(child));
+				blockElems.addAll(generateSubInstructions(child));
 			}
+			results.addAll(this.deferDeletion(blockElems));
 			break;
 
 		case OPEN_RANGE_EXCLUSIVE:
@@ -851,10 +856,7 @@ public class IntermediateLang {
 			
 			results.addAll(this.generateSubInstructions(tree.getChild(1)));
 			boolean freeResult = tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_EXCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.OPEN_RANGE_INCLUSIVE || tree.getChild(1).getTokenType()==Token.Type.RANGE_COMMA;
-			
-			
-			
-			
+
 			//now the top of the stack is a pointer to either a range or list object.
 			//let's find out which
 			
@@ -1074,10 +1076,11 @@ public class IntermediateLang {
 			String argumentSpace = ""+tree.theParser.getFunctionInputTypes(tree.functionIn()).get(0).size()*settings.intsize;
 			results.add(InstructionType.function_label.cv(tree.getChild(1).getTokenString()));
 			results.add(InstructionType.enter_function.cv(localSpace));
-			results.addAll(generateSubInstructions(tree.getChild(tree.getChildren().size()-1)));
-			if(results.get(results.size()-1).in!=InstructionType.exit_function)
-				results.add(InstructionType.exit_function.cv(argumentSpace));
+			ArrayList<Instruction> functionBody = generateSubInstructions(tree.getChild(tree.getChildren().size()-1));
 			
+			if(results.get(results.size()-1).in!=InstructionType.exit_function)
+				functionBody.add(InstructionType.exit_function.cv(argumentSpace));
+			results.addAll(functionBody);
 			//results.add(InstructionType.function_label.cv("__function_"+id+"_end"));
 			break;
 		case IF:
