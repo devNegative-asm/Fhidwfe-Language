@@ -122,8 +122,30 @@ public class Main {
 			Assembler.assemble(binFile+".prc", binFile+".bin");
 			Packager.to8xp(binFile+".bin");
 			break;
-		case WINx64:
 		case LINx64:
+			if(new File("Makefile").exists()) {
+				Process build = Runtime.getRuntime().exec(new String[] {"make"});
+				if(build.waitFor() != 0) {
+					while(build.getErrorStream().available()!=0) {
+						System.err.write(build.getErrorStream().read());
+					}
+					System.err.flush();
+				} else {
+					System.out.println("Compiling with make succeeded");
+				}
+			} else if(new File("build.sh").exists()) {
+				Process build = Runtime.getRuntime().exec(new String[] {"bash","build.sh"});
+				if(build.waitFor() != 0) {
+					while(build.getErrorStream().available()!=0) {
+						System.err.write(build.getErrorStream().read());
+					}
+					System.err.flush();
+				} else {
+					System.out.println("Compiling with build.sh succeeded");
+				}
+			} 
+			break;
+		case WINx64:
 		case WINx86:
 			break;
 		case z80Emulator:

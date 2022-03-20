@@ -145,8 +145,6 @@ public class IntermediateLang {
 			}
 		}
 		instructions.addAll(deletions);
-		if(deletions.size()!=0)
-			System.out.println(instructions);
 		return instructions;
 	}
 	/**
