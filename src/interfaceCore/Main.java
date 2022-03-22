@@ -96,7 +96,6 @@ public class Main {
 		Parser p = new Parser(settings);
 		BaseTree tree = p.parse(tokens);
 		
-		
 		tree.typeCheck(); // check that typing is valid, and register all variables in use
 		tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
 		ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
@@ -123,27 +122,6 @@ public class Main {
 			Packager.to8xp(binFile+".bin");
 			break;
 		case LINx64:
-			if(new File("Makefile").exists()) {
-				Process build = Runtime.getRuntime().exec(new String[] {"make"});
-				if(build.waitFor() != 0) {
-					while(build.getErrorStream().available()!=0) {
-						System.err.write(build.getErrorStream().read());
-					}
-					System.err.flush();
-				} else {
-					System.out.println("Compiling with make succeeded");
-				}
-			} else if(new File("build.sh").exists()) {
-				Process build = Runtime.getRuntime().exec(new String[] {"bash","build.sh"});
-				if(build.waitFor() != 0) {
-					while(build.getErrorStream().available()!=0) {
-						System.err.write(build.getErrorStream().read());
-					}
-					System.err.flush();
-				} else {
-					System.out.println("Compiling with build.sh succeeded");
-				}
-			} 
 			break;
 		case WINx64:
 		case WINx86:

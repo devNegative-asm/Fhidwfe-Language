@@ -75,5 +75,5 @@ while inShell {
 		} 
 	}
 }
-
+free$ commands
 hashset_delete$ myhashset
