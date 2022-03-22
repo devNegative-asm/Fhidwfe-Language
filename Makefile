@@ -12,4 +12,4 @@ output.asm: main.fwf
 	java -jar fhidwfe.jar main.fwf output LINx64 0
 
 clean:
-	rm *.o output.asm program
+	rm *.o output.asm program output.vm

@@ -83,15 +83,25 @@ public class BaseTree {
 	 */
 	public DataType resolveVariableType(String varname, String linenum)
 	{
-		if(theParser.hasFunction(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", ""))) {
-			if(!theParser.getFunctionInputTypes(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "")).contains(new ArrayList<>(Arrays.asList(DataType.Uint)))) {
-				throw new RuntimeException("cannot make pointer to function which is not uint -> uint at line "+linenum);
-			}
-			if(!theParser.getFunctionOutputType(varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "")).contains(DataType.Uint)) {
-				throw new RuntimeException("cannot make pointer to function which is not uint -> uint at line "+linenum);
-			}
-			addConstantValue(varname,DataType.Func);
-			return DataType.Func;
+		String unguarded = varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "");
+		if(theParser.hasFunction(unguarded)) {
+			if(theParser.getFunctionInputTypes(unguarded).contains(new ArrayList<>(Arrays.asList(DataType.Uint)))) {
+				if(theParser.getFunctionOutputType(unguarded).contains(DataType.Uint)) {
+					addConstantValue(varname,DataType.Func);
+					return DataType.Func;
+				} else {
+					throw new RuntimeException("single-arg function pointer " + unguarded + " must be uint -> uint at line "+linenum);
+				}
+			} else if(theParser.getFunctionInputTypes(unguarded).contains(new ArrayList<>(Arrays.asList(DataType.Uint,DataType.Uint)))) {
+				if(theParser.getFunctionOutputType(unguarded).contains(DataType.Uint)) {
+					addConstantValue(varname,DataType.Op);
+					return DataType.Op;
+				} else {
+					throw new RuntimeException("single-arg function pointer " + unguarded + " must be uint -> uint at line "+linenum);
+				}
+			} else 
+				throw new RuntimeException("function pointer " + unguarded + " must have 1 or 2 uint parameters at line "+linenum);
+			
 		} else {
 			if(scopeTypings.containsKey(varname)) {
 				return scopeTypings.get(varname);

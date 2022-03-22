@@ -778,7 +778,11 @@ public class SyntaxTree extends BaseTree{
 					}
 				}
 				//if we cast implicitly, we can only do it to the first function definition
-				System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+				if(getTokenString().isEmpty()) {
+					System.err.println("WARNING: Implicit cast as argument to $. Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+				} else {
+					System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+				}
 				ret = theParser.getFunctionOutputType(getTokenString()).get(0);
 			
 			} else
@@ -791,7 +795,7 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case IDENTIFIER:
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
-			if(ret==DataType.Func)
+			if(ret==DataType.Func || ret==DataType.Op)
 			{
 				parent.notifyCalled(getTokenString().replaceAll("_guard_.*?_.*?_.*?_.*?_", ""));
 			}

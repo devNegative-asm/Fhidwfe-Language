@@ -3,3 +3,6 @@ tniasm.*
 .settings*
 .classpath
 bin/
+output.*
+program
+*.o

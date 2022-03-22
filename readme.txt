@@ -44,6 +44,7 @@ conditional:		if cond {blockTrue} {blockFalse}
 while loop:			while cond {block}
 iteration:			for [type] [iterable_expr] with var_name {block}
 assignment:			var = [expr]
+assignment:			temp var = [expr]
 flag set:			set flag_name
 flag reset:			reset flag_name
 return:				return [expr] OR return
@@ -64,7 +65,9 @@ variable:			var_name
 pointer-to:			@var_name
 
 
-String literals are the same as C except the only escape sequences are \\ \" \r \n \t
+Temp variables are automatically freed when the block ends or the function returns.
+
+String literals are the same as C except the only escape sequences are \\ \" \r \n \t \0
 characters are the same as C except they share the escape sequence limitations and they are of type ubyte.
 The syntax #n can be used to refer to the string that comes nth in the program, starting at 0. If the string is not edited and appears multiple times, this is more memory efficient than writing it out several times.
  
@@ -98,6 +101,7 @@ Builtin operators are called with prefix order. Thus, there is no order of opera
 in		test whether a number is inside a range
 ?		multiplies its argument by int_size. This is faster than actually multiplying and is useful for creating list indicies.
 $		(technically a function, not an operator) runs its first argument as a function, passing its second argument as the only parameter to that function
+binop$  same as $, but for 2 argument functions
 
 Saved for future use:
 `		(unimplemented) Used to create format strings for printf-like behavior
@@ -117,7 +121,7 @@ func	a function pointer. Only single arg uint -> uint functions can be used this
 float	defined to be of size sizeof(float)==sizeof(void*). Float operations are only available on architectures that natively support flops. Conversion from uint -> float is lower accuracy than int -> float.
 list	One of the variant types. This acts like a pointer except it can be iterated over in a for loop. It takes a suffix like listbyte to determine its elements. Only the types listed above can be put into a list.
 range	Another variant type. A range can only hold numeric types, and only integer-like ranges can be iterated in a for loop.
-
+op		same as func, but for 2 argument funcions
 
 casting is done by the keyword "as" which can do the following conversions. Anything not listed here has undefined behavior
 any type other than float -> ptr	(no conversion)
@@ -150,7 +154,7 @@ functions are defined as
 	function pointers can be called as such:
 		$ func_variable arg
 	which evaluates to func_name$ arg
-	This can only be done with single argument functions which have a signature or alias which is uint -> uint
+	This can only be done with single or 2 argument functions which have a signature or alias which is uint -> uint
 
 Aliases:
 	functions cannot be overloaded, but they can be given alias type signatures. This is done with the same syntax as the function header but with 'alias' instead of 'function', and with no function body. Variable names for aliases are ignored.

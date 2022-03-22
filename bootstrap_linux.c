@@ -9,7 +9,7 @@ uint64_t __malloc(uint64_t s)
 {
 	uint64_t * ret = (uint64_t*) malloc(sizeof(uint64_t) + s);
 	*ret = s;
-	return &ret[1];
+	return (uint64_t) &ret[1];
 }
 
 uint64_t __free(uint64_t ptr)

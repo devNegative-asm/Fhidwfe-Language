@@ -23,6 +23,7 @@ public enum DataType{
 	Relptr(1,false,null,false,false,false),
 	File(1,false,null,false,false,false),
 	Func(2,false,null,false,false,false),
+	Op(2,false,null,false,false,false),
 	
 	Listbyte(2,false,Byte,false,false,true),
 	Listint(2,false,Int,false,false,true),
@@ -162,7 +163,8 @@ public enum DataType{
 				Listfloat,
 				Uint,
 				Func,
-				Listfunc
+				Listfunc,
+				Op
 		);
 		implicitlyConvertible.put(Ptr,asList(Uint));
 		for(DataType type:ptrtypes) {

@@ -491,8 +491,12 @@ public class IntermediateLang {
 			case GLOBAL:
 				if(typeSize==1)
 					results.add(new Instruction(InstructionType.retrieve_global_byte,placement));
-				else
-					results.add(new Instruction(InstructionType.retrieve_global_int,placement));
+				else {
+					if((tree.getType()==DataType.Func||tree.getType()==DataType.Op)&&tree.theParser.functionNames().contains(tree.getTokenString())) {
+						results.add(new Instruction(InstructionType.retrieve_global_address,placement));
+					} else
+						results.add(new Instruction(InstructionType.retrieve_global_int,placement));
+				}
 				break;
 			case LOCAL:
 				if(typeSize==1)

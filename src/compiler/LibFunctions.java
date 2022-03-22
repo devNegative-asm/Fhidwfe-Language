@@ -30,6 +30,7 @@ public class LibFunctions {
 		p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Ptr, "deref_ptr");
 		
 		p.registerLibFunction(Arrays.asList(DataType.Func,DataType.Uint), DataType.Uint, "");//call-by-pointer
+		p.registerLibFunction(Arrays.asList(DataType.Op, DataType.Uint, DataType.Uint), DataType.Uint, "binop");
 		
 		p.registerLibFunction(Arrays.asList(DataType.Ptr,DataType.Byte),DataType.Void, "put_byte");
 		p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Ubyte),DataType.Void, "put_ubyte");
@@ -148,6 +149,7 @@ public class LibFunctions {
 		p.inlineReplace("put_uint");
 		p.inlineReplace("put_ptr");
 		p.inlineReplace("");
+		p.inlineReplace("binop");
 		if(architecture==CompilationSettings.Target.WINx64 || architecture==CompilationSettings.Target.LINx64) {
 			p.inlineReplace("malloc");
 			p.inlineReplace("free");
@@ -196,6 +198,39 @@ public class LibFunctions {
 			if(instr.in==InstructionType.call_function) {
 				if(p.isInlined(instr.args[0]))
 				switch(instr.args[0]) {
+					case "binop":
+						//call function
+						switch(architecture) {
+						case LINx64:
+						case WINx64:
+							//the stack holds the function address then the first arg
+							//rax holds the second argument
+							replacement = Arrays.asList(
+									InstructionType.swap23.cv(),
+									InstructionType.rawinstruction.cv("pop rcx"),
+									InstructionType.rawinstruction.cv("push rax"),
+									InstructionType.rawinstruction.cv("call rcx"),
+									InstructionType.notify_pop.cv(),
+									InstructionType.notify_pop.cv());
+							break;
+						case TI83pz80:
+						case z80Emulator:
+							int lbl = fresh();
+							replacement = Arrays.asList(
+								InstructionType.swap23.cv(),
+								InstructionType.rawinstruction.cv("ex (sp),hl"),
+								InstructionType.rawinstruction.cv("ld bc,__indirection_"+lbl),
+								InstructionType.rawinstruction.cv("push bc"),
+								InstructionType.rawinstruction.cv("jp (hl)"),
+								InstructionType.general_label.cv("__indirection_"+lbl),
+								InstructionType.notify_pop.cv(),
+								InstructionType.notify_pop.cv()
+							);
+							break;
+						default:
+							throw new UnsupportedOperationException("Compilation to architecture "+architecture+" does not support "+instr.args[0]+" yet.");
+						}
+						break;
 					case "":
 						//call function
 						switch(architecture) {
@@ -206,7 +241,8 @@ public class LibFunctions {
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("pop rcx"),
 									InstructionType.rawinstruction.cv("push rax"),
-									InstructionType.rawinstruction.cv("call rcx"));
+									InstructionType.rawinstruction.cv("call rcx"),
+									InstructionType.notify_pop.cv());
 							break;
 						case TI83pz80:
 						case z80Emulator:
@@ -216,7 +252,8 @@ public class LibFunctions {
 								InstructionType.rawinstruction.cv("ld bc,__indirection_"+lbl),
 								InstructionType.rawinstruction.cv("push bc"),
 								InstructionType.rawinstruction.cv("jp (hl)"),
-								InstructionType.general_label.cv("__indirection_"+lbl)
+								InstructionType.general_label.cv("__indirection_"+lbl),
+								InstructionType.notify_pop.cv()
 							);
 							break;
 						default:

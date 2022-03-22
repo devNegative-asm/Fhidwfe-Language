@@ -1,4 +1,3 @@
-
 null = as 0 ptr
 one = as 1 ptr
 guard

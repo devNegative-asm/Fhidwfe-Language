@@ -49,27 +49,31 @@
 // if it was originally negative, add demoninator
 
 
+commands = malloc$ 3000u
+set inShell
 
-
-
-
-guard
-import null
-import NaN
-
-g = 3
-putui$ as @g uint
-putln$
-for uint [1u,10u] with limit {
-	written = getc$
-	getc$
-	if in written ['0','9'] {
-		putui$ + 1u as - written '0' uint
-	} {
-		puts$ "smh, not even a number"
-	}
-	puts$ "\nyou have "
-	putui$ - 10u limit
-	puts$ " tries left"
-	putln$
+alias uint streq_alias(str1:uint str2:uint)
+function uint streq_alias(str1:ptr str2:ptr) {
+	return as streq$ str1 str2 uint
 }
+
+myhashset = hashset_new$
+
+while inShell {
+	getline$ commands
+	if streq$ commands "exit" {
+		reset inShell
+	} {
+		if streq$ commands "quit" {
+			reset inShell
+		} {
+			if hashset_contains$ myhashset commands stringhash streq_alias {
+				puts$ "you repeat yourself\n"
+			} {
+				hashset_put$ myhashset commands stringhash streq_alias
+			}
+		} 
+	}
+}
+
+hashset_delete$ myhashset
