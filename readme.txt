@@ -7,6 +7,7 @@ Assembling for z80 requires tniasm, so go download that first.
 
 To use the compiler, build it into a jar then run
 java -jar comp.jar "main.fwf" "outputfile" architecture heap_size
+or simply run "make" on linux
 
 architecture may be any of
 1. WINx64:
