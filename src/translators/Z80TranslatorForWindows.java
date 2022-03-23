@@ -969,7 +969,7 @@ public class Z80TranslatorForWindows {
 				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
 			case truncate:
 				comp.add("	ld h,$00");
-				break;//TODO add direct comparison conditional branches
+				break;
 				
 				//since shifting is done once, in-place, on the stack, we only need to operate on hl.
 			case shift_left_b:
@@ -1007,7 +1007,78 @@ public class Z80TranslatorForWindows {
 			case fix_index:
 				comp.add("	add hl,hl");//ok then
 				break;
+			case branch_equal_to_ub:
+			case branch_equal_to_b:
+			case branch_equal_to_i:
+			case branch_equal_to_ui:
+			case branch_not_equal_b:
+			case branch_not_equal_ub:
+			case branch_not_equal_i:
+			case branch_not_equal_ui:
+			case branch_greater_equal_b:
+			case branch_greater_equal_i:
+			case branch_greater_equal_ub:
+			case branch_greater_equal_ui:
+			case branch_greater_than_b:
+			case branch_greater_than_i:
+			case branch_greater_than_ub:
+			case branch_greater_than_ui:
+			case branch_less_equal_b:
+			case branch_less_equal_i:
+			case branch_less_equal_ub:
+			case branch_less_equal_ui:
+			case branch_less_than_b:
+			case branch_less_than_i:
+			case branch_less_than_ub:
+			case branch_less_than_ui:
+				String istring = instruction.in.toString();
+				comp.add("	pop de");
+				comp.add("	ex de,hl");
+				if(istring.endsWith("b")) {
+					comp.add("	ld h,$00");
+					comp.add("	ld d,$00");
+				}
+				comp.add("	xor a");
+				comp.add("	sbc hl, de");
+				
+				if(stackDepth>2)
+					comp.add("	pop hl");
+				
+				String jump1 = "\tjp ";
+				if(istring.startsWith("branch_not_equal"))
+					jump1+="nz";
+				else if(istring.startsWith("branch_equal_to"))
+					jump1+="z";
+				else {
+					if(istring.contains("greater"))
+						if(istring.contains("_u"))
+							jump1+="nc";
+						else
+							jump1+="p";
+					if(istring.contains("less"))
+						if(istring.contains("_u"))
+							jump1+="c";
+						else
+							jump1+="m";
+					if(istring.contains("equal"))
+						comp.add("	jp z, "+instruction.getArgs()[0]);
+				}
+				jump1+=", "+instruction.getArgs()[0];
+				stackDepth-=2;
+				comp.add(jump1);
+				depths.put(args[0],stackDepth);
+				break;
+			case branch_less_than_f:
+			case branch_less_equal_f:
+			case branch_greater_equal_f:
+			case branch_greater_than_f:
+			case branch_equal_to_f:
+			case branch_not_equal_f:
+				throw new RuntimeException("Floating point operations not supported on z80");
+			case deffered_delete:
+				throw new RuntimeException("@@contact devs. deffered delete should be replaced");
 			}
+			
 			if(stackDepth<0)
 				throw new RuntimeException("@@contact devs. Unknown stack-related error while translating");
 			if(debug)

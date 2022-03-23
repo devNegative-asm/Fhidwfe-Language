@@ -43,6 +43,52 @@ public class Token {
 		linenum = string;
 		return this;
 	}
+	public InstructionType branchToElseType(DataType inputType) {
+		String resultString = "branch_";
+		switch(this.t) {
+			case IF_LT:
+				resultString+="greater_equal_";
+				break;
+			case IF_LE:
+				resultString+="greater_than_";
+				break;
+			case IF_GT:
+				resultString+="less_equal_";
+				break;
+			case IF_GE:
+				resultString+="less_than_";
+				break;
+			case IF_EQ:
+				resultString+="not_equal_";
+				break;
+			case IF_NE:
+				resultString+="equal_to_";
+				break;
+			default:
+				throw new RuntimeException("@@contact devs. non-branching instruction being interpreted as branch");
+		}
+		switch(inputType) {
+			case Int:
+				resultString+="i";
+				break;
+			case Ptr:
+			case Uint:
+				resultString+="ui";
+				break;
+			case Byte:
+				resultString+="b";
+				break;
+			case Ubyte:
+				resultString+="ub";
+				break;
+			case Float:
+				resultString+="f";
+				break;
+			default:
+				throw new RuntimeException("Cannot compare type "+inputType+" at line "+this.linenum);
+		}
+		return InstructionType.valueOf(resultString);
+	}
 	public static enum Type{
 		
 		ADD,

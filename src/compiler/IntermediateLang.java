@@ -170,7 +170,6 @@ public class IntermediateLang {
 		String str = tok.s;
 		//TODO implement pipelined if branching
 		
-		
 		switch(toktype) {
 		case SHIFT_LEFT:
 			for(SyntaxTree child:tree.getChildren()) {
@@ -1166,8 +1165,29 @@ public class IntermediateLang {
 			results.addAll(functionBody);
 			//results.add(InstructionType.function_label.cv("__function_"+id+"_end"));
 			break;
+		case IF_LE:
+		case IF_GE:
+		case IF_GT:
+		case IF_LT:
+		case IF_EQ:
+		case IF_NE:
+			boolean hasElseBlock = !tree.getChild(3).getTokenType().equals(Token.Type.EMPTY_BLOCK);
+			id = fresh();
+			DataType comparisonType = tree.getChild(0).getType();
+			results.addAll(generateSubInstructions(tree.getChild(0)));
+			results.addAll(generateSubInstructions(tree.getChild(1)));
+			results.add(tok.branchToElseType(comparisonType).cv("__if_"+id+"_else"));
+			results.addAll(generateSubInstructions(tree.getChild(2)));
+			if(hasElseBlock)
+				results.add(InstructionType.goto_address.cv("__if_"+id+"_exit"));
+			results.add(InstructionType.general_label.cv("__if_"+id+"_else"));
+			if(hasElseBlock)
+				results.addAll(generateSubInstructions(tree.getChild(3)));
+			if(hasElseBlock)
+				results.add(InstructionType.general_label.cv("__if_"+id+"_exit"));
+			break;
 		case IF:
-			boolean hasElseBlock = !tree.getChild(2).getTokenType().equals(Token.Type.EMPTY_BLOCK);
+			hasElseBlock = !tree.getChild(2).getTokenType().equals(Token.Type.EMPTY_BLOCK);
 			
 			id = fresh();
 			results.addAll(generateSubInstructions(tree.getChild(0)));

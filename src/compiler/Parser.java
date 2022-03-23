@@ -325,31 +325,28 @@ public class Parser {
 	 * @return a syntax tree representing this expression or statement
 	 */
 	private SyntaxTree parseOuter(ArrayList<Token> t, BaseTree parent) {
-		final boolean ENABLE_IF_PIPELINING = false;
-		//not implemented yet
+		final boolean ENABLE_IF_PIPELINING = true;
 		if(ENABLE_IF_PIPELINING) {
-			if(1>0)
-				throw new UnsupportedOperationException("pipelined branching not supported yet");
 			
 			boolean replacement = false;
 			if(t.get(0).t==Token.Type.IF) {
 				replacement = true;
 				switch(t.get(1).t) {
-				case GTHAN:
-					t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
-					break;
-				case LTHAN:
-					t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
-					break;
-				case EQ_SIGN:
-					t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_EQ,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
-					break;
-				case GEQUAL:
-					t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
-					break;
-				case LEQUAL:
-					t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
-					break;
+					case GTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case EQ_SIGN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_EQ,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case GEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
 					default:
 						replacement=false;
 						break;
@@ -616,6 +613,9 @@ public class Parser {
 			case IF_NE:
 			case IF_LE:
 				root.addChild(parseExpr(t,root,false)).addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				if(root.getChild(0).getType()!=root.getChild(1).getType()) {
+					pe("types "+root.getChild(0).getType()+" and "+root.getChild(1).getType()+" are not comparable");
+				}
 				break;
 			case SHIFT_LEFT:
 				pe("result from shift unused");
@@ -736,10 +736,64 @@ public class Parser {
 		return root;
 	}
 	private SyntaxTree parseInner(ArrayList<Token> t, BaseTree parent) {
+		final boolean ENABLE_IF_PIPELINING = true;
+		if(ENABLE_IF_PIPELINING) {
+			
+			boolean replacement = false;
+			if(t.get(0).t==Token.Type.IF) {
+				replacement = true;
+				switch(t.get(1).t) {
+					case GTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case EQ_SIGN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_EQ,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case GEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					default:
+						replacement=false;
+						break;
+				}
+			}
+			if(t.get(0).t==Token.Type.IFNOT) {
+				replacement = true;
+				switch(t.get(1).t) {
+					case GTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LTHAN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case EQ_SIGN:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_NE,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case GEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_LT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					case LEQUAL:
+						t.set(0, new Token(t.get(0).s+" "+t.get(1).s,Token.Type.IF_GT,t.get(0).guarded(),t.get(0).srcFile()).setLineNum(t.get(0).linenum));
+						break;
+					default:
+						replacement=false;
+						break;
+				}
+			}
+			if(replacement)
+				t.remove(1);
+		}
 		cache = t;
 		SyntaxTree root = new SyntaxTree(t.get(0),this,parent);
 		tok = t.remove(0);
 		Token myTok = tok;
+		
 		switch(tok.t) {
 			case CORRECT:
 				pe("result from index corrector '?' unused");

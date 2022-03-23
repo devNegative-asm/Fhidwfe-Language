@@ -170,30 +170,43 @@ public enum InstructionType{
 	equal_to_f(0,"compare 2 floats on stack"),
 	
 	//TODO implement these guys
-	/*
-	branch_less_than_b(0,"compare 2 bytes on stack"),
-	branch_less_than_i(0,"compare 2 ints on stack"),
-	branch_less_than_ub(0,"compare 2 ubytes on stack"),
-	branch_less_than_ui(0,"compare 2 uints on stack"),
-	branch_less_equal_b(0,"compare 2 bytes on stack"),
-	branch_less_equal_i(0,"compare 2 ints on stack"),
-	branch_less_equal_ub(0,"compare 2 ubytes on stack"),
-	branch_less_equal_ui(0,"compare 2 uints on stack"),
-	branch_greater_than_b(0,"compare 2 bytes on stack"),
-	branch_greater_than_i(0,"compare 2 ints on stack"),
-	branch_greater_than_ub(0,"compare 2 ubytes on stack"),
-	branch_greater_than_ui(0,"compare 2 uints on stack"),
-	branch_greater_equal_b(0,"compare 2 bytes on stack"),
-	branch_greater_equal_i(0,"compare 2 ints on stack"),
-	branch_greater_equal_ub(0,"compare 2 ubytes on stack"),
-	branch_greater_equal_ui(0,"compare 2 uints on stack"),
-	branch_equal_to_b(0,"compare 2 bytes on stack"),
-	branch_equal_to_i(0,"compare 2 ints on stack"),
-	branch_not_equal_b(0,"compare 2 bytes on stack"),
-	branch_not_equal_i(0,"compare 2 ints on stack"),
-	branch_equal_to_f(0,"compare 2 floats on stack"),
-	branch_not_equal_f(0,"compare 2 floats on stack"),
-	*/
+	
+	branch_less_than_b(1,"compare 2 bytes on stack and branch"),
+	branch_less_than_i(1,"compare 2 ints on stack and branch"),
+	branch_less_than_ub(1,"compare 2 ubytes on stack and branch"),
+	branch_less_than_ui(1,"compare 2 uints on stack and branch"),
+	branch_less_than_f(1,"compare 2 floats on stack and branch"),
+	
+	branch_less_equal_b(1,"compare 2 bytes on stack and branch"),
+	branch_less_equal_i(1,"compare 2 ints on stack and branch"),
+	branch_less_equal_ub(1,"compare 2 ubytes on stack and branch"),
+	branch_less_equal_ui(1,"compare 2 uints on stack and branch"),
+	branch_less_equal_f(1,"compare 2 floats on stack and branch"),
+	
+	branch_greater_than_b(1,"compare 2 bytes on stack and branch"),
+	branch_greater_than_i(1,"compare 2 ints on stack and branch"),
+	branch_greater_than_ub(1,"compare 2 ubytes on stack and branch"),
+	branch_greater_than_ui(1,"compare 2 uints on stack and branch"),
+	branch_greater_than_f(1,"compare 2 floats on stack and branch"),
+	
+	branch_greater_equal_b(1,"compare 2 bytes on stack and branch"),
+	branch_greater_equal_i(1,"compare 2 ints on stack and branch"),
+	branch_greater_equal_ub(1,"compare 2 ubytes on stack and branch"),
+	branch_greater_equal_ui(1,"compare 2 uints on stack and branch"),
+	branch_greater_equal_f(1,"compare 2 floats on stack and branch"),
+	
+	branch_equal_to_b(1,"compare 2 bytes on stack and branch"),
+	branch_equal_to_ub(1,"compare 2 bytes on stack and branch"),
+	branch_equal_to_i(1,"compare 2 ints on stack and branch"),
+	branch_equal_to_ui(1,"compare 2 ints on stack and branch"),
+	branch_equal_to_f(1,"compare 2 floats on stack and branch"),
+	
+	branch_not_equal_b(1,"compare 2 bytes on stack and branch"),
+	branch_not_equal_i(1,"compare 2 ints on stack and branch"),
+	branch_not_equal_ub(1,"compare 2 bytes on stack and branch"),
+	branch_not_equal_ui(1,"compare 2 ints on stack and branch"),
+	branch_not_equal_f(1,"compare 2 floats on stack and branch"),
+	
 	fix_index(0,"convert an index number to a pointer offset for int size arrays"),
 
 	less_than_f(0,"compare 2 floats on stack"),

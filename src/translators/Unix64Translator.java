@@ -1007,6 +1007,97 @@ public class Unix64Translator {
 			case fix_index:
 				comp.add("	shl rax, 3");
 				break;
+				
+			case branch_equal_to_ub:
+			case branch_equal_to_b:
+			case branch_equal_to_i:
+			case branch_equal_to_ui:
+			case branch_not_equal_b:
+			case branch_not_equal_ub:
+			case branch_not_equal_i:
+			case branch_not_equal_ui:
+			case branch_greater_equal_b:
+			case branch_greater_equal_i:
+			case branch_greater_equal_ub:
+			case branch_greater_equal_ui:
+			case branch_greater_than_b:
+			case branch_greater_than_i:
+			case branch_greater_than_ub:
+			case branch_greater_than_ui:
+			case branch_less_equal_b:
+			case branch_less_equal_i:
+			case branch_less_equal_ub:
+			case branch_less_equal_ui:
+			case branch_less_than_b:
+			case branch_less_than_i:
+			case branch_less_than_ub:
+			case branch_less_than_ui:
+				String istring = instruction.in.toString();
+				comp.add("	pop rdx");
+				if(istring.endsWith("b"))
+					comp.add("	sub dl, al");
+				else
+					comp.add("	sub rdx, rax");
+				if(stackDepth>2)
+					comp.add("	pop rax");
+				String jump = "\tj";
+				if(istring.startsWith("branch_not_equal"))
+					jump+="ne";
+				else if(istring.startsWith("branch_equal_to"))
+					jump+="e";
+				else {
+					if(istring.contains("greater"))
+						if(istring.contains("_u"))
+							jump+="a";
+						else
+							jump+="g";
+					if(istring.contains("less"))
+						if(istring.contains("_u"))
+							jump+="b";
+						else
+							jump+="l";
+					if(istring.contains("equal"))
+						jump+="e";
+				}
+				jump+=", "+instruction.getArgs()[0];
+				stackDepth-=2;
+				comp.add(jump);
+				depths.put(orig[0],stackDepth);
+				break;
+			case branch_less_than_f:
+			case branch_less_equal_f:
+			case branch_greater_equal_f:
+			case branch_greater_than_f:
+			case branch_equal_to_f:
+			case branch_not_equal_f:
+				istring = instruction.in.toString();
+				comp.add("	push rax");
+				comp.add("	movsd xmm1, [rsp+"+p.getSettings().intsize+"]");
+				comp.add("	comisd xmm1, [rsp]");
+				comp.add("	pop rax");
+				comp.add("	pop rax");
+				if(stackDepth>2)
+					comp.add("	pop rax");
+				jump = "\tj";
+				if(istring.startsWith("branch_not_equal"))
+					jump+="ne";
+				else if(istring.startsWith("branch_equal_to"))
+					jump+="e";
+				else {
+					if(istring.contains("greater"))
+						jump+="a";
+					if(istring.contains("less"))
+						jump+="b";
+					if(istring.contains("equal"))
+						jump+="e";
+				}
+				jump+=", "+instruction.getArgs()[0];
+				stackDepth-=2;
+				comp.add(jump);
+				depths.put(orig[0],stackDepth);
+				break;
+			case deffered_delete:
+				throw new RuntimeException("@@contact devs. deffered delete should be replaced");
 			}
 			cache=comp;
 			if(stackDepth<0)
