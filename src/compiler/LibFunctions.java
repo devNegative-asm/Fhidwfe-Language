@@ -41,33 +41,29 @@ public class LibFunctions {
 		p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Ptr, DataType.Uint),DataType.Void, "memcpy");
 		p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Ptr),DataType.Ptr, "strcpy");
 		p.registerLibFunction(Arrays.asList(DataType.Ptr),DataType.Void, "error");
+		p.aliasLibFunction(Arrays.asList(DataType.Listbyte),DataType.Void, "error");
+		p.aliasLibFunction(Arrays.asList(DataType.Listubyte),DataType.Void, "error");
 		p.registerLibFunction(Arrays.asList(), DataType.Ubyte, "getc");
 		p.registerLibFunction(Arrays.asList(DataType.Ubyte), DataType.Void, "putchar");
+		p.aliasLibFunction(Arrays.asList(DataType.Byte),DataType.Void, "putchar");
 		p.registerLibFunction(Arrays.asList(), DataType.Void, "putln");
+
+		for(DataType t:DataType.values()) {
+			if(t.getSize(p)>1) {
+				p.aliasLibFunction(Arrays.asList(DataType.Func,t), t, "");
+			}
+		}
 		
 		
+		p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Range), DataType.Bool, "inrange");
 		
-		p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Rangecc), DataType.Bool, "inrangecc");
-		p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Rangeco), DataType.Bool, "inrangeco");
-		p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Rangeoc), DataType.Bool, "inrangeoc");
-		p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Rangeoo), DataType.Bool, "inrangeoo");
+		p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Brange), DataType.Bool, "inbrange");
 		
-		p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Brangecc), DataType.Bool, "inbrangecc");
-		p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Brangeco), DataType.Bool, "inbrangeco");
-		p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Brangeoc), DataType.Bool, "inbrangeoc");
-		p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Brangeoo), DataType.Bool, "inbrangeoo");
+		p.requireLibFunction(Arrays.asList(DataType.Uint,DataType.Urange), DataType.Bool, "inurange");
 		
-		p.requireLibFunction(Arrays.asList(DataType.Uint,DataType.Urangecc), DataType.Bool, "inurangecc");
-		p.requireLibFunction(Arrays.asList(DataType.Uint,DataType.Urangeco), DataType.Bool, "inurangeco");
-		p.requireLibFunction(Arrays.asList(DataType.Uint,DataType.Urangeoc), DataType.Bool, "inurangeoc");
-		p.requireLibFunction(Arrays.asList(DataType.Uint,DataType.Urangeoo), DataType.Bool, "inurangeoo");
+		p.requireLibFunction(Arrays.asList(DataType.Ubyte,DataType.Ubrange), DataType.Bool, "inubrange");
 		
-		p.requireLibFunction(Arrays.asList(DataType.Ubyte,DataType.Ubrangecc), DataType.Bool, "inubrangecc");
-		p.requireLibFunction(Arrays.asList(DataType.Ubyte,DataType.Ubrangeco), DataType.Bool, "inubrangeco");
-		p.requireLibFunction(Arrays.asList(DataType.Ubyte,DataType.Ubrangeoc), DataType.Bool, "inubrangeoc");
-		p.requireLibFunction(Arrays.asList(DataType.Ubyte,DataType.Ubrangeoo), DataType.Bool, "inubrangeoo");
-		
-		//p.registerLibFunction(Arrays.asList(Parser.Data.Ptr), Parser.Data.Void, "puts");
+		p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Void, "puts");
 		//architecture specific libraries
 		switch(architecture) {
 		case TI83pz80:
@@ -130,6 +126,13 @@ public class LibFunctions {
 		default:
 			break;
 			
+		}
+		if(p.hasFunction("free")) {
+			for(DataType t:DataType.values()) {
+				if(t.isFreeable() && t!=DataType.Ptr) {
+					p.aliasLibFunction(Arrays.asList(t), DataType.Void, "free");
+				}
+			}
 		}
 	}
 	/**

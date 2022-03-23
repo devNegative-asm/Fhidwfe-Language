@@ -11,60 +11,38 @@ import settings.CompilationSettings;
  *
  */
 public enum DataType{
-	Flag(1,false,null,false,false,false),//flags and bools act similar, but flags have fewer uses and are only accessible with set and reset, or as the direct argument to a loop
-	Bool(1,false,null,false,false,false),
-	Byte(1,false,null,false,false,false),
-	Int(2,false,null,false,false,false),
-	Float(2,false,null,false,false,false),
-	Uint(2,false,null,false,false,false),
-	Ubyte(1,false,null,false,false,false),
-	Ptr(2,false,null,false,false,false),
-	Void(0,false,null,false,false,false),
-	Relptr(1,false,null,false,false,false),
-	File(1,false,null,false,false,false),
-	Func(2,false,null,false,false,false),
-	Op(2,false,null,false,false,false),
+	Flag(1,false,null,false),//flags and bools act similar, but flags have fewer uses and are only accessible with set and reset, or as the direct argument to a loop
+	Bool(1,false,null,false),
+	Byte(1,false,null,false),
+	Int(2,false,null,false),
+	Float(2,false,null,false),
+	Uint(2,false,null,false),
+	Ubyte(1,false,null,false),
+	Ptr(2,false,null,false),
+	Void(0,false,null,false),
+	Relptr(1,false,null,false),
+	File(1,false,null,false),
+	Func(2,false,null,false),
+	Op(2,false,null,false),
 	
-	Listbyte(2,false,Byte,false,false,true),
-	Listint(2,false,Int,false,false,true),
-	Listubyte(2,false,Ubyte,false,false,true),
-	Listuint(2,false,Uint,false,false,true),
-	Listfloat(2,false,Float,false,false,true),
-	Listptr(2,false,Ptr,false,false,true),
-	Listfile(2,false,File,false,false,true),
-	Listfunc(2,false,Func,false,false,true),
+	Listbyte(2,false,Byte,true),
+	Listint(2,false,Int,true),
+	Listubyte(2,false,Ubyte,true),
+	Listuint(2,false,Uint,true),
+	Listfloat(2,false,Float,true),
+	Listptr(2,false,Ptr,true),
+	Listfile(2,false,File,true),
+	Listfunc(2,false,Func,true),
+	Listop(2,false,Op,true),
 	
-	Rangecc(2,true,Int,true,true,false),//int ranges
-	Rangeco(2,true,Int,true,false,false),
-	Rangeoc(2,true,Int,false,true,false),
-	Rangeoo(2,true,Int,false,false,false),
+	Range(2,true,Int,false),//int range
+	Urange(2,true,Uint,false),//unsigned int range
+	Brange(2,true,Byte,false),//byte ranges
+	Ubrange(2,true,Ubyte,false),//unsigned byte range
+	Frange(2,true,Uint,false),//float range
+	Ptrrange(2,true,Ptr,false),
 	
-	Urangecc(2,true,Uint,true,true,false),//unsigned int ranges
-	Urangeco(2,true,Uint,true,false,false),
-	Urangeoc(2,true,Uint,false,true,false),
-	Urangeoo(2,true,Uint,false,false,false),
-	
-	Brangecc(2,true,Byte,true,true,false),//byte ranges
-	Brangeco(2,true,Byte,true,false,false),
-	Brangeoc(2,true,Byte,false,true,false),
-	Brangeoo(2,true,Byte,false,false,false),
-	
-	Ubrangecc(2,true,Ubyte,true,true,false),//unsigned byte ranges
-	Ubrangeco(2,true,Ubyte,true,false,false),
-	Ubrangeoc(2,true,Ubyte,false,true,false),
-	Ubrangeoo(2,true,Ubyte,false,false,false),
-	
-	Frangecc(2,true,Uint,true,true,false),//float ranges
-	Frangeco(2,true,Uint,true,false,false),
-	Frangeoc(2,true,Uint,false,true,false),
-	Frangeoo(2,true,Uint,false,false,false),
-	
-	Ptrrangecc(2,true,Ptr,true,true,false),
-	Ptrrangeco(2,true,Ptr,true,false,false),
-	Ptrrangeoc(2,true,Ptr,false,true,false),
-	Ptrrangeoo(2,true,Ptr,false,false,false),
-	
-	SYNTAX(0,false,null,false,false,false);
+	SYNTAX(0,false,null,false);
 	
 	
 	
@@ -72,20 +50,15 @@ public enum DataType{
 	private final boolean range;
 	private final DataType assignable;
 	
-	
-	public final boolean closedLow;
-	public final boolean closedHigh;
 	public final boolean isList;
 	
 	
-	private DataType(int siz, boolean Range, DataType assignable, boolean cllow, boolean clhigh, boolean list)
+	private DataType(int siz, boolean Range, DataType assignable, boolean list)
 	{
 		size=siz;
 		this.range=Range;
 		this.assignable=assignable;
 		isList = list;
-		closedLow = cllow;
-		closedHigh=clhigh;
 	}
 	private static HashMap<DataType,ArrayList<DataType>> implicitlyConvertible = new HashMap<>();
 	private static HashSet<DataType> freeable = new HashSet<>();
@@ -94,30 +67,12 @@ public enum DataType{
 	}
 	static {
 		freeable.addAll(asList(
-				Rangecc,
-				Rangeco,
-				Rangeoc,
-				Rangeoo,
-				Urangecc,
-				Urangeco,
-				Urangeoc,
-				Urangeoo,
-				Brangecc,
-				Brangeco,
-				Brangeoc,
-				Brangeoo,
-				Ubrangecc,
-				Ubrangeco,
-				Ubrangeoc,
-				Ubrangeoo,
-				Frangecc,
-				Frangeco,
-				Frangeoc,
-				Frangeoo,
-				Ptrrangecc,
-				Ptrrangeco,
-				Ptrrangeoc,
-				Ptrrangeoo,
+				Range,
+				Urange,
+				Brange,
+				Ubrange,
+				Frange,
+				Ptrrange,
 				Listint,
 				Listuint,
 				Listbyte,
@@ -130,30 +85,12 @@ public enum DataType{
 
 		));
 		ArrayList<DataType> ptrtypes =asList(
-				Rangecc,
-				Rangeco,
-				Rangeoc,
-				Rangeoo,
-				Urangecc,
-				Urangeco,
-				Urangeoc,
-				Urangeoo,
-				Brangecc,
-				Brangeco,
-				Brangeoc,
-				Brangeoo,
-				Ubrangecc,
-				Ubrangeco,
-				Ubrangeoc,
-				Ubrangeoo,
-				Frangecc,
-				Frangeco,
-				Frangeoc,
-				Frangeoo,
-				Ptrrangecc,
-				Ptrrangeco,
-				Ptrrangeoc,
-				Ptrrangeoo,
+				Range,
+				Urange,
+				Brange,
+				Ubrange,
+				Frange,
+				Ptrrange,
 				Listint,
 				Listuint,
 				Listbyte,

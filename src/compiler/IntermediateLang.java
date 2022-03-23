@@ -692,24 +692,50 @@ public class IntermediateLang {
 			elements = 2;
 			elemSize = tree.getChild(1).getType().getSize(settings);
 			
-			results.add(InstructionType.retrieve_immediate_int.cv(""+elements*elemSize));
+			results.add(InstructionType.retrieve_immediate_int.cv(""+(elements*elemSize+1)));
 			results.add(InstructionType.call_function.cv("malloc"));//this value is on the top of the stack. we want to keep it there.
 			results.add(InstructionType.copy.cv());//make a copy of our pointer for counting up
-			for(int i=1;i<3;i++) {
-				SyntaxTree child = tree.getChild(i);
-				if(i==1)
-					results.add(InstructionType.copy.cv());//this pointer will be used for placing the number
-				results.addAll(generateSubInstructions(child));
+			
+			boolean exclusiveLow = false;
+			boolean exclusiveHigh = false;
+			if(tree.getChild(0).getTokenType() == Token.Type.OPEN_RANGE_EXCLUSIVE)
+				exclusiveLow = true;
+			if(tree.getChild(3).getTokenType() == Token.Type.CLOSE_RANGE_EXCLUSIVE)
+				exclusiveHigh = true;
+			final byte finalByte =(byte) ((exclusiveLow? 0:1) | (exclusiveHigh?0:2));
+			
+			SyntaxTree lowerBound = tree.getChild(1);
+			SyntaxTree upperBound = tree.getChild(2);
+			{
+				//low element
+				results.add(InstructionType.copy.cv());
+				results.addAll(generateSubInstructions(lowerBound));
 				if(elemSize==1) {
 					results.add(InstructionType.store_b.cv());
-					if(i==1)
-						results.add(InstructionType.stackincrement.cv());
+					results.add(InstructionType.stackincrement.cv());
 				} else {
 					results.add(InstructionType.store_i.cv());
-					if(i==1)
-						results.add(InstructionType.stackincrement_intsize.cv());
+					results.add(InstructionType.stackincrement_intsize.cv());
 				}
 			}
+			{
+				//high element
+				results.add(InstructionType.copy.cv());
+				results.addAll(generateSubInstructions(upperBound));
+				if(elemSize==1) {
+					results.add(InstructionType.store_b.cv());
+					results.add(InstructionType.stackincrement.cv());
+				} else {
+					results.add(InstructionType.store_i.cv());
+					results.add(InstructionType.stackincrement_intsize.cv());
+				}
+			}
+			//flags byte
+			{
+				results.add(InstructionType.retrieve_immediate_byte.cv(""+finalByte));
+				results.add(InstructionType.store_b.cv());
+			}
+			
 			break;
 		case POINTER_TO:
 			String descriptor;
@@ -956,31 +982,90 @@ public class IntermediateLang {
 				
 				if(byteType)
 				{
+					//get flags variable
 					results.add(InstructionType.stackincrement.cv());
+					results.add(InstructionType.copy.cv());
+					results.add(InstructionType.stackincrement.cv());
+					//[rnglow] [rnghigh] [flags]
 					results.add(InstructionType.load_b.cv());
-					if(!loopType.closedHigh)
-						results.add(InstructionType.stackdecrement_byte.cv());
+					//[rnglow] [rnghigh]  flags
+					results.add(InstructionType.swap12.cv());
+					results.add(InstructionType.load_b.cv());
+					//[rnglow] flags rnghigh
+					results.add(InstructionType.swap13.cv());
+					results.add(InstructionType.load_b.cv());
+					//rnghigh flags rnglow
+					results.add(InstructionType.swap12.cv());
+					//rnghigh rnglow flags
+					
+					//if closed high, leave it alone
+					results.add(InstructionType.copy.cv());
+					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
+					results.add(InstructionType.greater_than_b.cv());
+					long ll = fresh();
+					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					// decrement
+					results.add(InstructionType.swap13.cv());
+					results.add(InstructionType.stackdecrement_byte.cv());
+					results.add(InstructionType.swap13.cv());
+					
+					//if closed below, leave it alone
+					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
+					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
+					results.add(InstructionType.stackand.cv());
+					results.add(InstructionType.stacknegbyte.cv());//preserving the 0xff = true semantics
+					ll = fresh();
+					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					//increment
+					results.add(InstructionType.stackincrement_byte.cv());
+					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
 				}
 				else
 				{
+					//get flags variable
 					results.add(InstructionType.stackincrement_intsize.cv());
+					results.add(InstructionType.copy.cv());
+					results.add(InstructionType.stackincrement_intsize.cv());
+					//[rnglow] [rnghigh] [flags]
+					results.add(InstructionType.load_b.cv());
+					//[rnglow] [rnghigh]  flags
+					results.add(InstructionType.swap12.cv());
 					results.add(InstructionType.load_i.cv());
-					if(!loopType.closedHigh)
-						results.add(InstructionType.stackdecrement.cv());
+					//[rnglow] flags rnghigh
+					results.add(InstructionType.swap13.cv());
+					results.add(InstructionType.load_i.cv());
+					//rnghigh flags rnglow
+					results.add(InstructionType.swap12.cv());
+					//rnghigh rnglow flags
+					
+					//if closed high, leave it alone
+					results.add(InstructionType.copy.cv());
+					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
+					results.add(InstructionType.greater_than_b.cv());
+					long ll = fresh();
+					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					// decrement
+					results.add(InstructionType.swap13.cv());
+					results.add(InstructionType.stackdecrement.cv());
+					results.add(InstructionType.swap13.cv());
+					
+					//if closed below, leave it alone
+					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
+					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
+					results.add(InstructionType.stackand.cv());
+					results.add(InstructionType.stacknegbyte.cv());//preserving the 0xff = true semantics
+					ll = fresh();
+					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					//increment
+					results.add(InstructionType.stackincrement.cv());
+					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
 				}
-				// [rnglow] (rnghigh - (0 or 1))
+				//(rnghigh - (0 or 1)) (rnglow + (1 or 0)) 
 				
-				//dereference rnglow and increment if it's open below
-				results.add(InstructionType.swap12.cv());
+				//while rnglow<=rnghigh {}
 				if(byteType)
 				{
-					results.add(InstructionType.load_b.cv());
-					if(!loopType.closedLow)
-						results.add(InstructionType.stackincrement_byte.cv());
 					//rnghigh rnglow
-					
-					
-					
 					
 					//start with the looping variable = rnglow and repeat until variable > rnghigh
 					
@@ -1017,9 +1102,6 @@ public class IntermediateLang {
 				}
 				else
 				{
-					results.add(InstructionType.load_i.cv());
-					if(!loopType.closedLow)
-						results.add(InstructionType.stackincrement.cv());
 					//rnghigh rnglow
 					
 					

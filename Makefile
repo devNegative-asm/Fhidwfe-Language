@@ -8,7 +8,7 @@ bootstrap_linux.o: bootstrap_linux.c
 output.o: output.asm
 	nasm -f elf64 output.asm
 
-output.asm: main.fwf fhidwfe.jar
+output.asm: main.fwf fhidwfe.jar library/*.fwf liblin64/*.fwf
 	java -jar fhidwfe.jar main.fwf output LINx64 0
 
 fhidwfe.jar: src/*/*.java

@@ -937,9 +937,7 @@ public class SyntaxTree extends BaseTree{
 				throw new RuntimeException("Expected a numeric type. Found "+save+" instead at line "+this.getToken().linenum);
 			
 			}
-			String postfix1 = children[0].getTokenType()==Token.Type.OPEN_RANGE_EXCLUSIVE?"o":"c";
-			String postfix2 = children[3].getTokenType()==Token.Type.CLOSE_RANGE_EXCLUSIVE?"o":"c";
-			String tryit = prefix+"range"+postfix1+postfix2;
+			String tryit = prefix+"range";
 			tryit = Character.toUpperCase(tryit.charAt(0))+tryit.substring(1);
 			ret = DataType.valueOf(tryit);
 			break;

@@ -59,3 +59,8 @@ function void puts(s:ptr) {//similar to puts in C.
 		}
 	}
 }
+
+function void println(s:ptr) {
+	puts$ s
+	putln$
+}

@@ -1,6 +1,12 @@
+digits = ['0','9']
+uppercase_letters = ['A','Z']
+lowercase_letters = ['a','z']
 guard
 import one
-lowers = ['a','z']
+import digits
+import uppercase_letters
+import lowercase_letters
+
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string
 	len_1 = strlen$ s1
@@ -62,11 +68,9 @@ function ptr stralloc_delete(s:ptr) {//make a string from the given string or li
 	return rett
 }
 
-alias ptr join(strlist:listptr delim:ubyte)
 alias ptr join(strlist:listptr delim:byte)
-alias ptr join(strlist:ptr delim:byte)
 
-function ptr join(strlist:ptr delim:ubyte) {
+function ptr join(strlist:listptr delim:ubyte) {
 	int_size = ?1
 	list_size = / sizeof$ strlist int_size
 	if = list_size 0u {
@@ -76,14 +80,14 @@ function ptr join(strlist:ptr delim:ubyte) {
 	} ;
 	final_size = list_size
 	for uint [0u,list_size) with index {
-		str_pointer = deref_ptr$ + strlist as * int_size index ptr
+		str_pointer = access_word$ strlist index
 		final_size = + final_size strlen$ str_pointer
 	}
 	joined = malloc$ final_size
 	final_size = 0u
 	
 	for uint [0u,list_size) with count {
-		str_copy = deref_ptr$ + strlist as * int_size count ptr
+		str_copy = access_word$ strlist count
 		memcpy$ + as final_size ptr joined str_copy strlen$ str_copy
 		final_size = + final_size strlen$ str_copy
 		put_ubyte$ + as final_size ptr joined delim
@@ -94,29 +98,35 @@ function ptr join(strlist:ptr delim:ubyte) {
 	return joined
 }
 
-function void capitalize_inplace(strin:ptr) {
-	if = 0u strlen$ strin {
-		return
-	} ;
-	for ptr [strin, + strin as strlen$ strin ptr) with location {
-		char = deref_ubyte$ location
-		if in char lowers {
-			put_ubyte$ location - + char 'A' 'a'
+function void lowerize_inplace(strin:ptr) {
+	whilenot = 0b deref_byte$ strin {
+		char = deref_ubyte$ strin
+		if in char uppercase_letters {
+			put_ubyte$ strin - + char 'a' 'A'
 		} ;
+		strin = + strin one
+	}
+}
+
+function ptr lowerize_copy(strin:ptr) {
+	rett = stralloc$ strin
+	lowerize_inplace$ rett
+	return rett
+}
+
+function void capitalize_inplace(strin:ptr) {
+	whilenot = 0b deref_byte$ strin {
+		char = deref_ubyte$ strin
+		if in char lowercase_letters {
+			put_ubyte$ strin - + char 'A' 'a'
+		} ;
+		strin = + strin one
 	}
 }
 
 function ptr capitalize_copy(strin:ptr) {
 	rett = stralloc$ strin
-	if = 0u strlen$ strin {
-		return rett
-	} ;
-	for ptr [as 0u ptr,as strlen$ rett ptr) with offset {
-		char = deref_ubyte$ +rett offset
-		if in char lowers {
-			put_ubyte$ +rett offset - + char 'A' 'a'
-		} ;
-	}
+	capitalize_inplace$ rett
 	return rett
 }
 
@@ -138,7 +148,7 @@ function int strcmp(str1:ptr str2:ptr) {
 	return  - as deref_ubyte$ str1 int as deref_byte$ str2 int
 }
 
-digits = ['0','9']
+
 function int str_to_int (num:ptr) {
 	//scans the given string for the longest input that matches
 	//  /-?[0-9]*
@@ -170,7 +180,7 @@ function uint stringhash(string:ptr) {
 	hash = 13u
 	whilenot = 0b deref_byte$ string {
 		hash = + * hash 41u as deref_ubyte$ string uint
-		string = + string as 1 ptr
+		string = + string one
 	}
 	return hash
 }

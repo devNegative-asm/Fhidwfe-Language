@@ -37,7 +37,7 @@ function void hashset_delete(hashset:listptr) {
 }
 
 function void hashset_put(hashset:listptr element:ptr hashfunc:func eqfunc:op) {
-	index = & 2047u $ hashfunc element
+	index = & 2047u as $ hashfunc element uint
 	node = access_word$ hashset index
 	location = + as ?index ptr as hashset ptr
 	whilenot = node null {
@@ -56,7 +56,7 @@ function void hashset_put(hashset:listptr element:ptr hashfunc:func eqfunc:op) {
 }
 
 function bool hashset_contains(hashset:listptr element:ptr hashfunc:func eqfunc:op) {
-	index = & 2047u $ hashfunc element
+	index = & 2047u as $ hashfunc element uint
 	node = access_word$ hashset index
 	location = + as ?index ptr as hashset ptr
 	whilenot = node null {

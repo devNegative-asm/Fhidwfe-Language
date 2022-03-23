@@ -1,100 +1,156 @@
 guard
 
-function bool inrangecc(i:int rng:rangecc) {
+function byte rangeflags(rng:range) {
+	return deref_byte$ as + as rng uint ?2u ptr
+}
+function byte urangeflags(rng:urange) {
+	return deref_byte$ as + as rng uint ?2u ptr
+}
+function byte brangeflags(rng:brange) {
+	return deref_byte$ as + as rng uint 2u ptr
+}
+function byte ubrangeflags(rng:ubrange) {
+	return deref_byte$ as + as rng uint 2u ptr
+}
+
+function bool range_is_oo(rng:range) {
+	return = deref_byte$ as + as rng uint ?2u ptr 0b
+}
+function bool range_is_co(rng:range) {
+	return = deref_byte$ as + as rng uint ?2u ptr 1b
+}
+function bool range_is_oc(rng:range) {
+	return = deref_byte$ as + as rng uint ?2u ptr 2b
+}
+function bool range_is_cc(rng:range) {
+	return = deref_byte$ as + as rng uint ?2u ptr 3b
+}
+function bool urange_is_oo(rng:urange) {
+	return = deref_byte$ as + as rng uint ?2u ptr 0b
+}
+function bool urange_is_co(rng:urange) {
+	return = deref_byte$ as + as rng uint ?2u ptr 1b
+}
+function bool urange_is_oc(rng:urange) {
+	return = deref_byte$ as + as rng uint ?2u ptr 2b
+}
+function bool urange_is_cc(rng:urange) {
+	return = deref_byte$ as + as rng uint ?2u ptr 3b
+}
+
+function bool brange_is_oo(rng:brange) {
+	return = deref_byte$ as + as rng uint 2u ptr 0b
+}
+function bool brange_is_co(rng:brange) {
+	return = deref_byte$ as + as rng uint 2u ptr 1b
+}
+function bool brange_is_oc(rng:brange) {
+	return = deref_byte$ as + as rng uint 2u ptr 2b
+}
+function bool brange_is_cc(rng:brange) {
+	return = deref_byte$ as + as rng uint 2u ptr 3b
+}
+function bool ubrange_is_oo(rng:ubrange) {
+	return = deref_byte$ as + as rng uint 2u ptr 0b
+}
+function bool ubrange_is_co(rng:ubrange) {
+	return = deref_byte$ as + as rng uint 2u ptr 1b
+}
+function bool ubrange_is_oc(rng:ubrange) {
+	return = deref_byte$ as + as rng uint 2u ptr 2b
+}
+function bool ubrange_is_cc(rng:ubrange) {
+	return = deref_byte$ as + as rng uint 2u ptr 3b
+}
+
+function bool inrange(i:int rng:range) {
+	flags = deref_byte$ as + as rng uint ?2u ptr
+	inclusiveLow = = 1b & flags 1b
+	inclusiveHigh = = 2b & flags 2b
 	lo = access_word$ as rng listint 0u
 	hi = access_word$ as rng listint 1u
-	return && <= lo i <= i hi
+	
+	if inclusiveLow {
+		if inclusiveHigh {
+			return && <= lo i <= i hi
+		} {
+			return && <= lo i < i hi
+		}
+	} {
+		if inclusiveHigh {
+			return && < lo i <= i hi
+		} {
+			return && < lo i < i hi
+		}
+	}
+	return false
 }
 
-function bool inrangeco(i:int rng:rangeco) {
-	lo = access_word$ as rng listint 0u
-	hi = access_word$ as rng listint 1u
-	return && <= lo i < i hi
-}
-
-function bool inrangeoc(i:int rng:rangeoc) {
-	lo = access_word$ as rng listint 0u
-	hi = access_word$ as rng listint 1u
-	return && < lo i <= i hi
-}
-
-function bool inrangeoo(i:int rng:rangeoo) {
-	lo = access_word$ as rng listint 0u
-	hi = access_word$ as rng listint 1u
-	return && < lo i < i hi
-}
-
-function bool inurangecc(i:uint rng:urangecc) {
+function bool inurange(i:uint rng:urange) {
+	flags = deref_byte$ as + as rng uint ?2u ptr
+	inclusiveLow = = 1b & flags 1b
+	inclusiveHigh = = 2b & flags 2b
 	lo = access_word$ as rng listuint 0u
 	hi = access_word$ as rng listuint 1u
-	return && <= lo i <= i hi
+	
+	if inclusiveLow {
+		if inclusiveHigh {
+			return && <= lo i <= i hi
+		} {
+			return && <= lo i < i hi
+		}
+	} {
+		if inclusiveHigh {
+			return && < lo i <= i hi
+		} {
+			return && < lo i < i hi
+		}
+	}
+	return false
 }
 
-function bool inurangeco(i:uint rng:urangeco) {
-	lo = access_word$ as rng listuint 0u
-	hi = access_word$ as rng listuint 1u
-	return && <= lo i < i hi
-}
-
-function bool inurangeoc(i:uint rng:urangeoc) {
-	lo = access_word$ as rng listuint 0u
-	hi = access_word$ as rng listuint 1u
-	return && < lo i <= i hi
-}
-
-function bool inurangeoo(i:uint rng:urangeoo) {
-	lo = access_word$ as rng listuint 0u
-	hi = access_word$ as rng listuint 1u
-	return && < lo i < i hi
-}
-
-
-
-
-function bool inbrangecc(i:byte rng:brangecc) {
+function bool inbrange(i:byte rng:brange) {
+	flags = deref_byte$ as + as rng uint 2u ptr
+	inclusiveLow = = 1b & flags 1b
+	inclusiveHigh = = 2b & flags 2b
 	lo = access_byte$ as rng listbyte 0u
 	hi = access_byte$ as rng listbyte 1u
-	return && <= lo i <= i hi
+	
+	if inclusiveLow {
+		if inclusiveHigh {
+			return && <= lo i <= i hi
+		} {
+			return && <= lo i < i hi
+		}
+	} {
+		if inclusiveHigh {
+			return && < lo i <= i hi
+		} {
+			return && < lo i < i hi
+		}
+	}
+	return false
 }
 
-function bool inbrangeco(i:byte rng:brangeco) {
-	lo = access_byte$ as rng listbyte 0u
-	hi = access_byte$ as rng listbyte 1u
-	return && <= lo i < i hi
-}
-
-function bool inbrangeoc(i:byte rng:brangeoc) {
-	lo = access_byte$ as rng listbyte 0u
-	hi = access_byte$ as rng listbyte 1u
-	return && < lo i <= i hi
-}
-
-function bool inbrangeoo(i:byte rng:brangeoo) {
-	lo = access_byte$ as rng listbyte 0u
-	hi = access_byte$ as rng listbyte 1u
-	return && < lo i < i hi
-}
-
-function bool inubrangecc(i:ubyte rng:ubrangecc) {
+function bool inubrange(i:ubyte rng:ubrange) {
+	flags = deref_byte$ as + as rng uint 2u ptr
+	inclusiveLow = = 1b & flags 1b
+	inclusiveHigh = = 2b & flags 2b
 	lo = access_byte$ as rng listubyte 0u
 	hi = access_byte$ as rng listubyte 1u
-	return && <= lo i <= i hi
-}
-
-function bool inubrangeco(i:ubyte rng:ubrangeco) {
-	lo = access_byte$ as rng listubyte 0u
-	hi = access_byte$ as rng listubyte 1u
-	return && <= lo i < i hi
-}
-
-function bool inubrangeoc(i:ubyte rng:ubrangeoc) {
-	lo = access_byte$ as rng listubyte 0u
-	hi = access_byte$ as rng listubyte 1u
-	return && < lo i <= i hi
-}
-
-function bool inubrangeoo(i:ubyte rng:ubrangeoo) {
-	lo = access_byte$ as rng listubyte 0u
-	hi = access_byte$ as rng listubyte 1u
-	return && < lo i < i hi
+	
+	if inclusiveLow {
+		if inclusiveHigh {
+			return && <= lo i <= i hi
+		} {
+			return && <= lo i < i hi
+		}
+	} {
+		if inclusiveHigh {
+			return && < lo i <= i hi
+		} {
+			return && < lo i < i hi
+		}
+	}
+	return false
 }

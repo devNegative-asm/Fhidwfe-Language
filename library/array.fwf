@@ -12,7 +12,6 @@ alias uint sizeof(a:listptr)
 alias uint sizeof(a:listuint)
 alias uint sizeof(a:listint)
 alias uint sizeof(a:listfunc)
-alias void free(a:listfunc)
 
 alias void memcpy(a:listbyte b:listbyte c:uint)
 alias void memcpy(a:listubyte b:listubyte c:uint)

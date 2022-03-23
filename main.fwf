@@ -60,7 +60,11 @@ function uint streq_alias(str1:ptr str2:ptr) {
 myhashset = hashset_new$
 
 while inShell {
+	puts$ "fhidwfe shell > "
 	getline$ commands
+	if streq$ commands "help" {
+		println$ "This is a shell which does nothing\nbut tell you whether you repeat yourself"
+	} ;
 	if streq$ commands "exit" {
 		reset inShell
 	} {
@@ -77,3 +81,17 @@ while inShell {
 }
 free$ commands
 hashset_delete$ myhashset
+
+uppy = capitalize_copy$ "mIxEd CaSe"
+println$ uppy
+lowy = lowerize_copy$ "MiXeD cAsE"
+println$ lowy
+
+
+free$ lowy
+free$ uppy
+
+//unnecessary, but these variables are used in the string library and never freed
+free$ lowercase_letters
+free$ uppercase_letters
+free$ digits
