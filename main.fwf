@@ -48,8 +48,7 @@
 // mult by sign of denom
 // if it was originally negative, add demoninator
 
-
-commands = malloc$ 3000u
+commands = malloc$ 300u
 set inShell
 
 alias uint streq_alias(str1:uint str2:uint)
@@ -57,9 +56,11 @@ function uint streq_alias(str1:ptr str2:ptr) {
 	return as streq$ str1 str2 uint
 }
 
+
 myhashset = hashset_new$
 
 while inShell {
+	
 	puts$ "fhidwfe shell > "
 	getline$ commands
 	if streq$ commands "help" {
@@ -74,18 +75,59 @@ while inShell {
 			if hashset_contains$ myhashset commands stringhash streq_alias {
 				puts$ "you repeat yourself\n"
 			} {
-				hashset_put$ myhashset commands stringhash streq_alias
+				hashset_put$ myhashset stralloc$ commands stringhash streq_alias
 			}
 		} 
 	}
 }
+
+function uint println_alias(str:uint) {
+	println$ as str ptr
+	return 0u
+}
+function uint free_alias(pointer:uint) {
+	free$ as pointer ptr
+	return 0u
+}
+
+hashset_foreach$ myhashset println_alias
+hashset_foreach$ myhashset free_alias
+
+
 free$ commands
 hashset_delete$ myhashset
+
 
 uppy = capitalize_copy$ "mIxEd CaSe"
 println$ uppy
 lowy = lowerize_copy$ "MiXeD cAsE"
 println$ lowy
+
+
+
+function void test(a:byte b:byte) {
+	if < a b {
+		puts$ "<\n"
+	} ;
+	if > a b {
+		puts$ ">\n"
+	} ;
+	if <= a b {
+		puts$ "<=\n"
+	} ;
+	if >= a b {
+		puts$ ">=\n"
+	} ;
+	if = a b {
+		puts$ "=\n"
+	} ;
+}
+
+test$ 1b 3b
+putln$
+test$ 3b 3b
+putln$
+test$ 5b 3b
 
 
 free$ lowy

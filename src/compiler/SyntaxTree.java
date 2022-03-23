@@ -696,6 +696,8 @@ public class SyntaxTree extends BaseTree{
 			case Byte:
 			case Ubyte:
 			case Ptr:
+			case Func:
+			case Op:
 				break;
 				default:
 					throw new RuntimeException("for loop can only loop over countable data types, not "+loopType+" at line "+children[0].getToken().linenum);

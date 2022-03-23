@@ -480,6 +480,8 @@ public class Parser {
 					case "uint":
 					case "byte":
 					case "ubyte":
+					case "op":
+					case "func":
 						//parse some sort of range
 						// then "with"
 						// then an identifier

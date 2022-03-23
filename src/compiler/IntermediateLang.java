@@ -855,7 +855,6 @@ public class IntermediateLang {
 			break;
 		case WHILE:
 			long id;
-			
 			id = fresh();
 			results.add(InstructionType.general_label.cv("__while_"+id+"_cond"));
 			results.addAll(generateSubInstructions(tree.getChild(0)));
@@ -916,11 +915,10 @@ public class IntermediateLang {
 				results.add(InstructionType.general_label.cv("__for_loop_start_"+id));
 				results.add(InstructionType.copy2.cv());
 				// ptr size_in_bytes index size_in_bytes index
-				results.add(InstructionType.less_equal_ui.cv());
 				// ptr size_in_bytes index exitFlag
 				
 				// index has gone beyond the list if exitFlag is set
-				results.add(InstructionType.branch_address.cv("__for_loop_exit_"+id));
+				results.add(InstructionType.branch_less_equal_ui.cv("__for_loop_exit_"+id));
 				// ptr size_in_bytes index
 				results.add(InstructionType.swap23.cv());
 				// size_in_bytes ptr index
@@ -999,9 +997,8 @@ public class IntermediateLang {
 					//if closed high, leave it alone
 					results.add(InstructionType.copy.cv());
 					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
-					results.add(InstructionType.greater_than_b.cv());
 					long ll = fresh();
-					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					results.add(InstructionType.branch_greater_than_b.cv("__for_ran_skip_"+ll));
 					// decrement
 					results.add(InstructionType.swap13.cv());
 					results.add(InstructionType.stackdecrement_byte.cv());
@@ -1039,9 +1036,8 @@ public class IntermediateLang {
 					//if closed high, leave it alone
 					results.add(InstructionType.copy.cv());
 					results.add(InstructionType.retrieve_immediate_byte.cv("1"));
-					results.add(InstructionType.greater_than_b.cv());
 					long ll = fresh();
-					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
+					results.add(InstructionType.branch_greater_than_b.cv("__for_ran_skip_"+ll));
 					// decrement
 					results.add(InstructionType.swap13.cv());
 					results.add(InstructionType.stackdecrement.cv());
@@ -1080,10 +1076,9 @@ public class IntermediateLang {
 					//rnghigh rnghigh loopvar
 					//if rnghigh < loopvar exit
 					if(loopType.assignable().signed())
-						results.add(InstructionType.less_than_b.cv());
+						results.add(InstructionType.branch_less_than_b.cv("__for_loop_exit_"+id));
 					else
-						results.add(InstructionType.less_than_ub.cv());
-					results.add(InstructionType.branch_address.cv("__for_loop_exit_"+id));
+						results.add(InstructionType.branch_less_than_ub.cv("__for_loop_exit_"+id));
 					//rnghigh var
 					results.add(InstructionType.copy.cv());
 					if(location==SyntaxTree.Location.GLOBAL)
@@ -1120,10 +1115,9 @@ public class IntermediateLang {
 					//rnghigh rnghigh loopvar
 					//if rnghigh < loopvar exit
 					if(loopType.assignable().signed())
-						results.add(InstructionType.less_than_i.cv());
+						results.add(InstructionType.branch_less_than_i.cv("__for_loop_exit_"+id));
 					else
-						results.add(InstructionType.less_than_ui.cv());
-					results.add(InstructionType.branch_address.cv("__for_loop_exit_"+id));
+						results.add(InstructionType.branch_less_than_ui.cv("__for_loop_exit_"+id));
 					//rnghigh var
 					results.add(InstructionType.copy.cv());
 					if(location==SyntaxTree.Location.GLOBAL)
