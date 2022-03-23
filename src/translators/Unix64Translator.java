@@ -1059,7 +1059,7 @@ public class Unix64Translator {
 					if(istring.contains("equal"))
 						jump+="e";
 				}
-				jump+=", "+instruction.getArgs()[0];
+				jump+=" "+instruction.getArgs()[0];
 				stackDepth-=2;
 				comp.add(jump);
 				depths.put(orig[0],stackDepth);
@@ -1091,7 +1091,7 @@ public class Unix64Translator {
 					if(istring.contains("equal"))
 						jump+="e";
 				}
-				jump+=", "+instruction.getArgs()[0];
+				jump+=" "+instruction.getArgs()[0];
 				stackDepth-=2;
 				comp.add(jump);
 				depths.put(orig[0],stackDepth);
