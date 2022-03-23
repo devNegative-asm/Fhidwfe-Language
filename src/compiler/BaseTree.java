@@ -253,7 +253,7 @@ public class BaseTree {
 		}
 	}
 	/**
-	 * Contructs the base of a syntax tree with the given parser
+	 * Constructs the base of a syntax tree with the given parser
 	 * @param p a parser
 	 */
 	public BaseTree(Parser p)

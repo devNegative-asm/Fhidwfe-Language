@@ -158,6 +158,7 @@ public class SyntaxTree extends BaseTree{
 						if(ret<=-128)
 							throw new RuntimeException("Can store up to 63 local variables on 8 bit systems in function "+functionIn());
 					break;
+				case LINx64:
 				case WINx64:
 						if(ret<=-(1L<<31)) {
 							throw new RuntimeException("That's way too many local variables in function "+functionIn());
@@ -198,6 +199,7 @@ public class SyntaxTree extends BaseTree{
 						if(ret>=128)
 							throw new RuntimeException("Can store up to 63 argument variables on 8 bit systems in function "+functionIn());
 					break;
+				case LINx64:
 				case WINx64:
 						if(ret>=(1L<<31)) {
 							throw new RuntimeException("That's way too many argument variables in function "+functionIn());

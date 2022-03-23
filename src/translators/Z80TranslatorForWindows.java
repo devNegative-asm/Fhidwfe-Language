@@ -963,8 +963,8 @@ public class Z80TranslatorForWindows {
 				comp.add("	jp z, __getc_loop_"+label);
 				comp.add("	ld l,a");
 				break;
+			case syscall_2arg:
 			case syscall_noarg:
-				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
 			case syscall_arg:
 				throw new RuntimeException("Syscalls not available on emulator "+args[0]);
 			case truncate:

@@ -955,6 +955,8 @@ public class TI83PTranslator {
 				comp.add("	push hl");
 				comp.add("	exx");
 				break;
+			case syscall_2arg:
+				throw new RuntimeException("TI83+ does not have any 2 arg syscalls yet");
 			case syscall_noarg:
 				comp.add("	b_call("+args[0]+")");
 				break;

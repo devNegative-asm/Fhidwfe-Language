@@ -43,12 +43,6 @@ public class Token {
 		linenum = string;
 		return this;
 	}
-	public Token add(Token t) {
-		switch(t.t) {
-		
-		}
-		return this;
-	}
 	public static enum Type{
 		
 		ADD,
