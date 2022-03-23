@@ -1037,7 +1037,13 @@ public class TI83PTranslator {
 					comp.add("	ld h,$00");
 					comp.add("	ld d,$00");
 				}
-				comp.add("	xor a");
+				if(istring.contains("greater")) {
+					//p and nc flags inherently include equality
+					//scf will result in negative when hl==de, setting both m and c
+					comp.add("	scf");
+				} else {
+					comp.add("	xor a");
+				}
 				comp.add("	sbc hl, de");
 				
 				if(stackDepth>2)

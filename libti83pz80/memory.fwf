@@ -89,34 +89,17 @@ function ptr realloc(block:ptr newsize:uint) {
 
 
 
-
-
-
 alias void free(a:listbyte)
 alias void free(a:listubyte)
 alias void free(a:listptr)
 alias void free(a:listuint)
 alias void free(a:listint)
-
-alias void free(a:rangecc)
-alias void free(a:rangeco)
-alias void free(a:rangeoc)
-alias void free(a:rangeoo)
-
-alias void free(a:urangecc)
-alias void free(a:urangeco)
-alias void free(a:urangeoc)
-alias void free(a:urangeoo)
-
-alias void free(a:brangecc)
-alias void free(a:brangeco)
-alias void free(a:brangeoc)
-alias void free(a:brangeoo)
-
-alias void free(a:ubrangecc)
-alias void free(a:ubrangeco)
-alias void free(a:ubrangeoc)
-alias void free(a:ubrangeoo)
+alias void free(a:listfunc)
+alias void free(a:listop)
+alias void free(a:range)
+alias void free(a:urange)
+alias void free(a:brange)
+alias void free(a:ubrange)
 
 function void free(block:ptr) {
 	if || || = block null < block heap >= block heaptail {

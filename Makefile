@@ -2,6 +2,9 @@
 program: bootstrap_linux.o output.o
 	gcc bootstrap_linux.o output.o -o program -no-pie
 
+emu: fhidwfe.jar tniasm.exe
+	java -jar fhidwfe.jar main.fwf tiasm z80Emulator 15000
+
 bootstrap_linux.o: bootstrap_linux.c
 	gcc -c bootstrap_linux.c
 
@@ -16,7 +19,7 @@ fhidwfe.jar: src/*/*.java
 	cd bin; jar -cfe ../fhidwfe.jar interfaceCore.Main *; cd ..
 
 clean:
-	rm *.o output.asm program output.vm
+	rm *.o output.asm program output.vm tiasm.* last_mem.bin tniasm.sym tniasm.tmp
 
 clean-compiler:
 	rm -rf bin

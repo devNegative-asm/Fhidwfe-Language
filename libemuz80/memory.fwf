@@ -89,7 +89,17 @@ function ptr realloc(block:ptr newsize:uint) {
 
 
 
-
+alias void free(a:listbyte)
+alias void free(a:listubyte)
+alias void free(a:listptr)
+alias void free(a:listuint)
+alias void free(a:listint)
+alias void free(a:listfunc)
+alias void free(a:listop)
+alias void free(a:range)
+alias void free(a:urange)
+alias void free(a:brange)
+alias void free(a:ubrange)
 function void free(block:ptr) {
 	if || || = block null < block heap >= block heaptail {
 		return

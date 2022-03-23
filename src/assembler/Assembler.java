@@ -9,8 +9,11 @@ public class Assembler {
 		if(!new File("tniasm.exe").exists()) {
 			throw new RuntimeException("tniasm is required to assemble "+fileasm);
 		}
-		String command = String.format("tniasm.exe %s %s",fileasm,fileout);
-		Process p = Runtime.getRuntime().exec(command);
+		Process p;
+		if(System.getProperty("os.name").contains("indows"))
+			p = Runtime.getRuntime().exec(new String[] {"tniasm.exe", fileasm, fileout});
+		else
+			p = Runtime.getRuntime().exec(new String[] {"wine", "./tniasm.exe", fileasm, fileout});
 		InputStream errors = p.getErrorStream();
 		int result = p.waitFor();
 		if(result!=0) {
