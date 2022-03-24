@@ -92,7 +92,6 @@ public class Main {
 		
 		Lexer lx = new Lexer(new File(args[0]),settings, x -> (byte) x);
 		ArrayList<Token> tokens = lx.tokenize();
-		
 		Parser p = new Parser(settings);
 		BaseTree tree = p.parse(tokens);
 		

@@ -1137,7 +1137,22 @@ public class Parser {
 			case UINT_LITERAL:
 			case IDENTIFIER:
 			case STRING_LITERAL:
+				break;
 			case POINTER_TO:
+				try {
+					String removed = tok.s.replaceAll("_guard_.*?_.*?_.*?_.*?(_.*)$", "$1");
+					if(!Character.isLowerCase(removed.charAt(1)))
+						break;
+					DataType cast = DataType.valueOf(Character.toUpperCase(removed.charAt(1))+removed.substring(2));
+					root = new SyntaxTree(new Token("as",Token.Type.AS,false,tok.srcFile()).setLineNum(tok.linenum),this,parent);
+					root.addChild(parseExpr(t,root,inAssignment));
+					root.addChild(new Token(cast.name().toLowerCase(),Token.Type.TYPE,false,tok.srcFile()).setLineNum(tok.linenum));
+					break;
+				} catch(IllegalArgumentException|IndexOutOfBoundsException e) {
+					
+				}
+				
+				
 				break;
 			case CORRECT:
 			case COMPLEMENT:

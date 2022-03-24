@@ -14,7 +14,7 @@ import null
 hashset_size = 512u
 
 function listptr hashset_new() {
-	map = as malloc$ ?hashset_size listptr
+	map = @listptr malloc$ ?hashset_size
 	for uint [0u,hashset_size) with i {
 		assign_word$ map i null
 	}
@@ -25,7 +25,7 @@ function void delete_hashset_entry(link:ptr) {
 	if = link null {
 		return
 	} {
-		delete_hashset_entry$ deref_ptr$ + link as ?1 ptr
+		delete_hashset_entry$ deref_ptr$ + link @ptr ?1
 		free$ link
 	}
 }
@@ -38,34 +38,34 @@ function void hashset_delete(hashset:listptr) {
 }
 
 function void hashset_put(hashset:listptr element:ptr hashfunc:func eqfunc:op) {
-	index = & - hashset_size 1u as $ hashfunc element uint
+	index = & - hashset_size 1u @uint $ hashfunc element
 	node = access_word$ hashset index
-	location = + as ?index ptr as hashset ptr
+	location = + @ptr ?index @ptr hashset
 	whilenot = node null {
 		//either this is the element and I can return, or it's not and I continue
-		ifnot = 0u binop$ eqfunc as access_word$ as node listptr 0u uint as element uint {
+		ifnot = 0u binop$ eqfunc @uint access_word$ @listptr node 0u @uint element {
 			return
 		} {
-			location = + as ?1u ptr node
-			node = access_word$ as node listptr 1u
+			location = + @ptr ?1u node
+			node = access_word$ @listptr node 1u
 		}
 	}
 	node = malloc$ ?2u
 	put_ptr$ location node
-	assign_word$ as node listptr 1u null
-	assign_word$ as node listptr 0u element
+	assign_word$ @listptr node 1u null
+	assign_word$ @listptr node 0u element
 }
 
 function bool hashset_contains(hashset:listptr element:ptr hashfunc:func eqfunc:op) {
-	index = & - hashset_size 1u as $ hashfunc element uint
+	index = & - hashset_size 1u @uint $ hashfunc element
 	node = access_word$ hashset index
-	location = + as ?index ptr as hashset ptr
+	location = + @ptr ?index @ptr hashset
 	whilenot = node null {
 		//either this is the element and I can return, or it's not and I continue
-		ifnot = 0u binop$ eqfunc as access_word$ as node listptr 0u uint as element uint {
+		ifnot = 0u binop$ eqfunc @uint access_word$ @listptr node 0u @uint element {
 			return true
 		} {
-			node = access_word$ as node listptr 1u
+			node = access_word$ @listptr node 1u
 		}
 	}
 	return false
@@ -74,8 +74,8 @@ function bool hashset_contains(hashset:listptr element:ptr hashfunc:func eqfunc:
 function void hashset_foreach(hashset:listptr operation:func) {
 	for ptr hashset with element {
 		whilenot = null element {
-			$ operation access_word$ as element listuint 0u
-			element = access_word$ as element listptr 1u
+			$ operation access_word$ @listuint element 0u
+			element = access_word$ @listptr element 1u
 		}
 	}
 }

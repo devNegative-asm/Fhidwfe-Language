@@ -21,7 +21,7 @@ function void getline(str:ptr) {
 	//empty the string
 	maxlen = sizeof$ str
 	for uint [0u,maxlen) with x {
-		put_byte$ + as x ptr str 0b
+		put_byte$ + @ptr x str 0b
 	}
 	size = 0u
 	maxlen = - maxlen 1u
@@ -34,7 +34,7 @@ function void getline(str:ptr) {
 				set consumed
 				return
 			} {
-				put_ubyte$ + as size ptr str char
+				put_ubyte$ + @ptr size str char
 				size = + size 1u
 			}
 		}

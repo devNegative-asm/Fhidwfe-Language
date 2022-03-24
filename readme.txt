@@ -52,6 +52,7 @@ return:				return [expr] OR return
 
 expr:
 casting:			as [expr] [type]
+					@[type] [expr]
 unary operator:		[op] [expr_1]
 binary operator:	[op] [expr_1] [expr_2]
 function call:		func_name$ args...
@@ -131,6 +132,10 @@ numeric type -> numeric type		(drop higher order bytes if target is smaller)
 byte -> int							(sign extend)
 numeric type -> float				(convert value)
 float -> numeric type				(depends on hardware rounding implementation, no error checking)
+an alternative to code such as
+	as signed_number uint
+would be to instead write
+	@uint signed_number
 
 iteration
 A for loop can iterate over a list or a range. When iterating over the elements of a list, any changes to the list other than its size will be reflected in further loop iterations.

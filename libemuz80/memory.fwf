@@ -18,7 +18,7 @@ alias void put_ubyte(a:ptr b:byte)
 
 
 function uint sizeof(input:ptr) {
-	return deref_uint$ - input as ? 1 ptr
+	return deref_uint$ - input @ptr ? 1
 }
 
 //memory is held as a linked list with dummy nodes at the beginning and end
@@ -28,16 +28,16 @@ function uint sizeof(input:ptr) {
 
 function ptr malloc(size:uint) {
 	curobj = heap
-	space = as + size ? 3u ptr
+	space = @ptr + size ? 3u
 	//need space for my object + 3 ints
 	
-	next = deref_ptr$ - curobj as ? 2u ptr
-	blocksize = deref_ptr$ - curobj as int_size ptr
+	next = deref_ptr$ - curobj @ptr ? 2u
+	blocksize = deref_ptr$ - curobj @ptr int_size
 	
 	while < - - next curobj blocksize space {
 		curobj = next
-		next = deref_ptr$ - curobj as ? 2u ptr
-		blocksize = deref_ptr$ - curobj as int_size ptr
+		next = deref_ptr$ - curobj @ptr ? 2u
+		blocksize = deref_ptr$ - curobj @ptr int_size
 		
 		if = next null {
 			return null//no room
@@ -45,18 +45,18 @@ function ptr malloc(size:uint) {
 		
 	}
 	
-	newobjectloc = + + curobj blocksize as ? 3u ptr
+	newobjectloc = + + curobj blocksize @ptr ? 3u
 	
 	//header for the new object
-	put_uint$ - newobjectloc as int_size ptr size
-	put_ptr$ - newobjectloc as ? 2u ptr next
-	put_ptr$ - newobjectloc as ? 3u ptr curobj
+	put_uint$ - newobjectloc @ptr int_size size
+	put_ptr$ - newobjectloc @ptr ? 2u next
+	put_ptr$ - newobjectloc @ptr ? 3u curobj
 	
 	//update previous object's header
-	put_ptr$ - curobj as ? 2u ptr newobjectloc
+	put_ptr$ - curobj @ptr ? 2u newobjectloc
 	
 	//update next object's header
-	put_ptr$ - next as ? 3u ptr newobjectloc
+	put_ptr$ - next @ptr ? 3u newobjectloc
 	
 	return newobjectloc
 	
@@ -66,16 +66,16 @@ function ptr malloc(size:uint) {
 function ptr realloc(block:ptr newsize:uint) {
 	if <= newsize sizeof$ block {
 		//remove space from this block
-		put_uint$ - block as ?1 ptr newsize
+		put_uint$ - block @ptr ?1 newsize
 		return block
 	} ;
-	next = deref_ptr$ - block as ? 2u ptr
+	next = deref_ptr$ - block @ptr ? 2u
 	
 	//easiest when there's extra room between objects
 	//space needed between ptr and next is newsize + 3
 	
-	if <= newsize - as - next block uint ? 3u {
-		put_uint$ - block as ?1 ptr newsize
+	if <= newsize - @uint - next block ? 3u {
+		put_uint$ - block @ptr ?1 newsize
 		return block
 	} ;
 	
@@ -105,9 +105,9 @@ function void free(block:ptr) {
 		return
 	} ;
 	
-	prev = deref_ptr$ - block as ? 3u ptr
-	next = deref_ptr$ - block as ? 2u ptr
+	prev = deref_ptr$ - block @ptr ? 3u
+	next = deref_ptr$ - block @ptr ? 2u
 	
-	put_ptr$ - prev as ? 2u ptr next
-	put_ptr$ - next as ? 3u ptr prev
+	put_ptr$ - prev @ptr ? 2u next
+	put_ptr$ - next @ptr ? 3u prev
 }
