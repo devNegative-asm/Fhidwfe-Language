@@ -81,6 +81,8 @@ while inShell {
 	}
 }
 
+
+
 function uint println_alias(str:uint) {
 	println$ as str ptr
 	return 0u
@@ -102,32 +104,6 @@ uppy = capitalize_copy$ "mIxEd CaSe"
 println$ uppy
 lowy = lowerize_copy$ "MiXeD cAsE"
 println$ lowy
-
-
-
-function void test(a:byte b:byte) {
-	if < a b {
-		puts$ "<\n"
-	} ;
-	if > a b {
-		puts$ ">\n"
-	} ;
-	if <= a b {
-		puts$ "<=\n"
-	} ;
-	if >= a b {
-		puts$ ">=\n"
-	} ;
-	if = a b {
-		puts$ "=\n"
-	} ;
-}
-
-test$ 1b 3b
-putln$
-test$ 3b 3b
-putln$
-test$ 5b 3b
 
 
 free$ lowy

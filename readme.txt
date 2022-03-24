@@ -232,5 +232,4 @@ Emulador en Java de un Sinclair ZX Spectrum 48K
 1.0 B
 Copyright (c) 2004
 Alberto Sánchez Terrén
-
-	
+ - edited 3/24/2022
