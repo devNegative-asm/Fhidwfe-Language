@@ -111,14 +111,14 @@ public class CompilationSettings {
 				break;
 			case WINx64:
 				instructions.addAll(0,Arrays.asList(
-						"__syscall_0 PROC",
+						"Fwf_internal_syscall_0 PROC",
 						"	mov r12, rsp",
 						"	sub rsp, 32",
 						"	and rsp, -16",
 						"	call rax",
 						"	mov rsp, r12",
 						"	ret",
-						"__syscall_0 ENDP",
+						"Fwf_internal_syscall_0 ENDP",
 						"e	equ "+Double.doubleToLongBits(Math.E),
 						"pi	equ "+Double.doubleToLongBits(Math.PI),
 						"NaN	equ "+ Double.doubleToLongBits(Double.NaN),
@@ -130,7 +130,7 @@ public class CompilationSettings {
 				break;
 			case LINx64:
 				instructions.addAll(0,Arrays.asList(
-						"__syscall_0:",
+						"Fwf_internal_syscall_0:",
 						"	mov r12, rsp",
 						"	and rsp, -16",
 						"	call rax",

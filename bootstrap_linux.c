@@ -87,7 +87,7 @@ int main()
 		files[q] = NULL;
 	}
 	
-	uint64_t result = __main();
+	uint64_t result = Fwf_internal_main();
 	fflush(stdout);
 	return result;
 }

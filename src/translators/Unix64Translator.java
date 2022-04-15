@@ -20,7 +20,7 @@ public class Unix64Translator {
 		ArrayList<String> comp = new ArrayList<String>();
 		ArrayList<String> externs = new ArrayList<String>();
 		ArrayList<String> data = new ArrayList<String>();
-		data.add("__mxmode:");
+		data.add("Fwf_internal_mxmode:");
 		data.add("	dd 01111111111000000b");
 		HashMap<String,Integer> depths = new HashMap<String,Integer>();
 		p.getSettings().target.addHeader(comp);
@@ -39,9 +39,9 @@ public class Unix64Translator {
 					continue;
 				if(p.isSymbol(args[i]))
 					continue;
-				if(args[i].startsWith("_")||args[i].equals("error"))
+				if(args[i].startsWith("Fwf_internal")||args[i].equals("error"))
 					continue;
-				args[i] = "_us_"+args[i];
+				args[i] = "Fwf_us_"+args[i];
 				
 			}
 			
@@ -80,11 +80,11 @@ public class Unix64Translator {
 				comp.add("	mov r9, rsi");
 				comp.add("	pop rdi");
 				comp.add("	ld rsi, rax");
-				comp.add("__strcpy_"+label+"_imp:");
+				comp.add("Fwf_internal_strcpy_"+label+"_imp:");
 				comp.add("	lodsb");
 				comp.add("	test %al, %al");
 				comp.add("	stosb");
-				comp.add("	jnz __strcpy_"+label+"_imp");
+				comp.add("	jnz Fwf_internal_strcpy_"+label+"_imp");
 				comp.add("	mov rax, rdi");
 				comp.add("	dec rax");
 				comp.add("	mov rdi, r8");
@@ -207,10 +207,10 @@ public class Unix64Translator {
 				comp.add(args[0]+":");
 				break;
 			case general_label:
-				if(orig[0].equals("__main"))
+				if(orig[0].equals("Fwf_internal_main"))
 				{
-					comp.add("__main:");
-					comp.add("	ldmxcsr [__mxmode]");
+					comp.add("Fwf_internal_main:");
+					comp.add("	ldmxcsr [Fwf_internal_mxmode]");
 				}
 				else
 				{
@@ -455,7 +455,7 @@ public class Unix64Translator {
 			case put_global_byte:
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	mov [__globals+"+args[0]+"], al");
+					comp.add("	mov [Fwf_internal_globals+"+args[0]+"], al");
 				} catch(NumberFormatException e) {
 					comp.add("	mov ["+args[0]+"], al");
 				}
@@ -466,7 +466,7 @@ public class Unix64Translator {
 			case put_global_int:
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	mov [__globals+"+args[0]+"], rax");
+					comp.add("	mov [Fwf_internal_globals+"+args[0]+"], rax");
 				} catch(NumberFormatException e) {
 					comp.add("	mov ["+args[0]+"], rax");
 				}
@@ -541,7 +541,7 @@ public class Unix64Translator {
 					comp.add("	push rax");
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	lea rax, [__globals+"+args[0]+"]");
+					comp.add("	lea rax, [Fwf_internal_globals+"+args[0]+"]");
 				} catch(NumberFormatException e) {
 					comp.add("	lea rax, ["+args[0]+"]");
 				}
@@ -552,7 +552,7 @@ public class Unix64Translator {
 				comp.add("	xor rax, rax");
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	mov al, [__globals+"+args[0]+"]");
+					comp.add("	mov al, [Fwf_internal_globals+"+args[0]+"]");
 				} catch(NumberFormatException e) {
 					comp.add("	mov al, ["+args[0]+"]");
 				}
@@ -562,7 +562,7 @@ public class Unix64Translator {
 					comp.add("	push rax");
 				try {
 					Integer.parseInt(args[0]);
-					comp.add("	mov rax, [__globals+"+args[0]+"]");
+					comp.add("	mov rax, [Fwf_internal_globals+"+args[0]+"]");
 				} catch(NumberFormatException e) {
 					comp.add("	mov rax, ["+args[0]+"]");
 				}
@@ -585,10 +585,10 @@ public class Unix64Translator {
 			case getc:
 				if(stackDepth++>0)
 					comp.add("	push rax");
-				comp.add("	lea rax, [__getc]");
-				comp.add("	call __syscall_0");
-				if(!externs.contains("extern __getc")) {
-					externs.add("extern __getc");
+				comp.add("	lea rax, [Fwf_internal_getc]");
+				comp.add("	call Fwf_internal_syscall_0");
+				if(!externs.contains("extern Fwf_internal_getc")) {
+					externs.add("extern Fwf_internal_getc");
 				}
 				break;
 			case retrieve_local_address:
@@ -722,22 +722,22 @@ public class Unix64Translator {
 				label=fresh();
 				comp.add("	pop rcx");
 				comp.add("	test rax, rax");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	xor rdx, rdx");
 				comp.add("	xchg rax, rcx");
 				comp.add("	div rcx");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				break;
 			case stackdiv_unsigned_b:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rcx");
 				comp.add("	test al, al");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	mov ah, 0");
 				comp.add("	xchg rax, rcx");
 				comp.add("	div cl");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov ah, 0");
 				break;
 			case stackmod_signed:
@@ -750,7 +750,7 @@ public class Unix64Translator {
 				comp.add("	mov r9, rax");
 				comp.add("	sar r9, 63");
 				comp.add("	test rax, rax");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				
 				comp.add("	xchg rax, r8");
 				comp.add("	idiv r8");
@@ -760,7 +760,7 @@ public class Unix64Translator {
 				comp.add("	cmovne rcx, r8");
 				comp.add("	add rdx, rcx");
 
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov rax, rdx");
 				break;
 			case stackmod_signed_b:
@@ -769,7 +769,7 @@ public class Unix64Translator {
 				comp.add("	mov r8, rbx");
 				comp.add("	pop rbx");
 				comp.add("	test al, al");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	movsx bx, bl");
 				comp.add("	mov dl, bh");//dl holds one sign
 				comp.add("	mov cl, al");
@@ -784,7 +784,7 @@ public class Unix64Translator {
 				comp.add("	cmovne cx, bx");
 				comp.add("	add al,cl");
 
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov rbx, r8");
 				break;
 			case stackdiv_signed:
@@ -792,25 +792,25 @@ public class Unix64Translator {
 				label=fresh();
 				comp.add("	pop r8");
 				comp.add("	test rax, rax");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	xor rdx, rdx");
 				comp.add("	mov rcx, -1");
 				comp.add("	bt r8, 63");
 				comp.add("	cmovc rdx, rcx");
 				comp.add("	xchg rax, r8");
 				comp.add("	idiv r8");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				break;
 			case stackdiv_signed_b:
 				stackDepth--;
 				label=fresh();
 				comp.add("	pop rcx");
 				comp.add("	test al, al");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	movsx cx, cl");
 				comp.add("	xchg rax, rcx");
 				comp.add("	idiv cl");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov ah, 0");
 				break;
 			case stackmod_unsigned_b:
@@ -818,11 +818,11 @@ public class Unix64Translator {
 				label=fresh();
 				comp.add("	pop rcx");
 				comp.add("	test al, al");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	mov ah, 0");
 				comp.add("	xchg rax, rcx");
 				comp.add("	div cl");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov al, ah");
 				comp.add("	mov ah, 0");
 				break;
@@ -831,11 +831,11 @@ public class Unix64Translator {
 				label=fresh();
 				comp.add("	pop rcx");
 				comp.add("	test rax, rax");
-				comp.add("	jz __div_by_0"+label);
+				comp.add("	jz Fwf_internal_div_by_0"+label);
 				comp.add("	xor rdx, rdx");
 				comp.add("	xchg rax, rcx");
 				comp.add("	div rcx");
-				comp.add("__div_by_0"+label+":");
+				comp.add("Fwf_internal_div_by_0"+label+":");
 				comp.add("	mov rax, rdx");
 				break;
 			case stackdivfloat:
@@ -959,7 +959,7 @@ public class Unix64Translator {
 				break;
 			case syscall_noarg:
 				comp.add("	mov rax, "+args[0]+"");
-				comp.add("	call __syscall_0");
+				comp.add("	call Fwf_internal_syscall_0");
 				if(!externs.contains("extern "+args[0])) {
 					externs.add("extern "+args[0]);
 				}
