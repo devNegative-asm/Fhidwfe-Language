@@ -1140,7 +1140,7 @@ public class Parser {
 				break;
 			case POINTER_TO:
 				try {
-					String removed = tok.s.replaceAll("_guard_.*?_.*?_.*?_.*?(_.*)$", "$1");
+					String removed = tok.s.replaceAll("guard_.*?_.*?_.*?_.*?(_.*)$", "$1");
 					if(!Character.isLowerCase(removed.charAt(1)))
 						break;
 					DataType cast = DataType.valueOf(Character.toUpperCase(removed.charAt(1))+removed.substring(2));

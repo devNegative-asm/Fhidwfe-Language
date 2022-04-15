@@ -83,7 +83,7 @@ public class BaseTree {
 	 */
 	public DataType resolveVariableType(String varname, String linenum)
 	{
-		String unguarded = varname.replaceAll("_guard_.*?_.*?_.*?_.*?_", "");
+		String unguarded = varname.replaceAll("guard_.*?_.*?_.*?_.*?_", "");
 		if(theParser.hasFunction(unguarded)) {
 			if(theParser.getFunctionInputTypes(unguarded).contains(new ArrayList<>(Arrays.asList(DataType.Uint)))) {
 				if(theParser.getFunctionOutputType(unguarded).contains(DataType.Uint)) {
@@ -340,7 +340,7 @@ public class BaseTree {
 	public String resolveConstant(String var) {
 		if(constants.containsKey(var)) {
 			if(constants.get(var)==DataType.Func) {
-				return var.replaceAll("_guard_.*?_.*?_.*?_.*?_", "");//remove guards if they exist because function names are unaffected by guards
+				return var.replaceAll("guard_.*?_.*?_.*?_.*?_", "");//remove guards if they exist because function names are unaffected by guards
 			}
 			return var;
 		}

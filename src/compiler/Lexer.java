@@ -468,8 +468,10 @@ public class Lexer {
 			} else {
 				throw new RuntimeException("unrecognizable token: "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());
 			}
-			if(tok.startsWith("__"))
-				throw new RuntimeException("__ prefix saved for internal use at line "+this.lineNumber+" in "+files.get(0).getName());
+			if(tok.startsWith("_"))
+				throw new RuntimeException("_ prefix saved for internal use at line "+this.lineNumber+" in "+files.get(0).getName());
+			if(tok.startsWith("Fwf_"))
+				throw new RuntimeException("Fwf_ prefix saved for internal use at line "+this.lineNumber+" in "+files.get(0).getName());
 			tk.setLineNum(this.lineNumber+" in "+files.get(0).getName());
 			if(importNext)
 				throw new RuntimeException("cannot import non-identifier "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());

@@ -683,6 +683,17 @@ public class LibFunctions {
 				instructions.addAll(loc,replacement);
 			}
 		}
+		for(int i=0;i<instructions.size();i++) {
+			Instruction instruction = instructions.get(i);
+			int argc = instruction.args.length;
+			if(instruction.in==InstructionType.rawinstruction) {
+				instruction.args[0] = instruction.args[0].replaceAll("(\\s|,|^)__", "$1Fwf_internal_");
+			} else
+				for(int j=0;j<argc;j++) {
+					if(instruction.args[j].startsWith("__"))
+						instruction.args[j] = "Fwf_internal"+instruction.args[j].substring(1);
+				}
+		}
 	}
 	/**
 	 * Notify the syntax tree that the given symbols refer to assemble-time constants, as well as their types

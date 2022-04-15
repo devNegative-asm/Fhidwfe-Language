@@ -801,7 +801,7 @@ public class SyntaxTree extends BaseTree{
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
 			if(ret==DataType.Func || ret==DataType.Op)
 			{
-				parent.notifyCalled(getTokenString().replaceAll("_guard_.*?_.*?_.*?_.*?_", ""));
+				parent.notifyCalled(getTokenString().replaceAll("guard_.*?_.*?_.*?_.*?_", ""));
 			}
 			break;
 		case IF:
