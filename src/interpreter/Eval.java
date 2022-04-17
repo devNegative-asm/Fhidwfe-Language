@@ -217,7 +217,7 @@ public class Eval {
 		functions.put("error", new Func("errorString"){
 			@Override
 			void call() {
-				String errorString = argPointers.peek().get("char").dereference(DataType.Ptr).derefAsString();
+				String errorString = argPointers.peek().get("errorString").dereference(DataType.Ptr).derefAsString();
 				System.err.println(errorString);
 				returnValue = Value.VOID;
 			}

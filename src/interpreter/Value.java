@@ -430,6 +430,7 @@ public class Value implements Comparable<Value>{
 		int offset = 0;
 		while(this.dereference(DataType.Byte,offset).signedByteValue()!=0) {
 			builder.append((char)(byte)this.dereference(DataType.Byte,offset).signedByteValue());
+			offset++;
 		}
 		return builder.toString();
 	}
