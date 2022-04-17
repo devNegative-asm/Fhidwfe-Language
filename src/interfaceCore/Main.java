@@ -93,9 +93,8 @@ public class Main {
 			for(SyntaxTree element:tree.getChildren()) {
 				if(element.getToken().t==Token.Type.EQ_SIGN && element.getTokenString().equals("assign") && element.getChild(0).getTokenString().contains("heap"))
 				{
-					System.out.println(element);
 					try {
-						System.out.println(evaluator.evaluate(element));
+						evaluator.evaluate(element);
 					} catch(RuntimeException e) {
 						System.err.println("was processing");
 						System.err.println(element);
