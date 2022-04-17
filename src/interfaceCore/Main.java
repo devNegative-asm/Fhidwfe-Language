@@ -60,7 +60,6 @@ public class Main {
 		interact.useDelimiter("");
 		String character = interact.next();
 		interact.useDelimiter(previous);
-		System.out.println("scanned \"" + character+'"');
 		if(character.length()!=1) {
 			throw new RuntimeException("scanned "+character.length()+" chars instead of 1");
 		}
