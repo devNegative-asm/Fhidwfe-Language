@@ -119,7 +119,7 @@ public class SyntaxTree extends BaseTree{
 			
 			int maxOffset = (1+argorder.size())*theParser.settings.intsize;// +4 gets you the last argument, +6 gets second to last, etc. 
 			for(int i=0;i<argorder.size();i++) {
-				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-theParser.settings.intsize*i),DataType.Relptr,theParser));
+				functionPointers.add(new Variable(argorder.get(i),(byte)(maxOffset-theParser.settings.intsize*i),DataType.Ptr,theParser));
 			}
 
 			//look at all sub-blocks that hold local variables.
@@ -1090,8 +1090,10 @@ public class SyntaxTree extends BaseTree{
 	protected SyntaxTree copyWithDifferentParent(BaseTree p)
 	{
 		SyntaxTree copy = new SyntaxTree(myToken,theParser,p);
+		this.getChildren().forEach(child->copy.addChild(child));
 		copy.scopeTypings=this.scopeTypings;
 		copy.typeCache = this.typeCache;
+		
 		return copy;
 	}
 	public BaseTree getParent() {

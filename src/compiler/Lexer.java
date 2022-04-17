@@ -45,9 +45,10 @@ public class Lexer {
 	 * @throws FileNotFoundException if the given file, or a library file is missing
 	 */
 	public Lexer(File f, CompilationSettings settings, Charmap cm) throws FileNotFoundException {
-		Scanner x = new Scanner(f);
+		Scanner x = f==null?null:new Scanner(f);
 		this.x=cm;
-		x.useDelimiter("(?<=\n)");
+		if(x!=null)
+			x.useDelimiter("(?<=\n)");
 		File[] libFiles = new File("./library/").listFiles();
 		Arrays.sort(libFiles,File::compareTo);
 		for(File fv:libFiles) {
@@ -58,6 +59,7 @@ public class Lexer {
 			}
 		}
 		if(new File("./"+settings.target.libLoc+"/").exists()) {
+			
 			libFiles = new File("./"+settings.target.libLoc+"/").listFiles();
 			Arrays.sort(libFiles,File::compareTo);
 			for(File fv:libFiles) {
@@ -70,8 +72,10 @@ public class Lexer {
 		} else {
 			System.err.println("Architecture missing lib folder "+settings.target.libLoc);
 		}
-		scan.add(x);
-		files.add(f);
+		if(f!=null) {
+			scan.add(x);
+			files.add(f);
+		}
 	}
 	private String holding = "";
 	private boolean hasNextString()
@@ -485,6 +489,25 @@ public class Lexer {
 		
 		return tokens;
 	}
-
+	private class fakeFile extends File {
+		String name;
+		public fakeFile(String pathname) {
+			super(".");
+			this.name=pathname;
+		}
+		@Override
+		public String getName() {
+			return name;
+		}
+		@Override
+		public int hashCode() {
+			return name.hashCode();
+		}
+	}
+	ArrayList<Token> lexMoreTokens(Scanner sc, String fileName) {
+		this.files.add(new fakeFile(fileName));
+		this.scan.add(sc);
+		return this.tokenize();
+	}
 	
 }

@@ -6,6 +6,7 @@ import compiler.LibFunctions;
 
 public class CompilationSettings {
 	public enum Target {
+		REPL("librepl",3,false),
 		WINx86("libwin86",4,true),
 		WINx64("libwin64",8,true),
 		z80Emulator("libemuz80",2,false),

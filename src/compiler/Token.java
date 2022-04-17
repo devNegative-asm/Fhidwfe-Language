@@ -26,6 +26,9 @@ public class Token {
 	}
 	private File f;
 	private boolean g;
+	public Token unguardedVersion() {
+		return new Token(reals, t, false, f);
+	}
 	public boolean guarded() {
 		return g;
 	}

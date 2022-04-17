@@ -69,7 +69,7 @@ function bool inrange(i:int rng:range) {
 	inclusiveHigh = = 2b & flags 2b
 	lo = access_word$ as rng listint 0u
 	hi = access_word$ as rng listint 1u
-	
+
 	if inclusiveLow {
 		if inclusiveHigh {
 			return && <= lo i <= i hi

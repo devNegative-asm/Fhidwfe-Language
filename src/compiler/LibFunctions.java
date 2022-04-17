@@ -23,6 +23,35 @@ public class LibFunctions {
 	 * @param p the parser to load with library info
 	 */
 	public void loadLibraryFunctions(Parser p) {
+		if(architecture==CompilationSettings.Target.REPL) {
+			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Byte, "deref_byte");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Ubyte, "deref_ubyte");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Int, "deref_int");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "deref_uint");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Ptr, "deref_ptr");
+			
+			p.registerLibFunction(Arrays.asList(DataType.Func,DataType.Uint), DataType.Uint, "");//call-by-pointer
+			p.registerLibFunction(Arrays.asList(DataType.Op, DataType.Uint, DataType.Uint), DataType.Uint, "binop");
+			
+			p.registerLibFunction(Arrays.asList(DataType.Ptr,DataType.Byte),DataType.Void, "put_byte");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Ubyte),DataType.Void, "put_ubyte");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Int),DataType.Void, "put_int");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Uint),DataType.Void, "put_uint");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr, DataType.Ptr),DataType.Void, "put_ptr");
+
+			p.requireLibFunction(Arrays.asList(DataType.Ptr, DataType.Ptr, DataType.Uint),DataType.Void, "memcpy");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr, DataType.Ptr),DataType.Ptr, "strcpy");
+			p.registerLibFunction(Arrays.asList(DataType.Ptr),DataType.Void, "error");
+			p.registerLibFunction(Arrays.asList(), DataType.Ubyte, "getc");
+			p.registerLibFunction(Arrays.asList(DataType.Ubyte), DataType.Void, "putchar");
+			p.registerLibFunction(Arrays.asList(), DataType.Void, "putln");
+
+			p.requireLibFunction(Arrays.asList(DataType.Uint), DataType.Ptr, "malloc");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Void, "free");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "sizeof");
+			
+			return;
+		}
 		p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Byte, "deref_byte");
 		p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Ubyte, "deref_ubyte");
 		p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Int, "deref_int");
@@ -683,17 +712,18 @@ public class LibFunctions {
 				instructions.addAll(loc,replacement);
 			}
 		}
-		for(int i=0;i<instructions.size();i++) {
-			Instruction instruction = instructions.get(i);
-			int argc = instruction.args.length;
-			if(instruction.in==InstructionType.rawinstruction) {
-				instruction.args[0] = instruction.args[0].replaceAll("(\\s|,|^)__", "$1Fwf_internal_");
-			} else
-				for(int j=0;j<argc;j++) {
-					if(instruction.args[j].startsWith("__"))
-						instruction.args[j] = "Fwf_internal"+instruction.args[j].substring(1);
-				}
-		}
+		if(architecture.name().contains("x64")||architecture.name().contains("x86"))
+			for(int i=0;i<instructions.size();i++) {
+				Instruction instruction = instructions.get(i);
+				int argc = instruction.args.length;
+				if(instruction.in==InstructionType.rawinstruction) {
+					instruction.args[0] = instruction.args[0].replaceAll("(\\s|,|^)__", "$1Fwf_internal_");
+				} else
+					for(int j=0;j<argc;j++) {
+						if(instruction.args[j].startsWith("__"))
+							instruction.args[j] = "Fwf_internal"+instruction.args[j].substring(1);
+					}
+			}
 	}
 	/**
 	 * Notify the syntax tree that the given symbols refer to assemble-time constants, as well as their types

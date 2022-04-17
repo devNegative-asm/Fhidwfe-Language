@@ -158,6 +158,23 @@ public class Parser {
 		
 		return tree;
 	}
+	public ArrayList<SyntaxTree> parseAdditional(BaseTree originalBase, ArrayList<Token> t){
+		functionSignatures(t);
+		ArrayList<SyntaxTree> trees = new ArrayList<>();
+		while(!t.isEmpty()) {
+			SyntaxTree sub = null;
+			ArrayList<Token> backup = new ArrayList<>(t);
+			try {
+				sub = parseOuter(t,originalBase);
+			} catch(Exception e) {
+				sub = parseExpr(backup, originalBase, false);
+				t = backup;
+			}
+			trees.add(sub);
+			originalBase.addChild(sub);
+		}
+		return trees;
+	}
 	/**
 	 * To allow mutually recursive functions and defining functions out of order with the code that calls them, this method scans the token list for functions and stores their signatures
 	 * @param t token list
@@ -1186,6 +1203,7 @@ public class Parser {
 				break;
 			case OPEN_RANGE_EXCLUSIVE:
 			case OPEN_RANGE_INCLUSIVE:
+				
 				SyntaxTree possibleRoot = new SyntaxTree(new Token(",",Token.Type.RANGE_COMMA,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 				SyntaxTree openBracket = new SyntaxTree(root.getToken(),this,possibleRoot);
 				SyntaxTree result1 = parseExpr(t,possibleRoot,inAssignment);

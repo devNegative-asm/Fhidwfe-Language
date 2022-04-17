@@ -1,0 +1,139 @@
+guard
+
+//specifically allow these variables to be accessible in other files
+// import heap
+// import heaptail
+import null
+import one
+import int_size
+
+//alias uint sizeof(a:listbyte)
+//alias uint sizeof(a:listubyte)
+//alias uint sizeof(a:listptr)
+//alias uint sizeof(a:listuint)
+//alias uint sizeof(a:listint)
+
+
+heaphead = @ptr 8388608u
+heap = + heaphead @ptr ? 3u
+heaptail = @ptr 12582912u
+
+put_uint$ heaphead 0u
+put_ptr$ + heaphead @ptr ?1u heaptail
+put_int$ + heaphead @ptr ?2u 0
+
+put_ptr$ - heaptail @ptr ?3u heap
+put_int$ - heaptail @ptr ?2u 0
+put_int$ - heaptail @ptr ?1u 0
+
+
+
+alias void put_byte(a:ptr b:ubyte)//don't penalize for not using the right one
+alias void put_ubyte(a:ptr b:byte)
+
+
+function uint sizeof(input:ptr) {
+	return deref_uint$ - input @ptr ? 1
+}
+
+//memory is held as a linked list with dummy nodes at the beginning and end
+//if there is room somewhere in the list, put each new object there
+
+// ? n is the same as n*int_size
+
+function ptr malloc(size:uint) {
+	
+	curobj = heap
+	space = @ptr + size ? 3u
+	//need space for my object + 3 ints
+	
+	next = deref_ptr$ - curobj @ptr ? 2u
+	blocksize = deref_ptr$ - curobj @ptr int_size
+	
+	while < - - next curobj blocksize space {
+		
+		curobj = next
+		next = deref_ptr$ - curobj @ptr ? 2u
+		blocksize = deref_ptr$ - curobj @ptr int_size
+		
+		if = next null {
+			return null//no room
+		} ;
+		
+	}
+	
+	newobjectloc = + + curobj blocksize @ptr ? 3u
+	
+	//header for the new object
+	put_uint$ - newobjectloc @ptr int_size size
+	put_ptr$ - newobjectloc @ptr ? 2u next
+	put_ptr$ - newobjectloc @ptr ? 3u curobj
+	
+	//update previous object's header
+	put_ptr$ - curobj @ptr ? 2u newobjectloc
+	
+	//update next object's header
+	put_ptr$ - next @ptr ? 3u newobjectloc
+	
+	return newobjectloc
+	
+}
+
+//UNTESTED
+function ptr realloc(block:ptr newsize:uint) {
+	if <= newsize sizeof$ block {
+		//remove space from this block
+		put_uint$ - block @ptr ?1 newsize
+		return block
+	} ;
+	next = deref_ptr$ - block @ptr ? 2u
+	
+	//easiest when there's extra room between objects
+	//space needed between ptr and next is newsize + 3
+	
+	if <= newsize - @uint - next block ? 3u {
+		put_uint$ - block @ptr ?1 newsize
+		return block
+	} ;
+	
+	//there isn't enough room to simply extend it
+	newloc = malloc$ newsize
+	//memcpy the minimum number of bytes to assure no buffer overflow
+	memcpy$ newloc block umin$ sizeof$ block newsize
+	free$ block
+	return newloc
+}
+
+
+
+alias void free(a:listbyte)
+alias void free(a:listubyte)
+alias void free(a:listptr)
+alias void free(a:listuint)
+alias void free(a:listint)
+alias void free(a:listfunc)
+alias void free(a:listop)
+alias void free(a:range)
+alias void free(a:urange)
+alias void free(a:brange)
+alias void free(a:ubrange)
+function void free(block:ptr) {
+	if || || = block null < block heap >= block heaptail {
+		return
+	} ;
+	
+	prev = deref_ptr$ - block @ptr ? 3u
+	next = deref_ptr$ - block @ptr ? 2u
+	
+	put_ptr$ - prev @ptr ? 2u next
+	put_ptr$ - next @ptr ? 3u prev
+}
+
+function void memcpy(dest:ptr src:ptr n:uint) {
+	while > n 0u {
+		n = - n 1u
+		put_byte$ dest deref_byte$ src
+		dest = + dest one
+		src = + src one
+	}
+}

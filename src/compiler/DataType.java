@@ -20,7 +20,6 @@ public enum DataType{
 	Ubyte(1,false,null,false),
 	Ptr(2,false,null,false),
 	Void(0,false,null,false),
-	Relptr(1,false,null,false),
 	File(1,false,null,false),
 	Func(2,false,null,false),
 	Op(2,false,null,false),
@@ -41,6 +40,8 @@ public enum DataType{
 	Ubrange(2,true,Ubyte,false),//unsigned byte range
 	Frange(2,true,Uint,false),//float range
 	Ptrrange(2,true,Ptr,false),
+	
+	Exception(2,false,null,false),
 	
 	SYNTAX(0,false,null,false);
 	
@@ -207,5 +208,9 @@ public enum DataType{
 	 */
 	public boolean signed() {
 		return this==Int || this==Byte || this==Float;
+	}
+	
+	public boolean numeric() {
+		return this==Int || this==Uint || this==Ptr || this==Byte || this == Ubyte;
 	}
 }

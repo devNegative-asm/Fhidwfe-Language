@@ -1,11 +1,6 @@
-digits = ['0','9']
-uppercase_letters = ['A','Z']
-lowercase_letters = ['a','z']
+
 guard
 import one
-import digits
-import uppercase_letters
-import lowercase_letters
 
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string
@@ -99,6 +94,7 @@ function ptr join(strlist:listptr delim:ubyte) {
 }
 
 function void lowerize_inplace(strin:ptr) {
+	temp uppercase_letters = ['A','Z']
 	whilenot = 0b deref_byte$ strin {
 		char = deref_ubyte$ strin
 		if in char uppercase_letters {
@@ -115,6 +111,7 @@ function ptr lowerize_copy(strin:ptr) {
 }
 
 function void capitalize_inplace(strin:ptr) {
+	temp lowercase_letters = ['a','z']
 	whilenot = 0b deref_byte$ strin {
 		char = deref_ubyte$ strin
 		if in char lowercase_letters {
@@ -157,7 +154,8 @@ function int str_to_int (num:ptr) {
 	// str_to_int$ "" = 0
 	// str_to_int$ "-" = 0
 	// str_to_int$ "100" = 100
-	// str_to_int$ "-13josh" = -13
+	// str_to_int$ "-13wot" = -13
+	temp digits = ['0','9']
 	reset negative
 	read = num
 	num1 = 0

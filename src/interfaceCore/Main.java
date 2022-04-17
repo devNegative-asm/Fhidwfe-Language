@@ -10,6 +10,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import assembler.Assembler;
 import compiler.BaseTree;
@@ -17,8 +18,12 @@ import compiler.Instruction;
 import compiler.IntermediateLang;
 import compiler.Lexer;
 import compiler.Parser;
+import compiler.ReplReentrantLexer;
+import compiler.SyntaxTree;
 import compiler.Token;
 import compiler.Translator;
+import interpreter.Eval;
+import interpreter.Value;
 import preprocessor.Preprocessor;
 import settings.CompilationSettings;
 import settings.ConstantPropagater;
@@ -50,16 +55,110 @@ public class Main {
 	};
 	private static final Z80 PROCESSOR = new Z80(MEMORY,operations);
 	
-	
+	public final static char getC() {
+		Pattern previous = interact.delimiter();
+		interact.useDelimiter("");
+		String character = interact.next();
+		interact.useDelimiter(previous);
+		System.out.println("scanned \"" + character+'"');
+		if(character.length()!=1) {
+			throw new RuntimeException("scanned "+character.length()+" chars instead of 1");
+		}
+		return character.toCharArray()[0];
+	}
+
 	public static void main(String[] args) throws IOException, InterruptedException
 	{
-		if(args.length==1) {
+		if(args.length==1 && !args[0].equalsIgnoreCase("repl")) {
 			run(args[0]);
 			System.exit(0);
+		}
+		if(args.length==1 && args[0].equalsIgnoreCase("repl")) {
+			CompilationSettings.Target target = CompilationSettings.Target.REPL;
+			int heapSpace = 2<<22;
+			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapSpace).useTarget(target);
+			ReplReentrantLexer lx = new ReplReentrantLexer(null,settings, x -> (byte) x);
+			ArrayList<Token> tokens = lx.tokenize();
+			tokens.replaceAll(Token::unguardedVersion);
+			Parser p = new Parser(settings);
+			BaseTree tree = p.parse(tokens);
+			p.functionNames().forEach(tree::notifyCalled);
+			tree.typeCheck(); // check that typing is valid, and register all variables in use
+			tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
+			Eval evaluator = new Eval(lx);
+			for(SyntaxTree element:tree.getChildren()) {
+				if(element.getToken().t==Token.Type.FUNCTION)
+					evaluator.evaluate(element);
+			}
+			for(SyntaxTree element:tree.getChildren()) {
+				if(element.getToken().t==Token.Type.EQ_SIGN && element.getTokenString().equals("assign") && element.getChild(0).getTokenString().contains("heap"))
+				{
+					System.out.println(element);
+					try {
+						System.out.println(evaluator.evaluate(element));
+					} catch(RuntimeException e) {
+						System.err.println("was processing");
+						System.err.println(element);
+						throw e;
+					}
+				}
+			}
+			for(SyntaxTree element:tree.getChildren()) {
+				try {
+					evaluator.evaluate(element);
+				} catch(RuntimeException e) {
+					System.err.println("was processing");
+					System.err.println(element);
+					throw e;
+				}
+			}
+			System.out.println("[[Fhidwfe repl]]");
+			System.out.println("[[type code, then type #!! to execute it]]");
+			System.out.println("[[to undo mistakes, type ?!! to reset]]");
+			System.out.println("[[type $!! to exit]]");
+			Scanner scanningInput = new Scanner(System.in).useDelimiter("!!");
+			while(true) {
+				String s = scanningInput.next();
+				if(s.length()==0)
+					continue;
+				switch(s.charAt(s.length()-1)) {
+					case '?':
+						break;
+					case '$':
+						scanningInput.close();
+						System.exit(0);
+						break;
+					case '#':
+						s = s.substring(0,s.length()-1);
+						try {
+							ArrayList<SyntaxTree> currentEval = p.parseAdditional(tree,lx.getMoreTokens(s));
+							try {
+								tree.typeCheck(); // check that typing is valid, and register all variables in use
+								tree.prepareVariables(settings.target.needsAlignment);
+							}catch(RuntimeException e) {
+								tree.getChildren().removeAll(currentEval);
+								throw e;
+							}
+							
+							for(SyntaxTree element:currentEval) {
+								Value result = evaluator.evaluate(element);
+								if(result!=Value.SYNTAX && result!=Value.VOID)
+									System.out.println(" -> "+result.toString());
+							}
+						} catch(RuntimeException e) {
+							e.printStackTrace();
+						}
+						break;
+					default:
+						System.err.println("!! should only be used for repl directives");
+						break;
+				}
+			}
 		}
 		if(args.length!=4) {
 			System.err.println("Usage: java -jar compiler.jar \"main_source.fwf\" \"output_prog\" architecture heap_size_bytes");
 			System.err.println("Or: java -jar compiler.jar \"executable.bin\" to run a z80emu binary");
+			System.err.println("Or: java -jar compiler.jar repl to run in 24 bit repl mode");
 			System.err.println("Possible architectures:");
 			System.err.println("\t\"TI83pz80\": Ti83+ program");
 			System.err.println("\t\"z80Emulator\": z80 ROM, run in emulator");
@@ -97,6 +196,7 @@ public class Main {
 		
 		tree.typeCheck(); // check that typing is valid, and register all variables in use
 		tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
+		
 		ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
 		settings.library.correct(VMCode, p);
 		PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
