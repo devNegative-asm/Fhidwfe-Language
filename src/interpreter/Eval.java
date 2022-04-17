@@ -521,9 +521,11 @@ public class Eval {
 				if(justReturned)
 					break;
 			}
+			Value saveReturn = this.returnValue;
 			for(Value freePtr:temps.pop()) {
 				call("free",freePtr);
 			}
+			returnValue = saveReturn;
 			return Value.SYNTAX;
 		case OPEN_RANGE_EXCLUSIVE:
 		case OPEN_RANGE_INCLUSIVE:

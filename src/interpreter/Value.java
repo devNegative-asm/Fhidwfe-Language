@@ -219,9 +219,6 @@ public class Value implements Comparable<Value>{
 		}
 		if(type==DataType.Bool) {
 			int and = v.value&value;
-			System.out.println(value);
-			System.out.println(v.value);
-			System.out.println(and);
 			if(and==0)
 				return FALSE(ram);
 			return TRUE(ram);
