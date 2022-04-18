@@ -531,7 +531,6 @@ public class Eval {
 		case OPEN_RANGE_INCLUSIVE:
 			//making a list
 			int elements = tree.getChildren().size();
-			int elemCounter = 0;
 			int elemSize = 2;
 			if(elements>=1)
 				elemSize = tree.getChild(0).getType().getSize(Eval.replSettings);

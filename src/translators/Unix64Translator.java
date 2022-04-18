@@ -79,10 +79,10 @@ public class Unix64Translator {
 				comp.add("	mov r8, rdi");
 				comp.add("	mov r9, rsi");
 				comp.add("	pop rdi");
-				comp.add("	ld rsi, rax");
+				comp.add("	mov rsi, rax");
 				comp.add("Fwf_internal_strcpy_"+label+"_imp:");
 				comp.add("	lodsb");
-				comp.add("	test %al, %al");
+				comp.add("	test al, al");
 				comp.add("	stosb");
 				comp.add("	jnz Fwf_internal_strcpy_"+label+"_imp");
 				comp.add("	mov rax, rdi");
