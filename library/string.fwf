@@ -17,7 +17,7 @@ function ptr concat(s1:ptr s2:ptr) {
 		put_byte$ + as loc ptr writer deref_byte$ + s1 as loc ptr 
 	}
 	
-	writer = + writer as len_1 ptr
+	writer2 = + writer as len_1 ptr
 	
 	
 	for uint [0u, len_2) with loc2 {

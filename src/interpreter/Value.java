@@ -137,7 +137,7 @@ public class Value implements Comparable<Value>{
 			val += multiple* Byte.toUnsignedInt(ram.access(this.value+i));
 			multiple = multiple<<8;
 		}
-		if(readType==DataType.Func) {
+		if(readType==DataType.Func || readType==DataType.Op) {
 			return new Value(ram.functionPointerToName(val),ram);
 		} else {
 			return new Value(readType, val, ram);

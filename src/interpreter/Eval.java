@@ -180,7 +180,7 @@ public class Eval {
 		functions.put("binop", new Func("location", "arg1", "arg2"){
 			@Override
 			void call() {
-				Value func = argPointers.peek().get("location").dereference(DataType.Func);
+				Value func = argPointers.peek().get("location").dereference(DataType.Op);
 				Value argument = argPointers.peek().get("arg1").dereference(DataType.Uint);
 				Value argument2 = argPointers.peek().get("arg2").dereference(DataType.Uint);
 				String functionName = func.getFunctionNameString();
@@ -194,7 +194,7 @@ public class Eval {
 		functions.put("putchar", new Func("char"){
 			@Override
 			void call() {
-				Value letter = argPointers.peek().get("char").dereference(DataType.Byte);
+				Value letter = argPointers.peek().get("char").dereference(DataType.Ubyte);
 				System.out.write((byte)letter.signedByteValue());
 				System.out.flush();
 				returnValue = Value.VOID;
@@ -211,7 +211,7 @@ public class Eval {
 			@Override
 			void call() {
 				int l = Main.getC();
-				Eval.this.returnValue = new Value(DataType.Byte,l,ram);
+				Eval.this.returnValue = new Value(DataType.Ubyte,l,ram);
 			}
 		});
 		functions.put("error", new Func("errorString"){
