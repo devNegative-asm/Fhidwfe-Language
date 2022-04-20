@@ -47,5 +47,4 @@
 
 // mult by sign of denom
 // if it was originally negative, add demoninator
-
-println$ "Congrats. You got the compiler running!"
+guard

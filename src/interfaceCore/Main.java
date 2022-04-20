@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Scanner;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -66,13 +68,46 @@ public class Main {
 		return character.toCharArray()[0];
 	}
 
+	
+	private static HashMap<String,String> arguments(String[] args) {
+		HashMap<String,String> map = new HashMap<>();
+		map.put("mode", "compile");
+		String paramName = null;
+		for(int i=0;i<args.length;i++) {
+			if(args[i].startsWith("--")) {
+				if(paramName==null) {
+					paramName = args[i].substring(2);
+				} else {
+					System.err.println("Do not use two --options back to back");
+					System.exit(1);
+				}
+			} else if(args[i].startsWith("-")) {
+				if(paramName==null) {
+					paramName = args[i].substring(1);
+				} else {
+					System.err.println("Do not use two --options back to back");
+					System.exit(1);
+				}
+			} else if(paramName==null) {
+				if(args[i].endsWith(".fwf"))
+					map.put("source", args[i]);
+				else
+					map.put("mode", args[i]);
+			} else {
+				map.put(paramName.toLowerCase(), args[i]);
+				paramName = null;
+			}
+		}
+		return map;
+	}
+	
+	
 	public static void main(String[] args) throws IOException, InterruptedException
 	{
-		if(args.length==1 && !args[0].equalsIgnoreCase("repl")) {
-			run(args[0]);
-			System.exit(0);
-		}
-		if(args.length==1 && args[0].equalsIgnoreCase("repl")) {
+		HashMap<String,String> arguments = arguments(args);
+		
+		
+		if(arguments.get("mode").equalsIgnoreCase("repl")) {
 			CompilationSettings.Target target = CompilationSettings.Target.REPL;
 			int heapSpace = 2<<22;
 			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapSpace).useTarget(target);
@@ -152,96 +187,102 @@ public class Main {
 						break;
 				}
 			}
-		}
-		if(args.length!=4) {
-			System.err.println("Usage: java -jar compiler.jar \"main_source.fwf\" \"output_prog\" architecture heap_size_bytes");
-			System.err.println("Or: java -jar compiler.jar \"executable.bin\" to run a z80emu binary");
-			System.err.println("Or: java -jar compiler.jar repl to run in 24 bit repl mode");
-			System.err.println("Possible architectures:");
-			System.err.println("\t\"TI83pz80\": Ti83+ program");
-			System.err.println("\t\"z80Emulator\": z80 ROM, run in emulator");
-			System.err.println("\t\"WINx64\": windows x64");
-			System.err.println("\t\"LINx64\": unix x64");
-			System.err.println("\t\"WINx86\": unsupported");
-			System.exit(-1);
-		}
-		String binFile = args[1];
-		CompilationSettings.Target target = null;
-		try {
-			 target = CompilationSettings.Target.valueOf(args[2]);
-		} catch(Exception e) {
-			System.err.println("Unrecognized architecture: "+args[2]);
-			System.exit(1);
-		}
-		int heapspace =0;
-		try {
-			heapspace = Integer.parseInt(args[3]);
-			if(heapspace < 0)
-			{ 
-				System.err.println("Invalid heap size: "+args[3]);
+		} else if(arguments.get("mode").equalsIgnoreCase("z80emu")) {
+			if(!arguments.containsKey("binary")) {
+				System.err.println("Usage: java -jar compiler.jar z80emu --binary \"runnable.bin\"");
 				System.exit(1);
 			}
-		} catch(Exception e) {
-			System.err.println("Invalid heap size: "+args[3]);
-			System.exit(1);
-		}
-		CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
-		
-		Lexer lx = new Lexer(new File(args[0]),settings, x -> (byte) x);
-		ArrayList<Token> tokens = lx.tokenize();
-		Parser p = new Parser(settings);
-		BaseTree tree = p.parse(tokens);
-		
-		tree.typeCheck(); // check that typing is valid, and register all variables in use
-		tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
-		
-		ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
-		settings.library.correct(VMCode, p);
-		PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
-		p.verify(VMCode);
-		for(Instruction s:VMCode) {
-			pr1.println(s);
-		}
-		pr1.close();
-		
-		ArrayList<String> assembly = Translator.translate(p, VMCode,false);
-		ConstantPropagater.propagateConstants(assembly);
-		PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
-		for(String ins:assembly) {
-			pr.println(ins);
-		}
-		pr.close();
-		
-		switch(target) {
-		case TI83pz80:
-			Preprocessor.process(binFile+".asm");
-			Assembler.assemble(binFile+".prc", binFile+".bin");
-			Packager.to8xp(binFile+".bin");
-			break;
-		case LINx64:
-			break;
-		case WINx64:
-		case WINx86:
-			break;
-		case z80Emulator:
-			Preprocessor.process(binFile+".asm");
-			Assembler.assemble(binFile+".prc", binFile+".bin");
-			run(binFile+".bin");
-			break;
-		}
-		
-		if(binFile!=null) {
-			//try to save the assembly file, preprocess it, assemble it
+			run(arguments.get("binary"));
+			System.exit(0);
+		} else if(arguments.get("mode").equalsIgnoreCase("compile")) {
+			String compilationTarget = arguments.get("target");
+			String outputFile = arguments.get("o");
+			String heapSize = arguments.get("heap-size");
+			String binFile = outputFile;
+			String source = arguments.get("source");
+			if(outputFile == null || binFile == null || source == null)
+				printUsage();
 			
-			
-			
-		} else {
-			for(String ins:assembly) {
-				System.out.println(ins);
+			CompilationSettings.Target target = null;
+			try {
+				 target = CompilationSettings.Target.valueOf(compilationTarget);
+			} catch(Exception e) {
+				System.err.println("Unrecognized architecture: "+compilationTarget);
+				System.err.println("Must be one of "+Arrays.toString(CompilationSettings.Target.values()));
+				System.exit(1);
 			}
-		}
+			int heapspace = 0;
+			if(heapSize!=null)
+				try {
+					heapspace = Integer.parseInt(heapSize);
+					if(heapspace < 0)
+					{ 
+						System.err.println("Invalid heap size: "+heapSize);
+						System.exit(1);
+					}
+				} catch(Exception e) {
+					System.err.println("Invalid heap size: "+heapSize);
+					System.exit(1);
+				}
+			
+			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
+			Lexer lx = new Lexer(new File(source),settings, x -> (byte) x);
+			ArrayList<Token> tokens = lx.tokenize();
+			Parser p = new Parser(settings);
+			BaseTree tree = p.parse(tokens);
+			
+			tree.typeCheck(); // check that typing is valid, and register all variables in use
+			tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
+			
+			ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
+			settings.library.correct(VMCode, p);
+			PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
+			p.verify(VMCode);
+			for(Instruction s:VMCode) {
+				pr1.println(s);
+			}
+			pr1.close();
+			
+			ArrayList<String> assembly = Translator.translate(p, VMCode,false);
+			ConstantPropagater.propagateConstants(assembly);
+			PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
+			for(String ins:assembly) {
+				pr.println(ins);
+			}
+			pr.close();
+			
+			switch(target) {
+			case TI83pz80:
+				Preprocessor.process(binFile+".asm");
+				Assembler.assemble(binFile+".prc", binFile+".bin");
+				Packager.to8xp(binFile+".bin");
+				break;
+			case LINx64:
+				break;
+			case WINx64:
+			case WINx86:
+				break;
+			case z80Emulator:
+				Preprocessor.process(binFile+".asm");
+				Assembler.assemble(binFile+".prc", binFile+".bin");
+				run(binFile+".bin");
+				break;
+			}
+		} else
+			printUsage();
+		
 	}
 	
+	private static void printUsage() {
+		System.err.println("usage (pick one): ");
+		System.err.println("java -jar compiler.jar repl");
+		System.err.println("java -jar compiler.jar z80emu --binary ROM.bin");
+		System.err.println("java -jar compiler.jar source.fwf --o outputfile --target (TI83pz80 | LINx64 | WINx64 | z80Emulator) [--heap-size heap_size_bytes]");
+		
+		System.exit(1);
+	}
+
+
 	public static void run(String infile) throws InterruptedException, IOException
 	{
 		MEMORY.setPorts(PORTS);

@@ -632,9 +632,6 @@ public class Parser {
 			case IF_NE:
 			case IF_LE:
 				root.addChild(parseExpr(t,root,false)).addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
-				if(root.getChild(0).getType()!=root.getChild(1).getType()) {
-					pe("types "+root.getChild(0).getType()+" and "+root.getChild(1).getType()+" are not comparable");
-				}
 				break;
 			case SHIFT_LEFT:
 				pe("result from shift unused");

@@ -467,6 +467,9 @@ public class Lexer {
 				} else if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
 				} else {
+					if((!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
+						throw new RuntimeException("Identifier "+tok+" is too short at line "+this.lineNumber+" in "+files.get(0).getName()+"\nconsider using 'guard' ");
+					}
 					tk = new Token(tok,Token.Type.IDENTIFIER,guarded && !imported.contains(tok),fileIn);
 				}
 			} else {
