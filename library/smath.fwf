@@ -125,3 +125,40 @@ function byte sbmod(a:byte b:byte) {
 	}
 	return possible
 }
+
+function uint uint_pow(base:uint exponent:uint) {
+	if = 0u exponent {
+		return 1u
+	} ;
+	if = 1u & exponent 1u {
+		return * base uint_pow$ * base base >> exponent
+	} ;
+	return uint_pow$ * base base >> exponent
+}
+
+
+function int shift_r_arithmetic(x:int c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+function uint shift_right(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = >> x
+		c = - c 1u
+	}
+	return x
+}
+alias int shift_left(x:int c:uint)
+function uint shift_left(x:uint c:uint) {
+	c = & c - ?8u 1u
+	while > c 0u {
+		x = << x
+		c = - c 1u
+	}
+	return x
+}

@@ -274,7 +274,7 @@ public class Lexer {
 	 * Takes the input files this object was constructed with and turns them into a token list
 	 * @return the token list
 	 */
-	public ArrayList<Token> tokenize()
+	public ArrayList<Token> tokenize(boolean inRepl)
 	{
 		ArrayDeque<Expecting> whereami = new ArrayDeque<>();
 		whereami.push(Expecting.OUTER);
@@ -329,7 +329,7 @@ public class Lexer {
 			} else if(tok.equals("is")) {
 				tk = new Token(tok,Token.Type.IS,guarded,fileIn);
 			} else if(tok.equals("guard")) {
-				guarded = true;
+				guarded = !inRepl;
 				continue;
 			} else if(tok.equals("as")) {
 				tk = new Token(tok,Token.Type.AS,guarded,fileIn);
@@ -467,7 +467,7 @@ public class Lexer {
 				} else if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
 				} else {
-					if((!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
+					if((!inRepl) && (!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
 						throw new RuntimeException("Identifier "+tok+" is too short at line "+this.lineNumber+" in "+files.get(0).getName()+"\nconsider using 'guard' ");
 					}
 					tk = new Token(tok,Token.Type.IDENTIFIER,guarded && !imported.contains(tok),fileIn);
@@ -510,7 +510,7 @@ public class Lexer {
 	ArrayList<Token> lexMoreTokens(Scanner sc, String fileName) {
 		this.files.add(new fakeFile(fileName));
 		this.scan.add(sc);
-		return this.tokenize();
+		return this.tokenize(true);
 	}
 	
 }

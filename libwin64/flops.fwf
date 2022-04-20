@@ -37,16 +37,6 @@ function float f_pow_int(base:float exponent:int) {
 	return f_pow_int$ * base base >> exponent
 }
 
-function uint uint_pow(base:uint exponent:uint) {
-	if = 0u exponent {
-		return 1u
-	} ;
-	if = 1u & exponent 1u {
-		return * base uint_pow$ * base base >> exponent
-	} ;
-	return uint_pow$ * base base >> exponent
-}
-
 function float round(f:float d:uint) {
 	//round f*10^d
 	tenp = f_pow_int$ 10. as d int
@@ -55,32 +45,6 @@ function float round(f:float d:uint) {
 		return + 1. intpart$ f
 	} ;
 	return intpart$ f
-}
-
-function int shift_r_arithmetic(x:int c:uint) {
-	c = & c - ?8u 1u
-	while > c 0u {
-		x = >> x
-		c = - c 1u
-	}
-	return x
-}
-function uint shift_right(x:uint c:uint) {
-	c = & c - ?8u 1u
-	while > c 0u {
-		x = >> x
-		c = - c 1u
-	}
-	return x
-}
-alias int shift_left(x:int c:uint)
-function uint shift_left(x:uint c:uint) {
-	c = & c - ?8u 1u
-	while > c 0u {
-		x = << x
-		c = - c 1u
-	}
-	return x
 }
 
 function uint bitconvert(f:float) {

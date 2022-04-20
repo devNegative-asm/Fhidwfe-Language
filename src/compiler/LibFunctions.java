@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import settings.CompilationSettings;
+import settings.CompilationSettings.Target;
 
 /**
  * Store of code necessary to interact with the OS of each architecture
@@ -104,6 +105,8 @@ public class LibFunctions {
 			p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Int), DataType.Int, "smod");
 			p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Byte), DataType.Byte, "sbdiv");
 			p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Byte), DataType.Byte, "sbmod");
+			
+			p.registerLibFunction(Arrays.asList(), DataType.Void, "draw");
 			break;
 		case WINx64:
 		case WINx86:
@@ -208,6 +211,8 @@ public class LibFunctions {
 			p.inlineReplace("putchar");
 			p.inlineReplace("strcpy");
 			p.inlineReplace("getc");
+			
+			p.inlineReplace("draw");
 		}
 		if(architecture==CompilationSettings.Target.z80Emulator) {
 			p.inlineReplace("putln");
@@ -703,6 +708,14 @@ public class LibFunctions {
 								InstructionType.strcpy.cv()
 						);
 						break;
+					case "draw":
+						switch(architecture) {
+							case TI83pz80:
+								replacement = Arrays.asList(InstructionType.syscall_noarg.cv("_GrBufCpy"));
+								break;
+							default:
+								throw new UnsupportedOperationException("graphics on "+architecture+" not supported yet");
+						}
 					default:
 						break;
 				}
@@ -742,6 +755,9 @@ public class LibFunctions {
 			tree.addConstantValue("NaN", DataType.Float);
 			tree.addConstantValue("pos_infinity", DataType.Float);
 			tree.addConstantValue("neg_infinity", DataType.Float);
+		}
+		if(architecture==Target.TI83pz80) {
+			tree.addConstantValue("plotSScreen", DataType.Ptr);
 		}
 	}
 }

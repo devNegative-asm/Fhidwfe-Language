@@ -1,0 +1,15 @@
+guard
+import plotSScreen
+buffer_size = * 12 64
+function void draw_pixel(x:int y:int) {
+	temp xRange = [0,96)
+	temp yRange = [0,64)
+	if &&
+		in x xRange
+		in y yRange {
+		
+		target_byte = @ptr + * 12 y >> >> >> x
+		bitmask = @byte shift_right$ 128u @uint & x 7
+		put_byte$ + plotSScreen target_byte bitmask
+	} ;
+}

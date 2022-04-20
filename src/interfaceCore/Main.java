@@ -112,7 +112,7 @@ public class Main {
 			int heapSpace = 2<<22;
 			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapSpace).useTarget(target);
 			ReplReentrantLexer lx = new ReplReentrantLexer(null,settings, x -> (byte) x);
-			ArrayList<Token> tokens = lx.tokenize();
+			ArrayList<Token> tokens = lx.tokenize(true);
 			tokens.replaceAll(Token::unguardedVersion);
 			Parser p = new Parser(settings);
 			BaseTree tree = p.parse(tokens);
@@ -227,7 +227,7 @@ public class Main {
 			
 			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
 			Lexer lx = new Lexer(new File(source),settings, x -> (byte) x);
-			ArrayList<Token> tokens = lx.tokenize();
+			ArrayList<Token> tokens = lx.tokenize(false);
 			Parser p = new Parser(settings);
 			BaseTree tree = p.parse(tokens);
 			

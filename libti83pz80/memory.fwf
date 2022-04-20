@@ -7,15 +7,9 @@ import null
 import one
 import int_size
 
-alias uint sizeof(a:listbyte)
-alias uint sizeof(a:listubyte)
-alias uint sizeof(a:listptr)
-alias uint sizeof(a:listuint)
-alias uint sizeof(a:listint)
 
 alias void put_byte(a:ptr b:ubyte)//don't penalize for not using the right one
 alias void put_ubyte(a:ptr b:byte)
-
 
 function uint sizeof(input:ptr) {
 	return deref_uint$ - input as ? 1 ptr
