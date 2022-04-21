@@ -37,6 +37,8 @@ function int access_word(list:listint index:uint) {
 }
 
 alias ubyte access_byte(a:listubyte a:uint)
+alias byte access_byte(a:listbyte a:int)
+alias ubyte access_byte(a:listubyte a:int)
 function byte access_byte(list:listbyte index:uint) {
 	if = as list ptr null {
 		error$ "nullptr"
