@@ -10,6 +10,7 @@ function void draw_pixel(x:int y:int) {
 		
 		target_byte = @ptr + * 12 y >> >> >> x
 		bitmask = @byte shift_right$ 128u @uint & x 7
-		put_byte$ + plotSScreen target_byte bitmask
+		placement = + plotSScreen target_byte
+		put_byte$ placement | bitmask deref_byte$ placement
 	} ;
 }

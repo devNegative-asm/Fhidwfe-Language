@@ -161,8 +161,17 @@ public class Unix64Translator {
 				int spaceNeeded = Integer.parseInt(args[0]);
 				comp.addAll(Arrays.asList(
 						"	push rbp",
-						"	mov rbp, rsp",
-						"	sub rsp, "+spaceNeeded));
+						"	mov rbp, rsp"));
+				int pushes = spaceNeeded / 8;
+				for(int i=0;i<pushes;i++)
+					comp.add("	push 0");
+				int space = spaceNeeded & 7;
+				if(space!=0) {
+					comp.add("	mov al, 0");
+					comp.add("	sub rsp, "+space);
+					for(int i=0;i<space;i++)
+						comp.add("	mov [rsp+"+i+"], al");
+				}
 				if(stackDepth!=0)
 					throw new RuntimeException("@@contact devs. Unknown stack-related error while translating "+"stack depth not 0 before function def "+args[0]);
 				stackDepth=0;
