@@ -490,7 +490,7 @@ public class SyntaxTree extends BaseTree{
 	
 	private DataType checkEqualityMath()
 	{
-		SyntaxTree[] children = children(2);
+		SyntaxTree[] children = children(2,4);
 		DataType type1 = children[0].getType();
 		DataType type2 = children[0].getType();
 		if(type1==Ptr && !type2.builtin())
