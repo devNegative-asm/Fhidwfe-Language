@@ -554,6 +554,7 @@ public class Parser {
 						if(t.get(0).t!=Token.Type.IDENTIFIER)
 							pe("need identifier to loop over");
 						root.addChild(t.remove(0));
+						root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
 						root.addChild(parseBlock(t,root));
 						break;
 					default:
@@ -591,6 +592,7 @@ public class Parser {
 						pe("expected argument type");
 					
 					root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
+					root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
 				}
 				if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
 					pe("expected ) to end function definition");
@@ -648,13 +650,8 @@ public class Parser {
 					root = new SyntaxTree(t.remove(0),this,lastRoot.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
-				BaseTree uber = parent;
-				while(uber instanceof SyntaxTree) {
-					uber =((SyntaxTree)uber).getParent();
-				}
 				Token secondToken = t.remove(0);
 				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
-					uber.typeCheck();//get type information so I can look at what type this is
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
 					parent.notifyCalled(classFunc);
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
@@ -679,7 +676,10 @@ public class Parser {
 					}
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-					return newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					
+					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					return newRoot;
 				}
 				
 				break;
@@ -888,11 +888,13 @@ public class Parser {
 		ArrayList<ArrayList<DataType>> inputsAndAliases = fnInputTypes.get(memberClass.name()+"."+fnname.s);
 		ArrayList<DataType> outputs = fnOutputTypes.get(memberClass.name()+"."+fnname.s);
 		//oh no, how do we deal with functions by the same name in multiple types?
-		
+		Token thisToken = new Token("this",Token.Type.IDENTIFIER,fnname.guarded(),functionToken.srcFile());
 		inputsAndAliases.forEach(list -> list.add(0, memberClass));
 		root.addChild(
-				new SyntaxTree(new Token("this",Token.Type.IDENTIFIER,fnname.guarded(),functionToken.srcFile()),this,root)
+				new SyntaxTree(thisToken,this,root)
 				.addChild(new Token(memberClass.name(),Token.Type.FUNCTION_ARG_TYPE,false,functionToken.srcFile())));
+
+		root.addVariableToScope(thisToken, thisToken.s, memberClass);
 		for(int i=0;i<inputsAndAliases.get(0).size()-1; i++) {
 			Token param = t.remove(0);
 			if(param.t!=Token.Type.FUNCTION_ARG)
@@ -909,6 +911,8 @@ public class Parser {
 				pe("expected argument type");
 			
 			root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
+
+			root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
 		}
 		if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
 			pe("expected ) to end function definition");
@@ -1045,6 +1049,7 @@ public class Parser {
 						if(t.get(0).t!=Token.Type.IDENTIFIER)
 							pe("need identifier to loop over");
 						root.addChild(t.remove(0));
+						root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
 						root.addChild(parseBlock(t,root));
 						break;
 					default:
@@ -1121,9 +1126,11 @@ public class Parser {
 					}
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-					return newRoot.addChild(new SyntaxTree(root.getToken(),this,newRoot))
+					newRoot.addChild(root.copyWithDifferentParent(newRoot))
 							.addChild(parseExpr(t,newRoot,true))
 							.addChild(new SyntaxTree(myTok,this,newRoot));
+					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					return newRoot;
 				}
 				break;
 			case IDENTIFIER:
@@ -1132,13 +1139,10 @@ public class Parser {
 					root = new SyntaxTree(t.remove(0),this,lastRoot.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
-				BaseTree uber = parent;
-				while(uber instanceof SyntaxTree) {
-					uber =((SyntaxTree)uber).getParent();
-				}
 				secondToken = t.remove(0);
 				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
-					uber.typeCheck();//get type information so I can look at what type this is
+					System.out.println();
+					System.out.println(root);
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
 					parent.notifyCalled(classFunc);
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
@@ -1162,8 +1166,12 @@ public class Parser {
 						pe("bare identifier not used for assignment");
 					}
 				} else {
+					
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-					return newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					
+					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					return newRoot;
 				}
 				
 				break;
@@ -1349,13 +1357,8 @@ public class Parser {
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
 				
-				BaseTree uber = parent;
-				while(uber instanceof SyntaxTree) {
-					uber =((SyntaxTree)uber).getParent();
-				}
 				if((!t.isEmpty())&&t.get(0).t==Token.Type.CLASS_FUNC_CALL) {
 					Token secondToken = t.remove(0);
-					uber.typeCheck();//get type information so I can look at what type this is
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
 					parent.notifyCalled(classFunc);
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);

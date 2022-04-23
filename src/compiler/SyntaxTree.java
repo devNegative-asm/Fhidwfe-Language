@@ -3,6 +3,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
+
 import static compiler.DataType.*;
 /**
  * Non-root syntax tree nodes
@@ -506,6 +508,9 @@ public class SyntaxTree extends BaseTree{
 	}
 	
 	private HashMap<String,DataType> scopeTypings = new HashMap<>();
+	public Set<String> scopeVars() {
+		return scopeTypings.keySet();
+	}
 	@Override
 	public DataType resolveVariableType(String varname, String linenum)
 	{
@@ -990,6 +995,17 @@ public class SyntaxTree extends BaseTree{
 			}
 			getChild(2).getType();
 			getChild(3).getType();
+			break;
+		case CLASS_FUNC_CALL:
+			throw new RuntimeException("should not be here");
+		case TYPE_DEFINITION:
+			for(SyntaxTree childTree:this.children()) {
+				if(childTree.getTokenType()==Token.Type.FUNCTION) {
+					childTree.getType();
+				}
+			}
+			break;
+		default:
 			break;
 		
 		}

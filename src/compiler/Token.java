@@ -78,7 +78,12 @@ public class Token {
 				.CASE(Byte, "b")
 				.CASE(Ubyte, "ub")
 				.CASE(Float, "f")
-				.DEFAULT_THROW(new RuntimeException("Cannot compare type "+inputType+" at line "+this.linenum))
+				.DEFAULT(() -> {
+					if(Token.this.t==Token.Type.IF_EQ || Token.this.t==Token.Type.IF_NE && !inputType.builtin()) {
+						return "ui";
+					} else
+						throw new RuntimeException("Cannot compare type "+inputType+" at line "+Token.this.linenum);
+					})
 				.get();
 		
 		return InstructionType.valueOf(resultString);

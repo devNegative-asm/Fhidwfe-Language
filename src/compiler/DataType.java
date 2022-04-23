@@ -327,6 +327,8 @@ public class DataType{
 	}
 	
 	public static DataType valueOf(String name) {
+		if(Character.isLowerCase(name.charAt(0)))
+			name = Character.toUpperCase(name.charAt(0))+name.substring(1);
 		DataType type = namedTypes.get(name); 
 		if(type == null)
 			throw new IllegalArgumentException("Type by name of "+name.toLowerCase()+" not found");
