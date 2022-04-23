@@ -487,6 +487,21 @@ public class SyntaxTree extends BaseTree{
 		}
 		return null;
 	}
+	
+	private DataType checkEqualityMath()
+	{
+		SyntaxTree[] children = children(2);
+		DataType type1 = children[0].getType();
+		DataType type2 = children[0].getType();
+		if(type1==Ptr && !type2.builtin())
+			return Bool;
+		if(type2==Ptr && !type1.builtin())
+			return Bool;
+		if(type1==type2)
+			return Bool;
+		return checkBinaryMath();
+		
+	}
 	/**
 	 * Check that the one and only child of this syntax tree has a mathematical type
 	 * @return the type of the child
@@ -669,7 +684,8 @@ public class SyntaxTree extends BaseTree{
 					unexpected(resolveVariableType(children(2,3)[0].getTokenString(), getToken().linenum),child.getType());
 				ret = DataType.Void;
 			} else {
-				ret = checkBinaryMath();
+				
+				ret = checkEqualityMath();
 				ret = DataType.Bool;
 			}
 			break;
