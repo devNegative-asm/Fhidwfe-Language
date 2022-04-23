@@ -994,9 +994,7 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case IF_EQ:
 		case IF_NE:
-			if(getChild(0).getType()!=getChild(1).getType()) {
-				mismatch(getChild(0).getType(), getChild(1).getType());
-			}
+			checkEqualityMath();
 			getChild(2).getType();
 			getChild(3).getType();
 			break;
