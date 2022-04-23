@@ -1141,8 +1141,6 @@ public class Parser {
 				}
 				secondToken = t.remove(0);
 				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
-					System.out.println();
-					System.out.println(root);
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
 					parent.notifyCalled(classFunc);
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
