@@ -9,11 +9,14 @@ uint64_t Fwf_internal_malloc(uint64_t s)
 {
 	uint64_t * ret = (uint64_t*) malloc(sizeof(uint64_t) + s);
 	*ret = s;
+	fflush(stdout);
 	return (uint64_t) &ret[1];
 }
 
 uint64_t Fwf_internal_free(uint64_t ptr)
 {
+	if(ptr == 0)
+		return 0;
 	free(((uint64_t*)ptr) - 1);
 	return 0;
 }
