@@ -888,7 +888,7 @@ public class IntermediateLang {
 				
 				//get size of list
 
-				//stack depth				
+				//stack depth
 				
 				
 				results.add(InstructionType.copy.cv());//2

@@ -1056,7 +1056,7 @@ public class SyntaxTree extends BaseTree{
 	private void checkEndsWithAReturn()
 	{
 		//last "token" in the code block must be a return
-		if(this.children()[this.children().length-1].children()[this.children()[this.children().length-1].children().length-1].getTokenType()!=Token.Type.RETURN)		
+		if(this.children()[this.children().length-1].children()[this.children()[this.children().length-1].children().length-1].getTokenType()!=Token.Type.RETURN)
 			throw new RuntimeException("Function "+this.getChild(1).getTokenString()+" does not end with a return at line "+myToken.linenum);
 	}
 	/**

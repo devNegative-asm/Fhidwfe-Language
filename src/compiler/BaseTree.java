@@ -359,4 +359,12 @@ public class BaseTree {
 	public String functionIn() {
 		return null;
 	}
+	public boolean hasVariable(String s) {
+		try {
+			this.resolveVariableType(s, "");
+			return true;
+		}catch(Exception e) {
+			return false;
+		}
+	}
 }

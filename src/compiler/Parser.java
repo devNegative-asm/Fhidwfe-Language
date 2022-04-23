@@ -554,7 +554,8 @@ public class Parser {
 						if(t.get(0).t!=Token.Type.IDENTIFIER)
 							pe("need identifier to loop over");
 						root.addChild(t.remove(0));
-						root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
+						if(!parent.hasVariable(root.getTokenString()))
+							root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
 						root.addChild(parseBlock(t,root));
 						break;
 					default:
@@ -592,7 +593,8 @@ public class Parser {
 						pe("expected argument type");
 					
 					root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
-					root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
+					if(!parent.hasVariable(root.getTokenString()))
+						root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
 				}
 				if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
 					pe("expected ) to end function definition");
@@ -625,7 +627,7 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = myTok.s.substring(0, myTok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-				if(this.fnInputTypes.containsKey(callname))	{
+				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
@@ -678,7 +680,8 @@ public class Parser {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					
 					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
-					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					if(!parent.hasVariable(root.getTokenString()))
+						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
 					return newRoot;
 				}
 				
@@ -1049,7 +1052,8 @@ public class Parser {
 						if(t.get(0).t!=Token.Type.IDENTIFIER)
 							pe("need identifier to loop over");
 						root.addChild(t.remove(0));
-						root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
+						if(!parent.hasVariable(root.getTokenString()))
+							root.addVariableToScope(forLoopType, root.getChild(2).getTokenString(), DataType.valueOf(forLoopType.s));
 						root.addChild(parseBlock(t,root));
 						break;
 					default:
@@ -1091,7 +1095,7 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-				if(this.fnInputTypes.containsKey(callname))	{
+				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
@@ -1129,7 +1133,8 @@ public class Parser {
 					newRoot.addChild(root.copyWithDifferentParent(newRoot))
 							.addChild(parseExpr(t,newRoot,true))
 							.addChild(new SyntaxTree(myTok,this,newRoot));
-					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					if(!parent.hasVariable(root.getTokenString()))
+						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
 					return newRoot;
 				}
 				break;
@@ -1146,7 +1151,7 @@ public class Parser {
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					call.addChild(root);
 					root = call;
-					if(this.fnInputTypes.containsKey(classFunc))	{
+					if(this.fnInputTypes.containsKey(classFunc)) {
 						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
 						for(int i=0;i<args;i++)
 						{
@@ -1168,7 +1173,8 @@ public class Parser {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					
 					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
-					parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
+					if(!parent.hasVariable(root.getTokenString()))
+						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
 					return newRoot;
 				}
 				
@@ -1407,7 +1413,7 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-				if(this.fnInputTypes.containsKey(callname))	{
+				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
