@@ -593,8 +593,7 @@ public class Parser {
 						pe("expected argument type");
 					
 					root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
-					if(!parent.hasVariable(root.getTokenString()))
-						root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
+					root.addVariableToScope(fnname, param.s, DataType.valueOf(ttype.unguardedVersion().tokenString()));
 				}
 				if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
 					pe("expected ) to end function definition");
