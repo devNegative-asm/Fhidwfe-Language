@@ -133,6 +133,11 @@ public class SyntaxTree extends BaseTree{
 				localVariables.add(new Variable(name.substring(1),Location.LOCAL,var.getType(),theParser));
 			});
 		}
+		else if (this.myToken.t==Token.Type.TYPE_DEFINITION) {
+			for(SyntaxTree child:children()) {
+				child.prepareVariables(align);
+			}
+		}
 		prepared = true;
 		
 	}
@@ -999,6 +1004,13 @@ public class SyntaxTree extends BaseTree{
 		case FOR:
 			this.getChild(1).getType();
 			this.getChild(3).getType();
+			break;
+		case TYPE_DEFINITION:
+			for(SyntaxTree child:this.getChildren()) {
+				if(child.getTokenType()==Token.Type.FUNCTION) {
+					child.getType();
+				}
+			}
 			break;
 		default:
 			typeCheck();

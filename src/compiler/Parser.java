@@ -195,8 +195,25 @@ public class Parser {
 	 */
 	private void functionSignatures(ArrayList<Token> t) {
 		try {
+			int typeDepth = 0;
+			String type = "";
 			for(int i=0;i<t.size();i++)
 			{
+				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
+					typeDepth++;
+					type = t.get(i+1).s+".";
+					i+=2;
+					continue;
+				}
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.OPEN_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.OPEN_RANGE_INCLUSIVE))
+					typeDepth++;
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.CLOSE_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.CLOSE_RANGE_INCLUSIVE))
+					typeDepth--;
+				if(typeDepth<=0) {
+					type="";
+					typeDepth = 0;
+				}
+				
 				if(t.get(i).t==Token.Type.FUNCTION)
 				{
 					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
@@ -212,7 +229,7 @@ public class Parser {
 						}
 						if(t.get(i+2).t==Token.Type.FUNCTION_NAME)
 						{
-							String name = t.get(i+2).s;
+							String name = type+t.get(i+2).s;
 							if(this.hasFunction(name)){
 								throw new RuntimeException("Function "+name+" defined in multiple places at line "+t.get(i+2).linenum);
 							}
@@ -226,10 +243,10 @@ public class Parser {
 										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
 								{
 									DataType argtype = null;
-									String type =  t.get(i+6+argCount*3).s;
-									type = Character.toUpperCase(type.charAt(0))+type.substring(1);
+									String argType =  t.get(i+6+argCount*3).s;
+									argType = Character.toUpperCase(argType.charAt(0))+argType.substring(1);
 									try{
-										argtype = DataType.valueOf(type);
+										argtype = DataType.valueOf(argType);
 									} catch(Exception e)
 									{
 										printFuncError("not a valid type",t.get(i+6+argCount*3));
@@ -294,10 +311,10 @@ public class Parser {
 										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
 								{
 									DataType argtype = null;
-									String type =  t.get(i+6+argCount*3).s;
-									type = Character.toUpperCase(type.charAt(0))+type.substring(1);
+									String argType =  t.get(i+6+argCount*3).s;
+									argType = Character.toUpperCase(argType.charAt(0))+argType.substring(1);
 									try{
-										argtype = DataType.valueOf(type);
+										argtype = DataType.valueOf(argType);
 									} catch(Exception e)
 									{
 										printFuncError("not a valid type",t.get(i+6+argCount*3));
@@ -628,11 +645,31 @@ public class Parser {
 			case IDENTIFIER:
 				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
 					SyntaxTree lastRoot = root;
-					root = new SyntaxTree(t.remove(0),this,root.getParent());
+					root = new SyntaxTree(t.remove(0),this,lastRoot.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
+				BaseTree uber = parent;
+				while(uber instanceof SyntaxTree) {
+					uber =((SyntaxTree)uber).getParent();
+				}
 				Token secondToken = t.remove(0);
-				if(secondToken.t!=Token.Type.EQ_SIGN)
+				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
+					uber.typeCheck();//get type information so I can look at what type this is
+					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
+					parent.notifyCalled(classFunc);
+					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+					call.addChild(root);
+					root = call;
+					if(this.fnInputTypes.containsKey(classFunc)) {
+						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
+						for(int i=0;i<args;i++)
+						{
+							root.addChild(parseExpr(t,root,false));
+						}
+					} else {
+						pe("function not found");
+					}
+				} else if(secondToken.t!=Token.Type.EQ_SIGN)
 				{
 					if(this.fnInputTypes.containsKey(root.getToken().s))
 					{
@@ -777,7 +814,7 @@ public class Parser {
 					throw new RuntimeException("type name must be a valid identifier "
 							+typeNameToken.tokenString()+" at line "+typeNameToken.linenum);
 				}
-					
+				root.addChild(typeNameToken);
 				String typeName = typeNameToken.tokenString();
 				
 				if(!Character.isUpperCase(typeName.charAt(0))) {
@@ -793,8 +830,16 @@ public class Parser {
 				
 				Token fieldTok = t.remove(0);
 				while(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
-					if(fieldTok.t!=Token.Type.IDENTIFIER)
-						throw new RuntimeException("Expected proper field name in definition of "+typeName+" at line "+fieldTok.linenum);
+					if(fieldTok.t!=Token.Type.IDENTIFIER) {
+						while(fieldTok.t==Token.Type.FUNCTION) {
+							SyntaxTree funcTree = parseClassFunction(fieldTok,t,userType, root);
+							root.addChild(funcTree);
+							fieldTok = t.remove(0);
+						}
+						if(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE)
+							throw new RuntimeException("Expected proper field name or function in definition of "+typeName+" at line "+fieldTok.linenum);
+						break;
+					}
 					String idName = fieldTok.unguardedVersion().s;
 					fieldTok = t.remove(0);
 					if(fieldTok.t!=Token.Type.FUNCTION_ARG_COLON)
@@ -816,16 +861,60 @@ public class Parser {
 					}
 					fieldTok = t.remove(0);
 				}
-				if(t.size()!=0)
-					return parseOuter(t,parent);
-				else
-					throw new RuntimeException("last line in program cannot be a typedef");
+				return root;
 			case WITH:
 				pe("expected with after for");
 				break;
 		
 		}
 		return root;
+	}
+	private SyntaxTree parseClassFunction(Token functionToken, ArrayList<Token> t, DataType memberClass, SyntaxTree parent) {
+		SyntaxTree root = new SyntaxTree(functionToken,this,parent);
+		Token retType = t.remove(0);
+		if(retType.t!=Token.Type.FUNCTION_RETTYPE)
+			pe("expected return type");
+		root.addChild(retType);
+		
+		Token fnname = t.remove(0);
+		if(fnname.t!=Token.Type.FUNCTION_NAME)
+			pe("expected function name");
+		
+		root.addChild(new Token(memberClass.name()+"."+fnname.tokenString(),Token.Type.FUNCTION_NAME,false,fnname.srcFile()));
+		
+		if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_L)
+			pe("expected (");
+		
+		ArrayList<ArrayList<DataType>> inputsAndAliases = fnInputTypes.get(memberClass.name()+"."+fnname.s);
+		ArrayList<DataType> outputs = fnOutputTypes.get(memberClass.name()+"."+fnname.s);
+		//oh no, how do we deal with functions by the same name in multiple types?
+		
+		inputsAndAliases.forEach(list -> list.add(0, memberClass));
+		root.addChild(
+				new SyntaxTree(new Token("this",Token.Type.IDENTIFIER,fnname.guarded(),functionToken.srcFile()),this,root)
+				.addChild(new Token(memberClass.name(),Token.Type.FUNCTION_ARG_TYPE,false,functionToken.srcFile())));
+		for(int i=0;i<inputsAndAliases.get(0).size()-1; i++) {
+			Token param = t.remove(0);
+			if(param.t!=Token.Type.FUNCTION_ARG)
+			{
+				System.err.println(param);
+				pe("expected function argument");
+			}
+			Token colon = t.remove(0);
+			if(colon.t!=Token.Type.FUNCTION_ARG_COLON)
+				pe("expected type marker :");
+			
+			Token ttype = t.remove(0);
+			if(ttype.t!=Token.Type.FUNCTION_ARG_TYPE)
+				pe("expected argument type");
+			
+			root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
+		}
+		if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
+			pe("expected ) to end function definition");
+		root.addChild(parseBlock(t,root));
+		return root;
+		
 	}
 	private SyntaxTree parseInner(ArrayList<Token> t, BaseTree parent) {
 		final boolean ENABLE_IF_PIPELINING = true;
@@ -1040,11 +1129,31 @@ public class Parser {
 			case IDENTIFIER:
 				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
 					SyntaxTree lastRoot = root;
-					root = new SyntaxTree(t.remove(0),this,root.getParent());
+					root = new SyntaxTree(t.remove(0),this,lastRoot.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
+				BaseTree uber = parent;
+				while(uber instanceof SyntaxTree) {
+					uber =((SyntaxTree)uber).getParent();
+				}
 				secondToken = t.remove(0);
-				if(secondToken.t!=Token.Type.EQ_SIGN)
+				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
+					uber.typeCheck();//get type information so I can look at what type this is
+					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
+					parent.notifyCalled(classFunc);
+					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+					call.addChild(root);
+					root = call;
+					if(this.fnInputTypes.containsKey(classFunc))	{
+						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
+						for(int i=0;i<args;i++)
+						{
+							root.addChild(parseExpr(t,root,false));
+						}
+					} else {
+						pe("function not found");
+					}
+				} else if(secondToken.t!=Token.Type.EQ_SIGN)
 				{
 					if(this.fnInputTypes.containsKey(root.getToken().s))
 					{
@@ -1238,6 +1347,29 @@ public class Parser {
 					SyntaxTree lastRoot = root;
 					root = new SyntaxTree(t.remove(0),this,root.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
+				}
+				
+				BaseTree uber = parent;
+				while(uber instanceof SyntaxTree) {
+					uber =((SyntaxTree)uber).getParent();
+				}
+				if((!t.isEmpty())&&t.get(0).t==Token.Type.CLASS_FUNC_CALL) {
+					Token secondToken = t.remove(0);
+					uber.typeCheck();//get type information so I can look at what type this is
+					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
+					parent.notifyCalled(classFunc);
+					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+					call.addChild(root);
+					root = call;
+					if(this.fnInputTypes.containsKey(classFunc)) {
+						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
+						for(int i=0;i<args;i++)
+						{
+							root.addChild(parseExpr(t,root,false));
+						}
+					} else {
+						pe("function not found");
+					}
 				}
 				break;
 			case POINTER_TO:

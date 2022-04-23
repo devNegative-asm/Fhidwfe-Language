@@ -48,44 +48,57 @@
 // mult by sign of denom
 // if it was originally negative, add demoninator
 guard
-import null
 
-
-type LinkedIntList (
-	elem:int
-	next:LinkedIntList
+type Point (
+	x:int
+	y:int
+	function Point init(x:int y:int) {
+		this.x = x
+		this.y = y
+		return this
+	}
+	function void printself(delim:ubyte) {
+		putchar$ '('
+		puti$ this.x
+		putchar$ delim
+		puti$ this.y
+		putchar$ ')'
+		putln$
+	}
+	function void up() {
+		this.y = + this.y 1
+	}
+	function void down() {
+		this.y = - this.y 1
+	}
+	function void left() {
+		this.x = - this.x 1
+	}
+	function void right() {
+		this.x = + this.x 1
+	}
 )
 
-function LinkedIntList consInt(i:int l:LinkedIntList) {
-	ll = LinkedIntList$
-	ll.next = l
-	ll.elem = i
-	return ll
+player = Point$
+player.init$ 1 3
+
+inputBuffer = malloc$ 128u
+put_byte$ inputBuffer 0b
+whilenot streq$ inputBuffer "exit" {
+	getline$ inputBuffer
+	if streq$ inputBuffer "left" {
+		player.left$
+	} ;
+	if streq$ inputBuffer "right" {
+		player.right$
+	} ;
+	if streq$ inputBuffer "up" {
+		player.up$
+	} ;
+	if streq$ inputBuffer "down" {
+		player.down$
+	} ;
+	player.printself$ ','
 }
-
-function void doAll(l:LinkedIntList f:func) {
-	whilenot = null @ptr l {
-		$ f l.elem
-		l = l.next
-	}
-}
-
-full_list = consInt$ 3 consInt$ 7 consInt$ 30 @LinkedIntList null
-
-function uint puti_alias(t:uint) {
-	puti$ @int t
-	putln$
-	return 0u
-}
-
-function void free_list(ll:LinkedIntList) {
-	if = null @ptr ll.next {
-		free$ ll
-	} {
-		free_list$ ll.next
-		free$ ll
-	}
-}
-
-doAll$ full_list puti_alias
-free_list$ full_list
+free$ inputBuffer
+free$ player

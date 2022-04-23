@@ -452,7 +452,10 @@ public class Lexer {
 			} else if(tok.equals(">=")) {
 				tk = new Token(tok,Token.Type.GEQUAL,guarded,fileIn);
 			} else if(tok.endsWith("$")) {
-				tk = new Token(tok,Token.Type.FUNC_CALL_NAME,guarded,fileIn);
+				if(!tok.startsWith("."))
+					tk = new Token(tok,Token.Type.FUNC_CALL_NAME,guarded,fileIn);
+				else
+					tk = new Token(tok,Token.Type.CLASS_FUNC_CALL,guarded,fileIn);
 			} else if(tok.equals(";")) {
 				tk = new Token(tok,Token.Type.EMPTY_BLOCK,guarded,fileIn);
 			} else if(tok.equals("<<")) {
@@ -498,7 +501,6 @@ public class Lexer {
 			functionImmediate = tok.equals("function") || tok.equals("alias");
 			typeNameNext = tk.t==Token.Type.TYPE_DEFINITION;
 		}
-		
 		
 		return tokens;
 	}

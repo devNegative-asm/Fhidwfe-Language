@@ -70,7 +70,12 @@ variable:			var_name
 pointer-to:			@var_name
 field access:		var.fieldname
 
-type definition:	type TypeName (fieldname:fieldType ...)
+type definition:	type TypeName (
+						fieldname:fieldType ...
+						function...)
+
+functions defined inside a type are accessible using the same syntax as fields, and are passed an implicit "this" parameter
+instance.methodname$ args...
 
 
 Temp variables are automatically freed when the block ends or the function returns.

@@ -91,6 +91,7 @@ public class Token {
 		IDENTIFIER,
 		EQ_SIGN,
 		FUNC_CALL_NAME,
+		CLASS_FUNC_CALL,
 		TYPE,
 		IS,
 		AS,

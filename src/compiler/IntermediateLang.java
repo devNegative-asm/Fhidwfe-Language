@@ -93,6 +93,17 @@ public class IntermediateLang {
 				}
 				
 			}
+			if(outer.getTokenType()==Token.Type.TYPE_DEFINITION) {
+				for(SyntaxTree inner:outer.getChildren()) {
+					if(inner.getTokenType()==Token.Type.FUNCTION) {
+						if(tree.functionIsEverCalled(inner.getChild(1).getTokenString())) {
+							ArrayList<Instruction> instructions = generateSubInstructions(inner);
+							
+							results.addAll(instructions);
+						}
+					}
+				}
+			}
 				
 		}
 		
@@ -1207,6 +1218,8 @@ public class IntermediateLang {
 				results.add(InstructionType.load_b.cv());
 			else
 				throw new RuntimeException("@@contact devs. field of type "+tree.getType()+" made it to intermediate");
+			break;
+		case TYPE_DEFINITION:
 			break;
 		default:
 			throw new RuntimeException("@@contact devs. token of type "+tok+" made it to intermediate");
