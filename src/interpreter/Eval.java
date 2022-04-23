@@ -347,6 +347,8 @@ public class Eval {
 		case EQ_SIGN:
 			if(str.equals("assign")) {
 				//assign value to a variable
+				if(tree.getChild(0).getToken().t==Token.Type.FIELD_ACCESS)
+					throw new RuntimeException("repl does not support types at the moment");
 				find = resolveVariableLocation(tree,tree.getChild(0).getTokenString());
 				int typeSize = tree.getChild(1).getType().getSize(Eval.replSettings);
 				location = loc(find.split(" ")[0]);
@@ -791,6 +793,10 @@ public class Eval {
 			break;
 		case CORRECT:
 			return evaluate(tree.getChild(0)).mul(3);
+		case FIELD_ACCESS:
+			throw new RuntimeException("repl does not support types at the moment");
+		default:
+			break;
 		}
 		return Value.SYNTAX;
 	}

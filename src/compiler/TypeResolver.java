@@ -57,9 +57,20 @@ public class TypeResolver<T> {
 		}
 		return this;
 	}
-	public void DEFAULT(Callback cb) {
+	public TypeResolver<T> DEFAULT(Callback cb) {
 		if(!caseMatched)
 			cb.call();
+		return this;
+	}
+	public TypeResolver<T> DEFAULT(Supplier<T> cb) {
+		if(!caseMatched)
+			this.recovered = cb.get();
+		return this;
+	}
+	public TypeResolver<T> DEFAULT(T cb) {
+		if(!caseMatched)
+			this.recovered = cb;
+		return this;
 	}
 	public TypeResolver<T> DEFAULT_THROW(RuntimeException e) {
 		if(!caseMatched)

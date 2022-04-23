@@ -176,7 +176,12 @@ public class Parser {
 			try {
 				sub = parseOuter(t,originalBase);
 			} catch(Exception e) {
-				sub = parseExpr(backup, originalBase, false);
+				try {
+					sub = parseExpr(backup, originalBase, false);
+				} catch(Exception b) {
+					b.initCause(e);
+					throw b;
+				}
 				t = backup;
 			}
 			trees.add(sub);
@@ -811,8 +816,10 @@ public class Parser {
 					}
 					fieldTok = t.remove(0);
 				}
-				return parseOuter(t,parent);
-				
+				if(t.size()!=0)
+					return parseOuter(t,parent);
+				else
+					throw new RuntimeException("last line in program cannot be a typedef");
 			case WITH:
 				pe("expected with after for");
 				break;

@@ -106,10 +106,24 @@ public class Value implements Comparable<Value>{
 			.CASE(Ubyte, String.valueOf(this.unsignedByteValue()))
 			.CASE(Uint, String.valueOf(this.unsignedIntValue()))
 			.CASE(Void, "{{{void}}}")
-			.DEFAULT_THROW(new RuntimeException("interpreter does not know type "+type)).get();
+			.DEFAULT(()->{
+				String rr = "type "+type.name()+" {\n";
+				for(String field:type.getFieldNames()) {
+					if(this.getField(field).type==this.type) {
+						rr+=field+": <type "+this.type+" @ "+Integer.toHexString(this.getField(field).unsignedIntValue())+">";
+					} else {
+						rr+=field+":"+this.getField(field).toString()+"\n";
+					}
+				}
+				return rr+"}";
+				}).get();
 		
 		return result;
 	}
+	private Value getField(String field) {
+		return dereference(this.type.typeOfField(field, ""),this.type.getFieldOffset(field, Eval.replSettings));
+	}
+
 	public Value dereference(DataType readType, int offset) {
 		return new Value(this.type, value+offset, ram).dereference(readType);
 	}

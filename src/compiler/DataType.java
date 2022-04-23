@@ -87,6 +87,15 @@ public class DataType{
 		throw new RuntimeException("Type "+this.name()+" does not have field "+fieldName);
 	}
 	
+	public String[] getFieldNames() {
+		fields.sort(Field::compareTo);
+		String[] strings = new String[fields.size()];
+		for(int i=0;i<fields.size();i++) {
+			strings[i] = fields.get(i).name;
+		}
+		return strings;
+	}
+	
 	public DataType typeOfField(String fieldName, String linenum) {
 		for(Field f:fields) {
 			if(f.getName().equals(fieldName)) {
