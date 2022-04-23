@@ -29,7 +29,8 @@ public class ReplReentrantLexer extends Lexer {
 					return bytes[overallIndex++];
 			}
 		};
-		Scanner tempScanner = new Scanner(s).useDelimiter("(?<=\n)");
+		Scanner tempScanner = new Scanner(s);
+		tempScanner.useDelimiter("(?<=\n)");
 		ArrayList<Token> toks = super.lexMoreTokens(tempScanner, "stdin");
 		tempScanner.close();
 		return toks;

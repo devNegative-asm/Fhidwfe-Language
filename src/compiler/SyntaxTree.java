@@ -150,6 +150,10 @@ public class SyntaxTree extends BaseTree{
 			if(v.getName().equals(varname)) {
 				long ret = v.getValue();
 				switch(theParser.settings.target) {
+				case REPL:
+					if(ret>=(1L<<12))
+						throw new RuntimeException("That's way too many argument variables in function "+functionIn());
+					break;
 				case TI83pz80:
 						if(ret<=-128)
 							throw new RuntimeException("Can store up to 63 local variables on 8 bit systems in function "+functionIn());
@@ -191,6 +195,10 @@ public class SyntaxTree extends BaseTree{
 			if(v.getName().equals(varname)) {
 				long ret = v.getValue();
 				switch(theParser.settings.target) {
+				case REPL:
+					if(ret>=(1L<<12))
+						throw new RuntimeException("That's way too many argument variables in function "+functionIn());
+					break;
 				case TI83pz80:
 						if(ret>=128)
 							throw new RuntimeException("Can store up to 63 argument variables on 8 bit systems in function "+functionIn());

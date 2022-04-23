@@ -339,7 +339,7 @@ public class BaseTree {
 	 */
 	public String resolveConstant(String var) {
 		if(constants.containsKey(var)) {
-			if(constants.get(var)==DataType.Func) {
+			if(constants.get(var)==DataType.Func || constants.get(var)==DataType.Op) {
 				return var.replaceAll("guard_.*?_.*?_.*?_.*?_", "");//remove guards if they exist because function names are unaffected by guards
 			}
 			return var;

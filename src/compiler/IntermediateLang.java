@@ -155,12 +155,6 @@ public class IntermediateLang {
 	{
 		
 		ArrayList<Instruction> results = new ArrayList<>();
-		DataType Float = DataType.Float;
-		DataType Uint = DataType.Uint;
-		DataType Int = DataType.Int;
-		DataType Ubyte = DataType.Ubyte;
-		DataType Byte = DataType.Byte;
-		DataType Ptr = DataType.Ptr;
 		
 		CompilationSettings settings = tree.getParser().settings;
 		
@@ -312,7 +306,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(type)
+			new TypeResolver<Object>(type)
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackdiv_signed_b)))
 				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackdivfloat)))
 				.CASE(Int, () -> results.add(InstructionType.stackdiv_signed.cv()))
@@ -466,7 +460,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(tree.getChild(0).getType())
+			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.greater_equal_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.greater_equal_ui.cv()))
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_equal_b)))
@@ -480,7 +474,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(tree.getChild(0).getType())
+			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.greater_than_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.greater_than_ui.cv()))
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_than_b)))
@@ -507,8 +501,9 @@ public class IntermediateLang {
 				else {
 					if((tree.getType()==DataType.Func||tree.getType()==DataType.Op)&&tree.theParser.functionNames().contains(tree.getTokenString())) {
 						results.add(new Instruction(InstructionType.retrieve_global_address,placement));
-					} else
+					} else {
 						results.add(new Instruction(InstructionType.retrieve_global_int,placement));
+					}
 				}
 				break;
 			case LOCAL:
@@ -564,7 +559,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(tree.getChild(0).getType())
+			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.less_equal_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.less_equal_ui.cv()))
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_equal_b)))
@@ -589,7 +584,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(tree.getChild(0).getType())
+			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.less_than_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.less_than_ui.cv()))
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_than_b)))
@@ -602,7 +597,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			new TypeResolver(type)
+			new TypeResolver<Object>(type)
 				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackmod_signed_b)))
 				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackmodfloat)))
 				.CASE(Int, () -> results.add(InstructionType.stackmod_signed.cv()))

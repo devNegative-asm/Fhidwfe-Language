@@ -359,7 +359,7 @@ public class DataType{
 		return other==this;
 	}
 	public boolean builtin() {
-		return builtins.contains(this);
+		return !userType;
 	}
 	
 }

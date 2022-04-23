@@ -291,7 +291,7 @@ public class Lexer {
 		File lastFile = null;
 		boolean importNext = false;
 		boolean typeNameNext = false;
-		parsing:
+		
 		while(hasNextString())
 		{
 			File fileIn;
@@ -503,6 +503,7 @@ public class Lexer {
 		return tokens;
 	}
 	private class fakeFile extends File {
+		private static final long serialVersionUID = 1L;
 		String name;
 		public fakeFile(String pathname) {
 			super(".");

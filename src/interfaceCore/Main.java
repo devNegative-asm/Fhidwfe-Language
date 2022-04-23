@@ -233,8 +233,8 @@ public class Main {
 			BaseTree tree = p.parse(tokens);
 			
 			tree.typeCheck(); // check that typing is valid, and register all variables in use
-			tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
 			
+			tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
 			ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
 			settings.library.correct(VMCode, p);
 			PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
