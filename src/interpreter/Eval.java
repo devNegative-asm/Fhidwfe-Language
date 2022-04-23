@@ -568,7 +568,7 @@ public class Eval {
 			writer.useSelfAsPointerToWriteArgToRAM(upperBound);
 			writer = writer.add(new Value(DataType.Ptr,elemSize,ram));
 			writer.useSelfAsPointerToWriteArgToRAM(new Value(DataType.Byte,finalByte,ram));
-			return list;
+			return new Value(tree.getType(),list.unsignedIntValue(),ram);
 		case POINTER_TO:
 			String descriptor;
 			

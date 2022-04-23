@@ -1,5 +1,6 @@
 package compiler;
 import java.io.File;
+import static compiler.DataType.*;
 
 public class Token {
 	public final String s;
@@ -27,7 +28,7 @@ public class Token {
 	private File f;
 	private boolean g;
 	public Token unguardedVersion() {
-		return new Token(reals, t, false, f);
+		return new Token(reals, t, false, f).setLineNum(linenum);
 	}
 	public boolean guarded() {
 		return g;
@@ -70,26 +71,16 @@ public class Token {
 			default:
 				throw new RuntimeException("@@contact devs. non-branching instruction being interpreted as branch");
 		}
-		switch(inputType) {
-			case Int:
-				resultString+="i";
-				break;
-			case Ptr:
-			case Uint:
-				resultString+="ui";
-				break;
-			case Byte:
-				resultString+="b";
-				break;
-			case Ubyte:
-				resultString+="ub";
-				break;
-			case Float:
-				resultString+="f";
-				break;
-			default:
-				throw new RuntimeException("Cannot compare type "+inputType+" at line "+this.linenum);
-		}
+		resultString += new TypeResolver<String>(inputType)
+				.CASE(Int, "i")
+				.CASE(Ptr, "ui")
+				.CASE(Uint, "ui")
+				.CASE(Byte, "b")
+				.CASE(Ubyte, "ub")
+				.CASE(Float, "f")
+				.DEFAULT_THROW(new RuntimeException("Cannot compare type "+inputType+" at line "+this.linenum))
+				.get();
+		
 		return InstructionType.valueOf(resultString);
 	}
 	public static enum Type{
@@ -166,7 +157,9 @@ public class Token {
 		SHIFT_LEFT,
 		CORRECT,
 		TEMP,
-		ALIAS;
+		ALIAS,
+		TYPE_DEFINITION,
+		FIELD_ACCESS;
 		
 	}
 }

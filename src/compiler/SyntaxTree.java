@@ -3,7 +3,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
+import static compiler.DataType.*;
 /**
  * Non-root syntax tree nodes
  *
@@ -609,15 +609,12 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case CORRECT:
 			children = children(1);
-			switch(children[0].getType()) {
-				case Int:
-				case Ptr:
-				case Uint:
-					ret = DataType.Uint;
-					break;
-				default:
-					throw new RuntimeException(children[0].getType()+" is not a valid index type at line "+children[0].getToken().linenum);
-			}
+			ret = new TypeResolver<DataType>(children[0].getType())
+				.CASE(Int, DataType.Uint)
+				.CASE(Ptr, DataType.Uint)
+				.CASE(Uint, DataType.Uint)
+				.DEFAULT_THROW(new RuntimeException(children[0].getType()+" is not a valid index type at line "+children[0].getToken().linenum))
+				.get();
 			break;
 		case CLOSE_BRACE:
 			ret = DataType.SYNTAX;
@@ -690,18 +687,7 @@ public class SyntaxTree extends BaseTree{
 				break;
 			}
 			DataType loopType = DataType.fromLowerCase(children[0].getTokenString());
-			switch(loopType) {
-			case Int:
-			case Uint:
-			case Byte:
-			case Ubyte:
-			case Ptr:
-			case Func:
-			case Op:
-				break;
-				default:
-					throw new RuntimeException("for loop can only loop over countable data types, not "+loopType+" at line "+children[0].getToken().linenum);
-			}
+			
 			if(!children[1].getType().assignable(loopType))
 			{
 				throw new RuntimeException(loopType+" must be assignable from "+children[1].getType()+" to iterate at line "+children[1].getToken().linenum);
@@ -727,7 +713,6 @@ public class SyntaxTree extends BaseTree{
 						DataType.fromLowerCase(children[i].getChildren().get(0).getTokenString()));
 				argorder.add(children[i].getTokenString());
 			}
-			
 			ret = code.getType();//this is necessary to resolve the types of variables in the code before we check the return type
 			
 
@@ -765,7 +750,6 @@ public class SyntaxTree extends BaseTree{
 		case FUNC_CALL_NAME:
 			//type check the arguments
 			//then return my return type
-			
 			List<DataType> usedTypes = new ArrayList<>();
 			
 			for(SyntaxTree args:this.getChildren()) {
@@ -803,6 +787,10 @@ public class SyntaxTree extends BaseTree{
 			{
 				parent.notifyCalled(getTokenString().replaceAll("guard_.*?_.*?_.*?_.*?_", ""));
 			}
+			break;
+		case FIELD_ACCESS:
+			DataType parentType = this.children(1)[0].getType();
+			ret = parentType.typeOfField(getTokenString(), myToken.linenum);
 			break;
 		case IF:
 		case IFNOT:
@@ -919,28 +907,16 @@ public class SyntaxTree extends BaseTree{
 				unexpected(save,children[2].getType());
 			}
 			String prefix = "";
-			switch(save) {
-			case Byte:
-				prefix="b";
-				break;
-			case Float:
-				prefix="f";
-				break;
-			case Int:
-				break;
-			case Ubyte:
-				prefix="ub";
-				break;
-			case Uint:
-				prefix="u";
-				break;
-			case Ptr:
-				prefix="ptr";
-				break;
-			default:
-				throw new RuntimeException("Expected a numeric type. Found "+save+" instead at line "+this.getToken().linenum);
+			prefix = new TypeResolver<String>(save)
+				.CASE(Byte, "b")
+				.CASE(Float, "f")
+				.CASE(Int, "")
+				.CASE(Ubyte, "ub")
+				.CASE(Uint, "u")
+				.CASE(Ptr, "ptr")
+				.DEFAULT_THROW(new RuntimeException("Expected a numeric type. Found "+save+" instead at line "+this.getToken().linenum))
+				.get();
 			
-			}
 			String tryit = prefix+"range";
 			tryit = Character.toUpperCase(tryit.charAt(0))+tryit.substring(1);
 			ret = DataType.valueOf(tryit);

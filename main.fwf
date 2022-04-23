@@ -48,3 +48,44 @@
 // mult by sign of denom
 // if it was originally negative, add demoninator
 guard
+import null
+
+
+type LinkedIntList (
+	elem:int
+	next:LinkedIntList
+)
+
+function LinkedIntList consInt(i:int l:LinkedIntList) {
+	ll = LinkedIntList$
+	ll.next = l
+	ll.elem = i
+	return ll
+}
+
+function void doAll(l:LinkedIntList f:func) {
+	whilenot = null @ptr l {
+		$ f l.elem
+		l = l.next
+	}
+}
+
+full_list = consInt$ 3 consInt$ 7 consInt$ 30 @LinkedIntList null
+
+function uint puti_alias(t:uint) {
+	puti$ @int t
+	putln$
+	return 0u
+}
+
+function void free_list(ll:LinkedIntList) {
+	if = null @ptr ll.next {
+		free$ ll
+	} {
+		free_list$ ll.next
+		free$ ll
+	}
+}
+
+doAll$ full_list puti_alias
+free_list$ full_list

@@ -176,6 +176,7 @@ public class Main {
 							for(SyntaxTree element:currentEval) {
 								Value result = evaluator.evaluate(element);
 								if(result!=Value.SYNTAX && result!=Value.VOID)
+									System.out.println(result.type);
 									System.out.println(" -> "+result.toString());
 							}
 						} catch(RuntimeException e) {

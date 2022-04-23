@@ -149,6 +149,7 @@ public class Parser {
 	 */
 	public BaseTree parse(ArrayList<Token> t)
 	{
+		findTypes(t);
 		functionSignatures(t);
 		BaseTree tree = new BaseTree(this);
 		while(!t.isEmpty())
@@ -158,7 +159,15 @@ public class Parser {
 		
 		return tree;
 	}
+	private void findTypes(ArrayList<Token> t) {
+		for(int i=0;i<t.size()-1;i++) {
+			if(t.get(i).t==Token.Type.TYPE_DEFINITION) {
+				DataType.makeUserType(t.get(i+1).tokenString());
+			}
+		}
+	}
 	public ArrayList<SyntaxTree> parseAdditional(BaseTree originalBase, ArrayList<Token> t){
+		findTypes(t);
 		functionSignatures(t);
 		ArrayList<SyntaxTree> trees = new ArrayList<>();
 		while(!t.isEmpty()) {
@@ -403,6 +412,7 @@ public class Parser {
 		SyntaxTree root = new SyntaxTree(t.get(0),this,parent);
 		tok = t.remove(0);
 		Token myTok = tok;
+		DataType userType;
 		switch(tok.t) {
 			case ALIAS:
 				//similar to function parsing except that we don't use a body
@@ -611,6 +621,11 @@ public class Parser {
 				pe("global variables cannot be temp");
 				break;
 			case IDENTIFIER:
+				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
+					SyntaxTree lastRoot = root;
+					root = new SyntaxTree(t.remove(0),this,root.getParent());
+					root.addChild(lastRoot.copyWithDifferentParent(root));
+				}
 				Token secondToken = t.remove(0);
 				if(secondToken.t!=Token.Type.EQ_SIGN)
 				{
@@ -622,8 +637,9 @@ public class Parser {
 					}
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-					return newRoot.addChild(new SyntaxTree(root.getToken(),this,newRoot)).addChild(parseExpr(t,newRoot,true));
+					return newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
 				}
+				
 				break;
 			case IF_GE:
 			case IF_GT:
@@ -744,6 +760,59 @@ public class Parser {
 			case WHILENOT:
 				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root));
 				break;
+			case TYPE_DEFINITION:
+				/*
+				 * type Point (
+				 * 		x:int
+						y:int
+					)
+				 */
+				Token typeNameToken = t.remove(0).unguardedVersion();
+				if(typeNameToken.t!=Token.Type.IDENTIFIER) {
+					throw new RuntimeException("type name must be a valid identifier "
+							+typeNameToken.tokenString()+" at line "+typeNameToken.linenum);
+				}
+					
+				String typeName = typeNameToken.tokenString();
+				
+				if(!Character.isUpperCase(typeName.charAt(0))) {
+					throw new RuntimeException("type definition name must start with an uppercase letter at line "
+							+typeNameToken.linenum);
+				}
+				
+				userType = DataType.makeUserType(typeName);
+				Token openRange = t.remove(0);
+				if(openRange.t!=Token.Type.OPEN_RANGE_EXCLUSIVE) {
+					throw new RuntimeException("Expected ( after type definition of "+typeName+" at line "+openRange.linenum);
+				}
+				
+				Token fieldTok = t.remove(0);
+				while(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
+					if(fieldTok.t!=Token.Type.IDENTIFIER)
+						throw new RuntimeException("Expected proper field name in definition of "+typeName+" at line "+fieldTok.linenum);
+					String idName = fieldTok.unguardedVersion().s;
+					fieldTok = t.remove(0);
+					if(fieldTok.t!=Token.Type.FUNCTION_ARG_COLON)
+						throw new RuntimeException("Expected name:type syntax in definition of "+typeName+" at line "+fieldTok.linenum);
+					fieldTok = t.remove(0);
+					if(fieldTok.t!=Token.Type.TYPE)
+						throw new RuntimeException("Expected proper field type in definition of "+typeName+" at line "+fieldTok.linenum);
+					String properTypeName = Character.toUpperCase(fieldTok.s.charAt(0)) + fieldTok.s.substring(1);
+					DataType type = DataType.valueOf(properTypeName);
+					userType.addField(idName, type);
+					if(this.fnInputTypes.containsKey("free")) {
+						fnInputTypes.get("free").add(new ArrayList<>(Arrays.asList(userType)));
+						fnOutputTypes.get("free").add(DataType.Void);
+					} else if(this.fnInputTypesReq.containsKey("free")) {
+						fnInputTypesReq.get("free").add(new ArrayList<>(Arrays.asList(userType)));
+						fnOutputTypes.get("free").add(DataType.Void);
+					} else {
+						throw new RuntimeException("no free$ function found before defining type "+userType.name());
+					}
+					fieldTok = t.remove(0);
+				}
+				return parseOuter(t,parent);
+				
 			case WITH:
 				pe("expected with after for");
 				break;
@@ -962,6 +1031,11 @@ public class Parser {
 				}
 				break;
 			case IDENTIFIER:
+				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
+					SyntaxTree lastRoot = root;
+					root = new SyntaxTree(t.remove(0),this,root.getParent());
+					root.addChild(lastRoot.copyWithDifferentParent(root));
+				}
 				secondToken = t.remove(0);
 				if(secondToken.t!=Token.Type.EQ_SIGN)
 				{
@@ -973,8 +1047,9 @@ public class Parser {
 					}
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
-					return newRoot.addChild(new SyntaxTree(root.getToken(),this,newRoot)).addChild(parseExpr(t,newRoot,true));
+					return newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
 				}
+				
 				break;
 			case IF_GE:
 			case IF_GT:
@@ -1149,18 +1224,22 @@ public class Parser {
 			case TRUE:
 			case UBYTE_LITERAL:
 			case UINT_LITERAL:
-			case IDENTIFIER:
 			case STRING_LITERAL:
+				break;
+			case IDENTIFIER:
+				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
+					SyntaxTree lastRoot = root;
+					root = new SyntaxTree(t.remove(0),this,root.getParent());
+					root.addChild(lastRoot.copyWithDifferentParent(root));
+				}
 				break;
 			case POINTER_TO:
 				try {
 					String removed = tok.s.replaceAll("guard_.*?_.*?_.*?_.*?(_.*)$", "$1");
-					if(!Character.isLowerCase(removed.charAt(1)))
-						break;
 					DataType cast = DataType.valueOf(Character.toUpperCase(removed.charAt(1))+removed.substring(2));
 					root = new SyntaxTree(new Token("as",Token.Type.AS,false,tok.srcFile()).setLineNum(tok.linenum),this,parent);
 					root.addChild(parseExpr(t,root,inAssignment));
-					root.addChild(new Token(cast.name().toLowerCase(),Token.Type.TYPE,false,tok.srcFile()).setLineNum(tok.linenum));
+					root.addChild(new Token(cast.name(),Token.Type.TYPE,false,tok.srcFile()).setLineNum(tok.linenum));
 					break;
 				} catch(IllegalArgumentException|IndexOutOfBoundsException e) {
 					
@@ -1195,7 +1274,22 @@ public class Parser {
 						root.addChild(parseExpr(t,root,inAssignment));
 					}
 				} else {
-					pe("function not found");
+					try {
+						
+						DataType customType = DataType.valueOf(callname);
+						root = new SyntaxTree(new Token("as", Token.Type.AS,root.getToken().guarded(),root.getToken().srcFile()), this, parent);
+						SyntaxTree mallocCall = new SyntaxTree(new Token("malloc",Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
+								this,
+								parent);
+						mallocCall.addChild(new Token(""+customType.getHeapSize(settings, 0),Token.Type.UINT_LITERAL,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum));
+						root.addChild(mallocCall);
+						root.addChild(new SyntaxTree(
+								new Token(callname,Token.Type.TYPE,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
+								this,
+								parent));
+					} catch(Exception e) {
+						pe("function or type not found");
+					}
 				}
 				break;
 			case OPEN_RANGE_EXCLUSIVE:
@@ -1226,6 +1320,7 @@ public class Parser {
 			default:
 				throw new RuntimeException(tok.toString()+" not recognized as a valid expression token at line "+tok.linenum);
 		}
+		
 		return root;
 	}
 	/**

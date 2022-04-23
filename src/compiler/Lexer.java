@@ -94,7 +94,7 @@ public class Lexer {
 			retts[i] = data[i].toString().toLowerCase();
 		return retts;
 	}
-	static final String type = String.join("|", lowerStringy(DataType.values()));
+	static String type = null;
 	
 	/**
 	 * @return the next string in the input files which matches the boundary conditions to make a sigle token
@@ -103,6 +103,7 @@ public class Lexer {
 	{
 		//cut on spaces or special characters
 		//match words, literals, numbers surrounded by u, ub, b, f
+		String tokenRegex = "\\s+|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))|(?=[.][a-zA-Z_])";
 		while(holding.isEmpty())
 		{
 			if(hasNextString())
@@ -117,14 +118,14 @@ public class Lexer {
 					lineNumber=0;
 					continue;
 				}
-				String ret = holding.split("\\s+|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))")[0];
+				String ret = holding.split(tokenRegex)[0];
 				holding = holding.substring(ret.length()).trim();
 				return ret;
 			}
 			else
 				return "";
 		}
-		String ret = holding.split("\\s+|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))")[0];
+		String ret = holding.split(tokenRegex)[0];
 		holding = holding.substring(ret.length()).trim();
 		return ret;
 	}
@@ -276,6 +277,9 @@ public class Lexer {
 	 */
 	public ArrayList<Token> tokenize(boolean inRepl)
 	{
+		if(type==null) {
+			type = String.join("|", lowerStringy(DataType.values()));
+		}
 		ArrayDeque<Expecting> whereami = new ArrayDeque<>();
 		whereami.push(Expecting.OUTER);
 		ArrayList<Token> tokens = new ArrayList<>();
@@ -286,6 +290,8 @@ public class Lexer {
 		ArrayList<String> imported = new ArrayList<String>();
 		File lastFile = null;
 		boolean importNext = false;
+		boolean typeNameNext = false;
+		parsing:
 		while(hasNextString())
 		{
 			File fileIn;
@@ -307,14 +313,11 @@ public class Lexer {
 			Token tk;
 			if(tok.equals(""))
 				continue;
-			if(tok.equals("in"))
-			{
+			if(tok.equals("in")) {
 				tk = new Token(tok,Token.Type.IN,guarded,fileIn);
-			} else if(tok.equals("="))
-			{
+			} else if(tok.equals("=")) {
 				tk = new Token(tok,Token.Type.EQ_SIGN,guarded,fileIn);
-			} else if(tok.equals("temp"))
-			{
+			} else if(tok.equals("temp")) {
 				tk = new Token(tok,Token.Type.TEMP,guarded,fileIn);
 			} else if(tok.equals("import")) {
 				importNext =true;
@@ -331,6 +334,8 @@ public class Lexer {
 			} else if(tok.equals("guard")) {
 				guarded = !inRepl;
 				continue;
+			} else if(tok.equals("type")) {
+				tk = new Token(tok,Token.Type.TYPE_DEFINITION,guarded,fileIn);
 			} else if(tok.equals("as")) {
 				tk = new Token(tok,Token.Type.AS,guarded,fileIn);
 			} else if(tok.equals("while")) {
@@ -454,6 +459,8 @@ public class Lexer {
 				tk = new Token(tok,Token.Type.SHIFT_LEFT,guarded,fileIn);
 			} else if(tok.equals(">>")) {
 				tk = new Token(tok,Token.Type.SHIFT_RIGHT,guarded,fileIn);
+			} else if(tok.matches("\\.[a-zA-Z_][a-zA-Z_0-9]*")) {
+				tk = new Token(tok.substring(1),Token.Type.FIELD_ACCESS,false,fileIn);
 			} else if(tok.matches("[a-zA-Z_][a-zA-Z_0-9]*")){
 				//generic string
 				//identifier
@@ -466,6 +473,9 @@ public class Lexer {
 					tk = new Token(tok,Token.Type.FUNCTION_NAME,guarded,fileIn);
 				} else if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
+				} else if(typeNameNext){
+					tk = new Token(tok,Token.Type.IDENTIFIER,false,fileIn);
+					Lexer.type+="|"+tok;
 				} else {
 					if((!inRepl) && (!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
 						throw new RuntimeException("Identifier "+tok+" is too short at line "+this.lineNumber+" in "+files.get(0).getName()+"\nconsider using 'guard' ");
@@ -486,7 +496,7 @@ public class Lexer {
 			functionContext |= fnNameImmediate;
 			fnNameImmediate = functionImmediate;
 			functionImmediate = tok.equals("function") || tok.equals("alias");
-			
+			typeNameNext = tk.t==Token.Type.TYPE_DEFINITION;
 		}
 		
 		

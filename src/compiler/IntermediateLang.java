@@ -1,8 +1,8 @@
 package compiler;
 import java.util.ArrayList;
 import java.util.function.Predicate;
-
 import settings.CompilationSettings;
+import static compiler.DataType.*;
 /**
  * The Fhidwfe intermediate language (generated directly from source)
  *
@@ -312,26 +312,14 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(type) {
-			case Byte:
-				results.add(new Instruction(InstructionType.stackdiv_signed_b));
-				break;
-			case Float:
-				results.add(new Instruction(InstructionType.stackdivfloat));
-				break;
-			case Int:
-				results.add(InstructionType.stackdiv_signed.cv());
-				break;
-			case Ptr:
-			case Uint:
-				results.add(InstructionType.stackdiv_unsigned.cv());
-				break;
-			case Ubyte:
-				results.add(InstructionType.stackdiv_unsigned_b.cv());
-				break;
-			default:
-				throw new UnsupportedOperationException("cannot divide type "+type);
-			}
+			new TypeResolver(type)
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackdiv_signed_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackdivfloat)))
+				.CASE(Int, () -> results.add(InstructionType.stackdiv_signed.cv()))
+				.CASE(Ptr, () -> results.add(InstructionType.stackdiv_unsigned.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.stackdiv_unsigned.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.stackdiv_unsigned_b.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot divide type "+type));
 			
 			break;
 		case EMPTY_BLOCK:
@@ -339,41 +327,91 @@ public class IntermediateLang {
 		case EQ_SIGN:
 			if(str.equals("assign")) {
 				//assign value to a variable
-				String find = tree.resolveVariableLocation(tree.getChild(0).getTokenString());
-				int typeSize = tree.getChild(1).getType().getSize(settings);
-				SyntaxTree.Location location = loc(find.split(" ")[0]);
-				String placement = find.split(" ")[1];
-				results.addAll(generateSubInstructions(tree.getChild(1)));
-				
-				switch(location) {
-				case ARG:
-					if(typeSize==1)
-						results.add(new Instruction(InstructionType.put_param_byte,placement));
-					else
-						results.add(new Instruction(InstructionType.put_param_int,placement));
-					break;
-				case GLOBAL:
-					if(typeSize==1)
-						results.add(new Instruction(InstructionType.put_global_byte,placement));
-					else
-						results.add(new Instruction(InstructionType.put_global_int,placement));
-					break;
-				case LOCAL:
-					if(typeSize==1)
-						results.add(new Instruction(InstructionType.put_local_byte,placement));
-					else
-						results.add(new Instruction(InstructionType.put_local_int,placement));
-					break;
-				case NONE:
-					throw new RuntimeException("attempt to assign to constant symbol at line "+tree.getToken().linenum);
-				default:
-					throw new RuntimeException(tree.getChild(0).getTokenString()+"@@contact devs variable somehow evaluated to NONE location");
-				}
-				if(tree.getChildren().size()==3 && tree.getChild(2).getToken().t==Token.Type.TEMP) {
-					if(tree.getChild(1).getType().isFreeable())
-						results.add(new Instruction(InstructionType.deffered_delete,placement));
-					else
-						throw new RuntimeException("only pointer-type variables can be temp at line "+tree.getToken().linenum);
+				if(tree.getChild(0).getToken().t==Token.Type.IDENTIFIER) {
+					String find = tree.resolveVariableLocation(tree.getChild(0).getTokenString());
+					int typeSize = tree.getChild(1).getType().getSize(settings);
+					SyntaxTree.Location location = loc(find.split(" ")[0]);
+					String placement = find.split(" ")[1];
+					results.addAll(generateSubInstructions(tree.getChild(1)));
+					
+					switch(location) {
+					case ARG:
+						if(typeSize==1)
+							results.add(new Instruction(InstructionType.put_param_byte,placement));
+						else
+							results.add(new Instruction(InstructionType.put_param_int,placement));
+						break;
+					case GLOBAL:
+						if(typeSize==1)
+							results.add(new Instruction(InstructionType.put_global_byte,placement));
+						else
+							results.add(new Instruction(InstructionType.put_global_int,placement));
+						break;
+					case LOCAL:
+						if(typeSize==1)
+							results.add(new Instruction(InstructionType.put_local_byte,placement));
+						else
+							results.add(new Instruction(InstructionType.put_local_int,placement));
+						break;
+					case NONE:
+						throw new RuntimeException("attempt to assign to constant symbol at line "+tree.getToken().linenum);
+					default:
+						throw new RuntimeException(tree.getChild(0).getTokenString()+"@@contact devs variable somehow evaluated to NONE location");
+					}
+					if(tree.getChildren().size()==3 && tree.getChild(2).getToken().t==Token.Type.TEMP) {
+						if(tree.getChild(1).getType().isFreeable())
+							results.add(new Instruction(InstructionType.deffered_delete,placement));
+						else
+							throw new RuntimeException("only pointer-type variables can be temp at line "+tree.getToken().linenum);
+					}
+				} else {
+					class PathResolver {
+						ArrayList<Instruction> resolvePath(SyntaxTree recTree) {
+							ArrayList<Instruction> returnValue = new ArrayList<>();
+							if(recTree.getToken().t==Token.Type.IDENTIFIER) {
+								String descriptor;
+								if(recTree.getToken().guarded())
+									descriptor = tree.resolveVariableLocation(recTree.getTokenString());
+								else
+									descriptor = tree.resolveVariableLocation(recTree.getTokenString().substring(1));
+								String at = descriptor.split(" ")[1];
+								switch(IntermediateLang.loc(descriptor.split(" ")[0])) {
+									case ARG:
+										returnValue.add(InstructionType.retrieve_param_address.cv(at));
+										break;
+									case LOCAL:
+										returnValue.add(InstructionType.retrieve_local_address.cv(at));
+										break;
+									case GLOBAL:
+										returnValue.add(InstructionType.retrieve_global_address.cv(at));
+										break;
+									case NONE:
+										throw new RuntimeException("cannot create pointer to constant at line "+recTree.getToken().linenum);
+									default:
+										throw new RuntimeException("variable is "+descriptor);
+								}
+								return returnValue;
+							} else {
+								returnValue.addAll(resolvePath(recTree.getChild(0)));
+								returnValue.add(InstructionType.load_i.cv());
+								DataType parentType = recTree.getChild(0).getType();
+								int offset = parentType.getFieldOffset(recTree.getTokenString(), settings);
+								if(offset!=0) {
+									returnValue.add(InstructionType.retrieve_immediate_int.cv(""+offset));
+									returnValue.add(InstructionType.stackadd.cv());
+								}
+								return returnValue;
+							}
+						}
+					}
+					ArrayList<Instruction> pathInstructions = new PathResolver().resolvePath(tree.getChild(0));
+					results.addAll(pathInstructions);
+					results.addAll(this.generateSubInstructions(tree.getChild(1)));
+					if(tree.getChild(1).getType().size==1) {
+						results.add(InstructionType.store_b.cv());
+					} else {
+						results.add(InstructionType.store_i.cv());
+					}
 				}
 				
 			} else {
@@ -428,51 +466,28 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(tree.getChild(0).getType()) {
-				case Ptr:
-				case Uint:
-					results.add(InstructionType.greater_equal_ui.cv());
-					break;
-				case Int:
-					results.add(InstructionType.greater_equal_i.cv());
-					break;
-				case Ubyte:
-					results.add(InstructionType.greater_equal_ub.cv());
-					break;
-				case Byte:
-					results.add(InstructionType.greater_equal_b.cv());
-					break;
-				case Float:
-					results.add(InstructionType.greater_equal_f.cv());
-					break;
-			default:
-				break;
-			}
+			new TypeResolver(tree.getChild(0).getType())
+				.CASE(Ptr, () -> results.add(InstructionType.greater_equal_ui.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.greater_equal_ui.cv()))
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_equal_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.greater_equal_f)))
+				.CASE(Int, () -> results.add(InstructionType.greater_equal_i.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.greater_equal_ub.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
+			
 			break;
 		case GTHAN:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(tree.getChild(0).getType()) {
-				case Ptr:
-				case Uint:
-					results.add(InstructionType.greater_than_ui.cv());
-					break;
-				case Int:
-					results.add(InstructionType.greater_than_i.cv());
-					break;
-				case Ubyte:
-					results.add(InstructionType.greater_than_ub.cv());
-					break;
-				case Byte:
-					results.add(InstructionType.greater_than_b.cv());
-					break;
-				case Float:
-					results.add(InstructionType.greater_than_f.cv());
-					break;
-			default:
-				break;
-			}
+			new TypeResolver(tree.getChild(0).getType())
+				.CASE(Ptr, () -> results.add(InstructionType.greater_than_ui.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.greater_than_ui.cv()))
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_than_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.greater_than_f)))
+				.CASE(Int, () -> results.add(InstructionType.greater_than_i.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.greater_than_ub.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
 			break;
 		case IDENTIFIER:
 			String find = tree.resolveVariableLocation(tree.getTokenString());
@@ -549,25 +564,14 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(tree.getChild(0).getType()) {
-				case Int:
-					results.add(InstructionType.less_equal_i.cv());
-					break;
-				case Float:
-					results.add(InstructionType.less_equal_f.cv());
-					break;
-				case Ubyte:
-					results.add(InstructionType.less_equal_ub.cv());
-					break;
-				case Ptr:
-				case Uint:
-					results.add(InstructionType.less_equal_ui.cv());
-					break;
-				case Byte:
-					results.add(InstructionType.less_equal_b.cv());
-			default:
-				break;
-			}
+			new TypeResolver(tree.getChild(0).getType())
+				.CASE(Ptr, () -> results.add(InstructionType.less_equal_ui.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.less_equal_ui.cv()))
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_equal_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.less_equal_f)))
+				.CASE(Int, () -> results.add(InstructionType.less_equal_i.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.less_equal_ub.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
 			break;
 		case LOGICAL_AND:
 			for(SyntaxTree child:tree.getChildren()) {
@@ -585,52 +589,28 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(tree.getChild(0).getType()) {
-				case Int:
-					results.add(InstructionType.less_than_i.cv());
-					break;
-				case Float:
-					results.add(InstructionType.less_than_f.cv());
-					break;
-				case Ubyte:
-					results.add(InstructionType.less_than_ub.cv());
-					break;
-				case Ptr:
-				case Uint:
-					results.add(InstructionType.less_than_ui.cv());
-					break;
-				case Byte:
-					results.add(InstructionType.less_than_b.cv());
-					break;
-			default:
-				break;
-			}
+			new TypeResolver(tree.getChild(0).getType())
+				.CASE(Ptr, () -> results.add(InstructionType.less_than_ui.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.less_than_ui.cv()))
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_than_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.less_than_f)))
+				.CASE(Int, () -> results.add(InstructionType.less_than_i.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.less_than_ub.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
 			break;
 		case MODULO:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			switch(tree.getType()) {
-			case Byte:
-				results.add(new Instruction(InstructionType.stackmod_signed_b));
-				break;
-			case Float:
-				results.add(new Instruction(InstructionType.stackmodfloat));
-				break;
-			case Int:
-				results.add(InstructionType.stackmod_signed.cv());
-				break;
-			case Ptr:
-			case Uint:
-				results.add(InstructionType.stackmod_unsigned.cv());
-				break;
-			case Ubyte:
-				results.add(InstructionType.stackmod_unsigned_b.cv());
-				break;
-			default:
-				throw new UnsupportedOperationException("cannot divide type "+tree.getType());
-			}
-			
+			new TypeResolver(type)
+				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackmod_signed_b)))
+				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackmodfloat)))
+				.CASE(Int, () -> results.add(InstructionType.stackmod_signed.cv()))
+				.CASE(Ptr, () -> results.add(InstructionType.stackmod_unsigned.cv()))
+				.CASE(Uint, () -> results.add(InstructionType.stackmod_unsigned.cv()))
+				.CASE(Ubyte, ()-> results.add(InstructionType.stackmod_unsigned_b.cv()))
+				.DEFAULT_THROW(new UnsupportedOperationException("cannot divide type "+type));
+				
 			break;
 		case NEGATE:
 			for(SyntaxTree child:tree.getChildren()) {
@@ -1219,6 +1199,22 @@ public class IntermediateLang {
 				results.addAll(this.generateSubInstructions(child));
 			results.add(InstructionType.fix_index.cv());
 			break;
+		case FIELD_ACCESS:
+			results.addAll(this.generateSubInstructions(tree.getChild(0)));
+			int offset = tree.getChild(0).getType().getFieldOffset(tree.getTokenString(), settings);
+			if(offset!=0) {
+				results.add(InstructionType.retrieve_immediate_int.cv(""+offset));
+				results.add(InstructionType.stackadd.cv());
+			}
+			if(tree.getType().size==2)
+				results.add(InstructionType.load_i.cv());
+			else if (tree.getType().size==1)
+				results.add(InstructionType.load_b.cv());
+			else
+				throw new RuntimeException("@@contact devs. field of type "+tree.getType()+" made it to intermediate");
+			break;
+		default:
+			throw new RuntimeException("@@contact devs. token of type "+tok+" made it to intermediate");
 		
 		}
 		return results;

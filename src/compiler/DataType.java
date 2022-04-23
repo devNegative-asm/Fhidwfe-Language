@@ -2,6 +2,7 @@ package compiler;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -10,56 +11,159 @@ import settings.CompilationSettings;
  * A type recognized by the compiler
  *
  */
-public enum DataType{
-	Flag(1,false,null,false),//flags and bools act similar, but flags have fewer uses and are only accessible with set and reset, or as the direct argument to a loop
-	Bool(1,false,null,false),
-	Byte(1,false,null,false),
-	Int(2,false,null,false),
-	Float(2,false,null,false),
-	Uint(2,false,null,false),
-	Ubyte(1,false,null,false),
-	Ptr(2,false,null,false),
-	Void(0,false,null,false),
-	File(1,false,null,false),
-	Func(2,false,null,false),
-	Op(2,false,null,false),
+public class DataType{
+	private static HashMap<String, DataType> namedTypes = new HashMap<>();
+	public static final DataType Flag = new DataType("Flag",1,false,null,false);//flags and bools act similar, but flags have fewer uses and are only accessible with set and reset, or as the direct argument to a loop
+	public static final DataType Bool = new DataType("Bool",1,false,null,false);
+	public static final DataType Byte = new DataType("Byte",1,false,null,false);
+	public static final DataType Int = new DataType("Int",2,false,null,false);
+	public static final DataType Float = new DataType("Float",2,false,null,false);
+	public static final DataType Uint = new DataType("Uint",2,false,null,false);
+	public static final DataType Ubyte = new DataType("Ubyte",1,false,null,false);
+	public static final DataType Ptr = new DataType("Ptr",2,false,null,false);
+	public static final DataType Void = new DataType("Void",0,false,null,false);
+	public static final DataType File = new DataType("File",1,false,null,false);
+	public static final DataType Func = new DataType("Func",2,false,null,false);
+	public static final DataType Op = new DataType("Op",2,false,null,false);
 	
-	Listbyte(2,false,Byte,true),
-	Listint(2,false,Int,true),
-	Listubyte(2,false,Ubyte,true),
-	Listuint(2,false,Uint,true),
-	Listfloat(2,false,Float,true),
-	Listptr(2,false,Ptr,true),
-	Listfile(2,false,File,true),
-	Listfunc(2,false,Func,true),
-	Listop(2,false,Op,true),
+	public static final DataType Listbyte = new DataType("Listbyte",2,false,Byte,true);
+	public static final DataType Listint = new DataType("Listint",2,false,Int,true);
+	public static final DataType Listubyte = new DataType("Listubyte",2,false,Ubyte,true);
+	public static final DataType Listuint = new DataType("Listuint",2,false,Uint,true);
+	public static final DataType Listfloat = new DataType("Listfloat",2,false,Float,true);
+	public static final DataType Listptr = new DataType("Listptr",2,false,Ptr,true);
+	public static final DataType Listfile = new DataType("Listfile",2,false,File,true);
+	public static final DataType Listfunc = new DataType("Listfunc",2,false,Func,true);
+	public static final DataType Listop = new DataType("Listop",2,false,Op,true);
 	
-	Range(2,true,Int,false),//int range
-	Urange(2,true,Uint,false),//unsigned int range
-	Brange(2,true,Byte,false),//byte ranges
-	Ubrange(2,true,Ubyte,false),//unsigned byte range
-	Frange(2,true,Uint,false),//float range
-	Ptrrange(2,true,Ptr,false),
+	public static final DataType Range = new DataType("Range",2,true,Int,false);//int range
+	public static final DataType Urange = new DataType("Urange",2,true,Uint,false);//unsigned int range
+	public static final DataType Brange = new DataType("Brange",2,true,Byte,false);//byte ranges
+	public static final DataType Ubrange = new DataType("Ubrange",2,true,Ubyte,false);//unsigned byte range
+	public static final DataType Frange = new DataType("Frange",2,true,Uint,false);//float range
+	public static final DataType Ptrrange = new DataType("Ptrrange",2,true,Ptr,false);
+
 	
-	Exception(2,false,null,false),
-	
-	SYNTAX(0,false,null,false);
-	
-	
+	public static final DataType SYNTAX = new DataType("SYNTAX",0,false,null,false);
+	private static HashSet<DataType> builtins = new HashSet<>();
 	
 	final int size;
 	private final boolean range;
 	private final DataType assignable;
 	
 	public final boolean isList;
+	private final String name;
+	
+	private ArrayList<Field> fields = new ArrayList<>();
+	boolean fieldsFinalized = false;
+	private class Field implements Comparable<Field>{
+		private String name;
+		private DataType type;
+		public Field(String name, DataType type) {
+			this.name = name;
+			this.type = type;
+		}
+		public String getName() {
+			return name;
+		}
+		public DataType getType() {
+			return type;
+		}
+		@Override
+		public int compareTo(Field o) {
+			return -type.size + o.type.size;
+		}
+	}
+	
+	public int getFieldOffset(String fieldName, CompilationSettings settings) {
+		int offset = 0;
+		for(Field f:fields) {
+			if(f.getName().equals(fieldName)) {
+				return offset;
+			} else {
+				offset+=f.getType().getSize(settings);
+			}
+		}
+		throw new RuntimeException("Type "+this.name()+" does not have field "+fieldName);
+	}
+	
+	public DataType typeOfField(String fieldName, String linenum) {
+		for(Field f:fields) {
+			if(f.getName().equals(fieldName)) {
+				return f.getType();
+			}
+		}
+		throw new RuntimeException("Type "+this.name()+" does not have field "+fieldName+" at line "+linenum);
+	}
 	
 	
-	private DataType(int siz, boolean Range, DataType assignable, boolean list)
+	@Override
+	public String toString() {
+		return name();
+	}
+	
+	public void addField(String name, DataType type) {
+		if(fieldsFinalized)
+			throw new RuntimeException("attempt to add a field to an already-defined type");
+		Field newField = new Field(name, type);
+		this.fields.add(newField);
+	}
+	public int getHeapSize(CompilationSettings sett, int elements) {
+		fieldsFinalized = true;
+		if(this.isList) {
+			return elements * this.assignable.getSize(sett);
+		} else if(this.isRange()) {
+			return 2 * this.assignable.getSize(sett) + 1;
+		} else {
+			this.fields.sort(Field::compareTo);
+			int totalSize = 0;
+			for(Field f:fields) {
+				totalSize+=f.getType().getSize(sett);
+			}
+			if(sett.target.needsAlignment) {
+				int difference = totalSize%sett.intsize;
+				if(difference==0)
+					return totalSize;
+				return totalSize-difference+sett.intsize;
+				
+			} else
+				return totalSize;
+		}
+	}
+	
+	private final boolean userType;
+	public static DataType makeUserType(String name) {
+		DataType.builtins.forEach(dt -> {
+			if(dt.name().toLowerCase().equals(name.toLowerCase())) {
+				throw new RuntimeException("name "+name+" may clash with builtin type");
+			}
+		});
+		if(DataType.namedTypes.keySet().contains(name)) {
+			return DataType.namedTypes.get(name);
+		}
+		return new DataType(name);
+	}
+	private DataType(String name) {
+		this(name, true);
+	}
+	private DataType(String name, boolean userMade) {
+		this.name = name;
+		size=2;
+		this.range=false;
+		this.assignable=null;
+		isList = false;
+		DataType.namedTypes.put(name, this);
+		userType = userMade;
+	}
+	private DataType(String name, int siz, boolean Range, DataType assignable, boolean list)
 	{
+		this.name = name;
 		size=siz;
 		this.range=Range;
 		this.assignable=assignable;
 		isList = list;
+		DataType.namedTypes.put(name, this);
+		userType = false;
 	}
 	private static HashMap<DataType,ArrayList<DataType>> implicitlyConvertible = new HashMap<>();
 	private static HashSet<DataType> freeable = new HashSet<>();
@@ -135,6 +239,9 @@ public enum DataType{
 	 * @param x the type to cast to
 	 * @return whether the cast can be done
 	 */
+	public String name() {
+		return this.name;
+	}
 	public boolean canCastTo(DataType x) {
 		if(implicitlyConvertible.containsKey(this)) {
 			return implicitlyConvertible.get(this).contains(x) || this==x;
@@ -210,7 +317,40 @@ public enum DataType{
 		return this==Int || this==Byte || this==Float;
 	}
 	
+	public static DataType valueOf(String name) {
+		DataType type = namedTypes.get(name); 
+		if(type == null)
+			throw new IllegalArgumentException("Type by name of "+name.toLowerCase()+" not found");
+		return type;
+	}
+	
+	public static DataType[] values() {
+		Collection<DataType> values = namedTypes.values();
+		DataType[] vals = new DataType[values.size()];
+		int i=0;
+		for(DataType dt: values) {
+			vals[i++] = dt;
+		}
+		return vals;
+	}
+	
 	public boolean numeric() {
 		return this==Int || this==Uint || this==Ptr || this==Byte || this == Ubyte;
 	}
+	
+	public <T> TypeResolver<T> SWITCH() {
+		return new TypeResolver<T>(this);
+	}
+	@Override
+	public int hashCode() {
+		return this.name().hashCode();
+	}
+	@Override
+	public boolean equals(Object other) {
+		return other==this;
+	}
+	public boolean builtin() {
+		return builtins.contains(this);
+	}
+	
 }

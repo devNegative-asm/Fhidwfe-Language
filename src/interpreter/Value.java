@@ -1,10 +1,9 @@
 package interpreter;
 
 import java.io.File;
-import java.util.ArrayList;
 
 import compiler.DataType;
-import compiler.Token.Type;
+import static compiler.DataType.*;
 
 public class Value implements Comparable<Value>{
 	/*
@@ -12,14 +11,12 @@ public class Value implements Comparable<Value>{
 	 * floats will lose the last 8 bits of mantissa
 	 */
 	public final DataType type;
-	private static ArrayList<String> exceptionStrings = new ArrayList<>();
 	private String functionNameString = "null";
 	public String getFunctionNameString() {
 		return functionNameString;
 	}
 	
 	public static Value createException(String exceptionName) {
-		exceptionStrings.add(exceptionName);
 		throw new RuntimeException(exceptionName);
 	}
 	private int value;
@@ -38,93 +35,80 @@ public class Value implements Comparable<Value>{
 	
 	@Override
 	public String toString() {
-		String result;
-		switch(type) {
-			case Bool:
-				if(value == 0)
-					return "false";
-				else
-					return "true";
-			case Byte:
-				return String.valueOf(this.signedByteValue());
-			case File:
+		String result = type.<String>SWITCH()
+			.CASE(Bool, () -> value==0?"false":"true")
+			.CASE(Byte, String.valueOf(this.signedByteValue()))
+			.CASE(File, () -> {
 				File f = ram.valueToFile(this);
-				if(f==null)
+				if (f==null)
 					return "<null file>";
 				else
-					return "<file @ "+f.getAbsolutePath()+">";
-			case Flag:
-				if(value==0)
-					return "reset";
-				return "set";
-			case Float:
-				return String.valueOf(Float.intBitsToFloat(value<<8));
-			case Func:
-				return "<func "+this.functionNameString+" (x) -> z>";
-			case Int:
-				return String.valueOf(this.signedIntValue());
-			case Listbyte:
-			case Listfile:
-			case Listfloat:
-			case Listfunc:
-			case Listint:
-			case Listop:
-			case Listptr:
-			case Listubyte:
-			case Listuint:
+					return "<file @ "+f.getAbsolutePath()+">";})
+			.CASE(Flag, value==0?"reset":"set")
+			
+			
+			.CASE(Float, String.valueOf(java.lang.Float.intBitsToFloat(value<<8)))
+			.CASE(Func, () ->  "<func "+this.functionNameString+" (x) -> z>")
+			.CASE(Int, String.valueOf(this.signedIntValue()))
+			.MULTI_CASE(new DataType[]{
+				Listbyte,
+				Listfile,
+				Listfloat,
+				Listfunc,
+				Listint,
+				Listop,
+				Listptr,
+				Listubyte,
+				Listuint
+			}, () -> {
 				Value size = dereference(DataType.Uint,-DataType.Uint.getSize(Eval.replSettings));
 				int len = size.value;
-				result = "[";
+				String res = "[";
 				for(int i=0;i<len/type.assignable().getSize(Eval.replSettings);i++) {
 					Value element = dereference(type.assignable(),type.assignable().getSize(Eval.replSettings)*i);
-					result+=element.toString();
-					result+=" ";
+					res+=element.toString();
+					res+=" ";
 				}
-				result+="]";
-				return result;
-			case Op:
-				return "<func "+this.functionNameString+" (x,y) -> z>";
-			case Ptr:
-				return "<@0x"+Integer.toHexString(value)+">";
-			case SYNTAX:
-				return "";
-			case Ubrange:
-			case Brange:
-			case Urange:
-			case Range:
-			case Ptrrange:
-			case Frange:
+				res+="]";
+				return res;
+			})
+			.CASE(Op, () -> "<func "+this.functionNameString+" (x,y) -> z>")
+			.CASE(Ptr, () -> "<@0x"+Integer.toHexString(value)+">")
+			.CASE(DataType.SYNTAX, "")
+			.MULTI_CASE(new DataType[]{
+					Ubrange,
+					Brange,
+					Urange,
+					Range,
+					Ptrrange,
+					Frange,
+			}, () -> {
+				String res = "";
 				Value low = dereference(type.assignable());
 				Value high = dereference(type.assignable(),type.assignable().getSize(Eval.replSettings));
 				Value flags = dereference(DataType.Byte,2*type.assignable().getSize(Eval.replSettings));
 				if((flags.value&1) != 0) {
-					//exclusive low
-					result = "(";
+					//inclusive low
+					res = "[";
 				} else {
-					result = "[";
+					res = "(";
 				}
-				result+=low;
-				result+=", ";
-				result+=high;
+				res+=low;
+				res+=", ";
+				res+=high;
 				if((flags.value&2) != 0) {
-					result+=")";
+					res+="]";
 				} else {
-					result+="]";
+					res+=")";
 				}
-				return result;
-				
-			case Ubyte:
-				return String.valueOf(this.unsignedByteValue());
-			case Uint:
-				return String.valueOf(this.unsignedIntValue());
-			case Void:
-				return "{{{void}}}";
-			case Exception:
-				System.err.println(Value.exceptionStrings.get(value));
-			default:
-				throw new RuntimeException("interpreter does not know type "+type+". contact devs");
-				
-		}
+				return res;
+			})
+			.CASE(Ubyte, String.valueOf(this.unsignedByteValue()))
+			.CASE(Uint, String.valueOf(this.unsignedIntValue()))
+			.CASE(Void, "{{{void}}}")
+			.DEFAULT_THROW(new RuntimeException("interpreter does not know type "+type)).get();
+		
+		return result;
 	}
 	public Value dereference(DataType readType, int offset) {
 		return new Value(this.type, value+offset, ram).dereference(readType);
@@ -134,7 +118,7 @@ public class Value implements Comparable<Value>{
 		int multiple = 1;
 		int totalDeref = readType.getSize(Eval.replSettings);
 		for(int i=0;i<totalDeref;i++) {
-			val += multiple* Byte.toUnsignedInt(ram.access(this.value+i));
+			val += multiple* java.lang.Byte.toUnsignedInt(ram.access(this.value+i));
 			multiple = multiple<<8;
 		}
 		if(readType==DataType.Func || readType==DataType.Op) {
@@ -160,7 +144,7 @@ public class Value implements Comparable<Value>{
 		this.ram=context;
 	}
 	public Value(float data, Ram context) {
-		this(DataType.Float, Float.floatToRawIntBits(data)>>>8, context);
+		this(DataType.Float, java.lang.Float.floatToRawIntBits(data)>>>8, context);
 	}
 	public int getNative() {
 		if(type==DataType.Byte)
@@ -196,11 +180,9 @@ public class Value implements Comparable<Value>{
 		return value&0xff;
 	}
 	public float toFloat() {
-		return Float.intBitsToFloat(value<<8);
+		return java.lang.Float.intBitsToFloat(value<<8);
 	}
 	public Value add(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -212,8 +194,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,v.value+value,ram);
 	}
 	public Value and(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -228,8 +208,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,v.value&value,ram);
 	}
 	public Value or(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -244,8 +222,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,v.value|value,ram);
 	}
 	public Value xor(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -260,8 +236,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,v.value^value,ram);
 	}
 	public Value sub(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -273,8 +247,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,value-v.value,ram);
 	}
 	public Value equalTo(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -284,8 +256,6 @@ public class Value implements Comparable<Value>{
 		return mul(new Value(this.type,Eval.replSettings.intsize,ram));
 	}
 	public Value mul(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -297,8 +267,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,v.value*value,ram);
 	}
 	public Value div(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -316,8 +284,6 @@ public class Value implements Comparable<Value>{
 		}
 	}
 	public Value modulo(Value v) {
-		if(type==DataType.Exception)
-			return this;
 		if(v.type!=this.type) {
 			return Value.createException("mismaching types "+this.type+" and "+v.type);
 		}
@@ -341,8 +307,6 @@ public class Value implements Comparable<Value>{
 		return ((a%b)+b)%b;
 	}
 	public Value negate() {
-		if(type==DataType.Exception)
-			return this;
 		if(type==DataType.Float) {
 			return new Value(-toFloat(), ram);
 		}
@@ -351,8 +315,6 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,-value,ram);
 	}
 	public Value complement() {
-		if(type==DataType.Exception)
-			return this;
 		if(DataType.Bool==type)
 			if(this.equals(TRUE(ram))) {
 				return FALSE(ram);
@@ -364,15 +326,11 @@ public class Value implements Comparable<Value>{
 		return new Value(this.type,~value,ram);
 	}
 	public Value shiftLeft() {
-		if(type==DataType.Exception)
-			return this;
 		if(!type.numeric())
 			return Value.createException("type "+this.type+" not numeric");
 		return new Value(this.type,value<<1,ram);
 	}
 	public Value shiftRight() {
-		if(type==DataType.Exception)
-			return this;
 		if(!type.numeric())
 			return Value.createException("type "+this.type+" not numeric");
 		if(type.signed())
@@ -382,7 +340,7 @@ public class Value implements Comparable<Value>{
 	}
 	public int floatValue() {
 		if(type==DataType.Float) {
-			return (int) Float.intBitsToFloat(value<<8);
+			return (int) java.lang.Float.intBitsToFloat(value<<8);
 		} else {
 			throw new RuntimeException("cannot interpret "+type+" as float");
 		}
@@ -392,7 +350,7 @@ public class Value implements Comparable<Value>{
 		if(type.numeric())
 			return getNative()-other.getNative();
 		if(type==DataType.Float) {
-			return Float.compare(this.toFloat(), other.toFloat());
+			return java.lang.Float.compare(this.toFloat(), other.toFloat());
 		}
 		throw new RuntimeException("cannot compare non numeric types");
 	}
@@ -418,8 +376,6 @@ public class Value implements Comparable<Value>{
 		return value==0;
 	}
 	public Value add(int i) {
-		if(this.type==DataType.Exception)
-			return this;
 		return new Value(type,value+i,ram);
 	}
 	public String derefAsString() {
