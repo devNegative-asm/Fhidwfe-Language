@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import compiler.DataType;
 import compiler.Instruction;
 import compiler.Parser;
+import types.DataType;
 public class Unix64Translator {
 	int counter = 0;
 	private int fresh() {

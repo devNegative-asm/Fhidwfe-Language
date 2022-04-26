@@ -9,6 +9,7 @@ import java.util.Scanner;
 
 import settings.Charmap;
 import settings.CompilationSettings;
+import types.DataType;
 /**
  * Tokenizes fwf files
  *

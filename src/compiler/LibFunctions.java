@@ -5,6 +5,7 @@ import java.util.List;
 
 import settings.CompilationSettings;
 import settings.CompilationSettings.Target;
+import types.DataType;
 
 /**
  * Store of code necessary to interact with the OS of each architecture

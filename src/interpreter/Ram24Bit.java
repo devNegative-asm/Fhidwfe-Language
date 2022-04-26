@@ -3,7 +3,7 @@ package interpreter;
 import java.io.File;
 import java.util.ArrayList;
 
-import compiler.DataType;
+import types.DataType;
 
 public class Ram24Bit implements Ram{
 	private byte[] RAM = new byte[1<<24];

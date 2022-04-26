@@ -1,6 +1,10 @@
 package compiler;
+import static types.DataType.*;
+
 import java.io.File;
-import static compiler.DataType.*;
+
+import types.DataType;
+import types.TypeResolver;
 
 public class Token {
 	public final String s;

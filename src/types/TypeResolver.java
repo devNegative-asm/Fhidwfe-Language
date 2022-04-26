@@ -1,4 +1,4 @@
-package compiler;
+package types;
 
 import java.util.function.Supplier;
 

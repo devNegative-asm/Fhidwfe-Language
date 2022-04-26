@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Stack;
-import compiler.DataType;
+
 import compiler.Instruction;
 import compiler.InstructionType;
 import compiler.Lexer;
@@ -14,6 +14,8 @@ import compiler.SyntaxTree;
 import compiler.Token;
 import interfaceCore.Main;
 import settings.CompilationSettings;
+import types.DataType;
+
 import java.util.function.Function;
 
 public class Eval {

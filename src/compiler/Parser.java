@@ -7,9 +7,10 @@ import java.util.List;
 import java.util.Set;
 
 import settings.CompilationSettings;
+import types.DataType;
 
 public class Parser {
-	final CompilationSettings settings;
+	public final CompilationSettings settings;
 	public Parser(CompilationSettings s) {
 		settings = s;
 		s.getLibrary().loadLibraryFunctions(this);
@@ -279,6 +280,21 @@ public class Parser {
 			}
 			for(int i=0;i<t.size();i++)
 			{
+				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
+					typeDepth++;
+					type = t.get(i+1).s+".";
+					i+=2;
+					continue;
+				}
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.OPEN_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.OPEN_RANGE_INCLUSIVE))
+					typeDepth++;
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.CLOSE_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.CLOSE_RANGE_INCLUSIVE))
+					typeDepth--;
+				if(typeDepth<=0) {
+					type="";
+					typeDepth = 0;
+				}
+				
 				if(t.get(i).t==Token.Type.ALIAS)//alias syntax is the same as function syntax, but the function already has to be defined and its types have to be the same size
 				{
 					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
@@ -294,7 +310,7 @@ public class Parser {
 						}
 						if(t.get(i+2).t==Token.Type.FUNCTION_NAME)
 						{
-							String name = t.get(i+2).s;
+							String name = type+t.get(i+2).s;
 							if(!this.hasFunction(name)){
 								throw new RuntimeException("Aliasing nonexistant function "+name+" at line "+t.get(i+2).linenum);
 							}
@@ -833,10 +849,37 @@ public class Parser {
 				Token fieldTok = t.remove(0);
 				while(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
 					if(fieldTok.t!=Token.Type.IDENTIFIER) {
-						while(fieldTok.t==Token.Type.FUNCTION) {
-							SyntaxTree funcTree = parseClassFunction(fieldTok,t,userType, root);
-							root.addChild(funcTree);
-							fieldTok = t.remove(0);
+						while(fieldTok.t==Token.Type.FUNCTION || fieldTok.t==Token.Type.ALIAS) {
+							if (fieldTok.t==Token.Type.ALIAS) {
+								System.out.println(fieldTok);
+								System.out.println(t);
+								if(t.remove(0).t!=Token.Type.FUNCTION_RETTYPE) {
+									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+								}
+								if(t.remove(0).t!=Token.Type.FUNCTION_NAME) {
+									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+								}
+								if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_L) {
+									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+								}
+								while(t.get(0).t!=Token.Type.FUNCTION_PAREN_R) {
+									if(t.remove(0).t!=Token.Type.FUNCTION_ARG) {
+										throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+									}
+									if(t.remove(0).t!=Token.Type.FUNCTION_ARG_COLON) {
+										throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+									}
+									if(t.remove(0).t!=Token.Type.FUNCTION_ARG_TYPE) {
+										throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
+									}
+								}
+								t.remove(0);
+								fieldTok = t.remove(0);
+							} else {
+								SyntaxTree funcTree = parseClassFunction(fieldTok,t,userType, root);
+								root.addChild(funcTree);
+								fieldTok = t.remove(0);
+							}
 						}
 						if(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE)
 							throw new RuntimeException("Expected proper field name or function in definition of "+typeName+" at line "+fieldTok.linenum);

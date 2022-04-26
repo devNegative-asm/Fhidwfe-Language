@@ -3,6 +3,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import types.DataType;
+
 public class VariableTree {
 	private ArrayList<Variable> myvars = new ArrayList<>();
 	private ArrayList<VariableTree> children = new ArrayList<>();

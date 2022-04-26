@@ -1,4 +1,4 @@
-package compiler;
+package types;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import compiler.Parser;
 import settings.CompilationSettings;
 /**
  * A type recognized by the compiler
@@ -47,7 +48,7 @@ public class DataType{
 	public static final DataType SYNTAX = new DataType("SYNTAX",0,false,null,false);
 	private static HashSet<DataType> builtins = new HashSet<>();
 	
-	final int size;
+	public final int size;
 	private final boolean range;
 	private final DataType assignable;
 	
@@ -114,6 +115,10 @@ public class DataType{
 	public void addField(String name, DataType type) {
 		if(fieldsFinalized)
 			throw new RuntimeException("attempt to add a field to an already-defined type");
+		this.fields.forEach(field -> {
+			if(field.name==name)
+				throw new RuntimeException("Cannot define multiple fields of same type in "+this.name);
+		});
 		Field newField = new Field(name, type);
 		this.fields.add(newField);
 	}

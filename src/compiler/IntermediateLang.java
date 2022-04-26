@@ -1,8 +1,12 @@
 package compiler;
+import static types.DataType.*;
+
 import java.util.ArrayList;
 import java.util.function.Predicate;
+
 import settings.CompilationSettings;
-import static compiler.DataType.*;
+import types.DataType;
+import types.TypeResolver;
 /**
  * The Fhidwfe intermediate language (generated directly from source)
  *

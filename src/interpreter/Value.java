@@ -1,9 +1,10 @@
 package interpreter;
 
+import static types.DataType.*;
+
 import java.io.File;
 
-import compiler.DataType;
-import static compiler.DataType.*;
+import types.DataType;
 
 public class Value implements Comparable<Value>{
 	/*

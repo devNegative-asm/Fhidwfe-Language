@@ -1,6 +1,7 @@
 package compiler;
 
 import settings.CompilationSettings;
+import types.DataType;
 
 public class Variable implements Comparable<Variable>{
 	final String name;

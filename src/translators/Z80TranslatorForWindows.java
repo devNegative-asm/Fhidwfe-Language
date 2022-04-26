@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import compiler.DataType;
 import compiler.Instruction;
 import compiler.Parser;
+import types.DataType;
 
 public class Z80TranslatorForWindows {
 	int counter = 0;
