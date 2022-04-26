@@ -116,7 +116,7 @@ public class DataType{
 		if(fieldsFinalized)
 			throw new RuntimeException("attempt to add a field to an already-defined type");
 		this.fields.forEach(field -> {
-			if(field.name==name)
+			if(field.name.equals(name))
 				throw new RuntimeException("Cannot define multiple fields of same type in "+this.name);
 		});
 		Field newField = new Field(name, type);
