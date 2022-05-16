@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.function.Predicate;
 
 import settings.CompilationSettings;
+import settings.CompilationSettings.Target;
 import types.DataType;
 import types.TypeResolver;
 /**
@@ -68,16 +69,21 @@ public class IntermediateLang {
 		results.add(InstructionType.function_label.cv("error"));
 		results.add(InstructionType.enter_function.cv("0"));//we don't need any locals
 		//^ according to the calling convention, enter_function isn't exactly needed for the error handler, but it's nice for consistency
+		
 		results.add(InstructionType.retrieve_param_int.cv(""+(tree.theParser.settings.intsize*2)));//retrieve string argument
 		results.add(InstructionType.call_function.cv("puts"));//print the error message
-		results.add(InstructionType.overwrite_immediate_int.cv("-1"));//return -1
+		results.add(InstructionType.call_function.cv("putln"));
+		results.add(InstructionType.overwrite_immediate_int.cv("1"));//return status code 1
 		results.add(InstructionType.exit_noreturn.cv("__ExitLocation"));
+		
 		results.add(InstructionType.data_label.cv("__ExitLocation"));
 		results.add(InstructionType.rawspace.cv(""+(tree.theParser.settings.intsize+(tree.theParser.settings.intsize>2?8:0))));
 		for(Byte[] b:lex.stringConstants()) {//create string constants table
+			results.add(InstructionType.data_label.cv("__String_"+stringCount+"_size"));
+			results.add(InstructionType.rawint.cv("$"+Integer.toHexString(b.length)));
 			results.add(InstructionType.data_label.cv("__String_"+stringCount++));
 			for(byte c:b) {
-				results.add(InstructionType.raw.cv("$"+Integer.toHexString((c+256)%256)));
+				results.add(InstructionType.raw.cv("$"+Integer.toHexString(java.lang.Byte.toUnsignedInt(c))));
 			}
 			results.add(InstructionType.raw.cv("$00"));
 		}
@@ -168,7 +174,6 @@ public class IntermediateLang {
 	 */
 	private ArrayList<Instruction> generateSubInstructions(SyntaxTree tree)
 	{
-		
 		ArrayList<Instruction> results = new ArrayList<>();
 		
 		CompilationSettings settings = tree.getParser().settings;

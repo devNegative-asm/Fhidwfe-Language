@@ -349,6 +349,8 @@ public class Lexer {
 				tk = new Token(tok,Token.Type.IFNOT,guarded,fileIn);
 			} else if(tok.equals("whilenot")) {
 				tk = new Token(tok,Token.Type.WHILENOT,guarded,fileIn);
+			} else if(tok.equals("extern")) {
+				tk = new Token(tok,Token.Type.EXTERN,guarded,fileIn);
 			} else if(tok.equals("[")) {
 				whereami.push(Expecting.EXPR);
 				tk = new Token(tok,Token.Type.OPEN_RANGE_INCLUSIVE,guarded,fileIn);
@@ -499,7 +501,7 @@ public class Lexer {
 			tokens.add(tk);
 			functionContext |= fnNameImmediate;
 			fnNameImmediate = functionImmediate;
-			functionImmediate = tok.equals("function") || tok.equals("alias");
+			functionImmediate = tok.equals("function") || tok.equals("alias") || tok.equals("extern");
 			typeNameNext = tk.t==Token.Type.TYPE_DEFINITION;
 		}
 		

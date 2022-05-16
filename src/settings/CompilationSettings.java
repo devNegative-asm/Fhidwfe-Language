@@ -131,6 +131,9 @@ public class CompilationSettings {
 				break;
 			case LINx64:
 				instructions.addAll(0,Arrays.asList(
+						"%include \"linuxasm/unistd_64.asm\"",
+						"extern Fwf_internal_linux_syscall",
+						"global error",
 						"Fwf_internal_syscall_0:",
 						"	mov r12, rsp",
 						"	and rsp, -16",

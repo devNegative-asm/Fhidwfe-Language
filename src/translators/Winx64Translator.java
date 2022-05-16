@@ -523,7 +523,7 @@ public class Winx64Translator {
 				if(p.getSettings().target.needsAlignment)
 					data.add(data.size()-1,"ALIGN "+p.getSettings().intsize);
 				if(orig[0].startsWith("$"))
-					data.add("	DQ "+orig[0].substring(1)+"h");
+					data.add("	DQ 0"+orig[0].substring(1)+"h");
 				else
 					data.add("	DQ "+orig[0]);
 				break;

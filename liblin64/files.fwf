@@ -1,4 +1,133 @@
 guard
+import one
+
+O_RDONLY   =     0
+O_WRONLY    =    1
+O_RDWR    =      2
+O_CREAT  =       64  
+O_EXCL    =      128 
+O_NOCTTY   =     256 
+O_TRUNC     =    512
+O_APPEND     =   1024
+O_NONBLOCK    =  2048
+O_NOFOLLOW   =   131072
+S_IRUSR = 256 //user has read permission
+S_IWUSR = 128 //user has write permission
+S_IXUSR = 64 //user has execute permission
+S_IRGRP = 32 //group has read permission
+S_IWGRP = 16 //group has write permission
+S_IXGRP = 8 //group has execute permission
+S_IROTH = 4 //others have read permission
+S_IWOTH = 2 //others have write permission
+S_IXOTH = 1 //others have execute permission
+
+function ubyte getc() {
+	return @ubyte fread$ @file 0
+}
+
+function bool file_is_protected(filename:ptr) {
+	dotcounter = 0
+	namechar = deref_ubyte$ filename
+	whilenot = 0ub namechar {
+	
+		if = namechar '.' {
+			dotcounter = + 1 dotcounter
+		} {
+			dotcounter = 0
+		}
+		if > dotcounter 1 {
+			return true
+		} ;
+		filename = + filename one
+		namechar = deref_ubyte$ filename
+	}
+	return false
+}
+
+function void putchar(c:ubyte) {
+	fwrite$ @file 1 c
+}
+
+function void fwrite(f:file char:ubyte) {
+	temp request = [
+		@ptr f
+		@char
+		one
+	]
+	unix_syscall$ 1 request
+}
+
+function int fread(f:file) {
+	temp buffer = [0ub]
+	temp request = [
+		@ptr @uint f
+		@ptr buffer
+		one
+	]
+	count = unix_syscall$ 0 request
+	if = count 0 {
+		return !1
+	} ;
+	return @int deref_ubyte$ @ptr buffer
+}
+
+function void fflush(f:file) {
+	
+}
+
+function file fopen_w(path:ptr) {
+	if file_is_protected$ path {
+		error$ concat$ concat$ "file " path " is protected."
+	} ;
+	temp request = [
+		@int path
+		| | O_NOFOLLOW O_WRONLY O_CREAT
+		| | S_IRUSR S_IWUSR S_IRGRP
+	]
+	fd = unix_syscall$ 2 request
+    if < fd 0 {
+    	error$ concat$ "failed to open file " path
+    } ;
+    return @file fd
+}
+
+function file fopen_a(path:ptr) {
+	if file_is_protected$ path {
+		error$ concat$ concat$ "file " path " is protected."
+	} ;
+	temp request = [
+		@int path
+		| | O_NOFOLLOW O_WRONLY O_APPEND
+		| | S_IRUSR S_IWUSR S_IRGRP
+	]
+	fd = unix_syscall$ 2 request
+    if < fd 0 {
+    	error$ concat$ "failed to open file " path
+    } ;
+    return @file fd
+}
+
+function file fopen_r(path:ptr) {
+	if file_is_protected$ path {
+		error$ concat$ concat$ "file " path " is protected."
+	} ;
+    temp request = [
+        @int path
+        | O_NOFOLLOW O_RDONLY 
+        0
+    ]
+    fd = unix_syscall$ 2 request
+    if < fd 0 {
+    	error$ concat$ "failed to open file " path
+    } ;
+    return @file fd 
+}
+
+function void fclose(f:file) {
+	temp request = [@ptr f]
+	unix_syscall$ 3 request
+}
+
 function void fwrites(f:file s:ptr) {
 	len = strlen$ s
 	for uint [0u,len) with index {

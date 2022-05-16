@@ -1,0 +1,18 @@
+guard
+
+alias int unix_syscall(call:int params:ptr)
+alias int unix_syscall(call:int params:listptr)
+alias int unix_syscall(call:int params:listint)
+alias int unix_syscall(call:uint params:listptr)
+alias int unix_syscall(call:uint params:listint)
+
+function uint sizeof(x:ptr) {
+	return deref_uint$ - x @ptr ?1
+}
+
+function ptr realloc(block:ptr newsize:uint) {
+	newblock = malloc$ newsize
+	memcpy$ newblock block umin$ newsize sizeof$ block
+	free$ block
+	return newblock
+}

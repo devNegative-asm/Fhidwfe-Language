@@ -520,7 +520,7 @@ public class Unix64Translator {
 				if(p.getSettings().target.needsAlignment)
 					data.add(data.size()-1,"ALIGN "+p.getSettings().intsize);
 				if(orig[0].startsWith("$"))
-					data.add("	dq "+orig[0].substring(1)+"h");
+					data.add("	dq 0"+orig[0].substring(1)+"h");
 				else
 					data.add("	dq "+orig[0]);
 				break;
@@ -592,14 +592,7 @@ public class Unix64Translator {
 				comp.add("	mov rax, "+args[0]);
 				break;
 			case getc:
-				if(stackDepth++>0)
-					comp.add("	push rax");
-				comp.add("	lea rax, [Fwf_internal_getc]");
-				comp.add("	call Fwf_internal_syscall_0");
-				if(!externs.contains("extern Fwf_internal_getc")) {
-					externs.add("extern Fwf_internal_getc");
-				}
-				break;
+				throw new RuntimeException("getc calls should not be translated");
 			case retrieve_local_address:
 				if(stackDepth++>0)
 					comp.add("	push rax");
@@ -999,9 +992,9 @@ public class Unix64Translator {
 				comp.add("	shr rax, 1");
 				break;
 			case exit_noreturn:
-				comp.add("	mov rsp, ["+args[0]+"]");
-				comp.add("	mov rbp, ["+args[0]+"+8]");
-				comp.add("	ret");
+				comp.add("	mov rdi, rax");
+				comp.add("	mov rax, __sys_exit");
+				comp.add("	syscall");
 				break;
 			case exit_global:
 				comp.add("	mov rsp, ["+args[0]+"]");

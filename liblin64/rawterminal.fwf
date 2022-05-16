@@ -1,0 +1,26 @@
+guard
+function int scan_keycode() {
+	//read what key is present in the buffer, if any, and return that
+	
+	retval = 0u
+	reset doneScanning
+	whilenot doneScanning {
+		nextbyte = getc$
+		if = 0ub nextbyte {
+			return @int reverse_multibyte_keycode_endianness$ retval
+		} ;
+		retval = + * 256u retval @uint nextbyte
+		//input buffering is disabled, so we have to spin for a little bit to make sure we get every part
+		for int [0,999] with dummy ;
+	}
+	return 0
+}
+
+function uint reverse_multibyte_keycode_endianness(keycode:uint) {
+	rv = 0u
+	whilenot = 0u keycode {
+		rv = + * 256u rv & keycode 255u
+		keycode = / keycode 256u
+	}
+	return rv
+}

@@ -74,10 +74,16 @@ public class LibFunctions {
 		p.registerLibFunction(Arrays.asList(DataType.Ptr),DataType.Void, "error");
 		p.aliasLibFunction(Arrays.asList(DataType.Listbyte),DataType.Void, "error");
 		p.aliasLibFunction(Arrays.asList(DataType.Listubyte),DataType.Void, "error");
-		p.registerLibFunction(Arrays.asList(), DataType.Ubyte, "getc");
-		p.registerLibFunction(Arrays.asList(DataType.Ubyte), DataType.Void, "putchar");
-		p.aliasLibFunction(Arrays.asList(DataType.Byte),DataType.Void, "putchar");
 		p.registerLibFunction(Arrays.asList(), DataType.Void, "putln");
+		if(p.settings.target==Target.LINx64) {
+			p.requireLibFunction(Arrays.asList(), DataType.Ubyte, "getc");
+			p.requireLibFunction(Arrays.asList(DataType.Ubyte), DataType.Void, "putchar");
+			
+		} else {
+			p.registerLibFunction(Arrays.asList(), DataType.Ubyte, "getc");
+			p.registerLibFunction(Arrays.asList(DataType.Ubyte), DataType.Void, "putchar");
+			p.aliasLibFunction(Arrays.asList(DataType.Byte),DataType.Void, "putchar");
+		}
 
 		for(DataType t:DataType.values()) {
 			if(t.getSize(p)>1) {
@@ -109,9 +115,38 @@ public class LibFunctions {
 			
 			p.registerLibFunction(Arrays.asList(), DataType.Void, "draw");
 			break;
+			
+		case LINx64:
+			
+			p.requireLibFunction(Arrays.asList(DataType.Uint), DataType.Ptr, "malloc");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "sizeof");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr,DataType.Uint), DataType.Ptr, "realloc");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Void, "free");
+			
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.File, "fopen_r");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.File, "fopen_w");
+			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.File, "fopen_a");
+			
+			p.requireLibFunction(Arrays.asList(DataType.File,DataType.Ubyte), DataType.Void, "fwrite");
+			p.requireLibFunction(Arrays.asList(DataType.File), DataType.Void, "fflush");
+			p.requireLibFunction(Arrays.asList(DataType.File), DataType.Void, "fclose");
+			p.requireLibFunction(Arrays.asList(DataType.File), DataType.Int, "fread");
+			
+			//flops
+			p.requireLibFunction(Arrays.asList(DataType.Float), DataType.Float, "exp");
+			p.requireLibFunction(Arrays.asList(DataType.Float, DataType.Float), DataType.Float, "pow");
+			p.requireLibFunction(Arrays.asList(DataType.Float), DataType.Float, "log");
+			p.requireLibFunction(Arrays.asList(DataType.Float), DataType.Float, "ln");
+			p.requireLibFunction(Arrays.asList(DataType.Float), DataType.Float, "exp");
+			p.requireLibFunction(Arrays.asList(DataType.Float), DataType.Float, "lg");
+			
+			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "sqrt");
+			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "sin");
+			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "cos");
+			
+			break;
 		case WINx64:
 		case WINx86:
-		case LINx64:
 			p.registerLibFunction(Arrays.asList(DataType.Uint), DataType.Ptr, "malloc");
 			p.registerLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "sizeof");
 			p.registerLibFunction(Arrays.asList(DataType.Ptr,DataType.Uint), DataType.Ptr, "realloc");
@@ -134,8 +169,6 @@ public class LibFunctions {
 			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "sqrt");
 			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "sin");
 			p.registerLibFunction(Arrays.asList(DataType.Float), DataType.Float, "cos");
-			
-			
 			
 			break;
 		case z80Emulator:
@@ -186,7 +219,18 @@ public class LibFunctions {
 		p.inlineReplace("put_ptr");
 		p.inlineReplace("");
 		p.inlineReplace("binop");
-		if(architecture==CompilationSettings.Target.WINx64 || architecture==CompilationSettings.Target.LINx64) {
+		if(architecture==CompilationSettings.Target.LINx64) {
+			p.inlineReplace("memcpy");
+			p.inlineReplace("strcpy");
+			p.inlineReplace("cos");
+			p.inlineReplace("sqrt");
+			p.inlineReplace("sin");
+			p.inlineReplace("putln");
+			for(String s:p.getExternFunctions()) {
+				instructions.add(0,InstructionType.rawinstruction.cv("extern "+s));
+			}
+		}
+		if(architecture==CompilationSettings.Target.WINx64) {
 			p.inlineReplace("malloc");
 			p.inlineReplace("free");
 			p.inlineReplace("realloc");
@@ -233,7 +277,17 @@ public class LibFunctions {
 			Instruction instr = instructions.get(loc);
 			List<Instruction> replacement = new ArrayList<>();
 			
-			if(instr.in==InstructionType.call_function) {
+			if(	p.settings.target==CompilationSettings.Target.LINx64
+					&& instr.in==InstructionType.call_function 
+					&& p.getExternFunctions().contains(instr.args[0])) {
+				
+				if(!p.getFunctionInputTypes(instr.args[0]).get(0).isEmpty()) {
+					replacement.add(InstructionType.rawinstruction.cv("push rax"));
+				}
+				replacement.add(InstructionType.rawinstruction.cv("call "+instr.args[0]));
+
+			}
+			else if(instr.in==InstructionType.call_function) {
 				if(p.isInlined(instr.args[0]))
 				switch(instr.args[0]) {
 					case "binop":
@@ -366,11 +420,6 @@ public class LibFunctions {
 						break;
 					case "malloc":
 						switch(architecture) {
-						case LINx64:
-							replacement = Arrays.asList(
-									InstructionType.rawinstruction.cv("mov rdi,rax"),
-									InstructionType.syscall_noarg.cv("__malloc"));
-							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -382,11 +431,6 @@ public class LibFunctions {
 						break;
 					case "sizeof":
 						switch(architecture) {
-						case LINx64:
-							replacement = Arrays.asList(
-									InstructionType.rawinstruction.cv("mov rdi,rax"),
-									InstructionType.syscall_noarg.cv("__sizeof"));
-							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -398,12 +442,6 @@ public class LibFunctions {
 						break;
 					case "free":
 						switch(architecture) {
-						case LINx64:
-							replacement = Arrays.asList(
-									InstructionType.rawinstruction.cv("mov rdi,rax"),
-									InstructionType.syscall_noarg.cv("__free"),
-									InstructionType.pop_discard.cv());
-							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -416,13 +454,6 @@ public class LibFunctions {
 						break;
 					case "realloc":
 						switch(architecture) {
-						case LINx64:
-							replacement = Arrays.asList(
-									InstructionType.notify_pop.cv(),
-									InstructionType.rawinstruction.cv("mov rsi,rax"),
-									InstructionType.rawinstruction.cv("pop rdi"),
-									InstructionType.syscall_noarg.cv("__realloc"));
-							break;
 						case WINx64:
 							replacement = Arrays.asList(
 									InstructionType.notify_pop.cv(),
@@ -464,12 +495,6 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
-							case LINx64:
-								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("mov rdi,rax"),
-										InstructionType.syscall_noarg.cv("__fclose"),
-										InstructionType.pop_discard.cv());
-								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -492,12 +517,6 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
-							case LINx64:
-								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("mov rdi,rax"),
-										InstructionType.syscall_noarg.cv("__fflush"),
-										InstructionType.pop_discard.cv());
-								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -518,11 +537,6 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("in a,(1)"),//read_byte
 									InstructionType.rawinstruction.cv("ld l,a")
 								);
-								break;
-							case LINx64:
-								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("mov rdi,rax"),
-										InstructionType.syscall_noarg.cv("__fread"));
 								break;
 							case WINx64:
 								replacement = Arrays.asList(
@@ -567,14 +581,6 @@ public class LibFunctions {
 									InstructionType.pop_discard.cv()
 								);
 								break;
-							case LINx64:
-								replacement = Arrays.asList(
-										InstructionType.notify_pop.cv(),
-										InstructionType.rawinstruction.cv("mov rsi,rax"),
-										InstructionType.rawinstruction.cv("pop rdi"),
-										InstructionType.syscall_noarg.cv("__fwrite"),
-										InstructionType.pop_discard.cv());
-								break;
 							case WINx64:
 								replacement = Arrays.asList(
 										InstructionType.notify_pop.cv(),
@@ -604,11 +610,6 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("ld l,a"),
 									InstructionType.rawinstruction.cv("ld h,$0")
 								);
-								break;
-							case LINx64:
-								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("mov rdi,rax"),
-										InstructionType.syscall_noarg.cv("__fopen"));
 								break;
 							case WINx64:
 								replacement = Arrays.asList(
@@ -643,13 +644,6 @@ public class LibFunctions {
 									InstructionType.rawinstruction.cv("out (0),a"),
 									InstructionType.pop_discard.cv());
 								break;
-							case LINx64:
-								replacement = Arrays.asList(
-									InstructionType.rawinstruction.cv("mov rdi,rax"),
-									InstructionType.syscall_noarg.cv("__putchar"),
-									InstructionType.pop_discard.cv()
-								);
-								break;
 							case WINx64:
 								replacement = Arrays.asList(
 									InstructionType.rawinstruction.cv("mov rcx,rax"),
@@ -665,10 +659,8 @@ public class LibFunctions {
 						switch(architecture) {
 							case LINx64:
 								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("mov rbx, rax"),
-										InstructionType.rawinstruction.cv("mov rdi, 10"),
-										InstructionType.syscall_noarg.cv("__putchar"),
-										InstructionType.rawinstruction.cv("mov rax, rbx")
+										InstructionType.rawinstruction.cv("push 10"),
+										InstructionType.rawinstruction.cv("call Fwf_us_putchar")
 								);
 								break;
 							case WINx64:
@@ -748,6 +740,8 @@ public class LibFunctions {
 		tree.addConstantValue("heap", DataType.Ptr);
 		tree.addConstantValue("heaptail", DataType.Ptr);
 		tree.addConstantValue("int_size", DataType.Uint);
+		tree.notifyCalled("putchar");
+		tree.notifyCalled("puts");
 		if(architecture.intsize==8) {
 			tree.addConstantValue("e", DataType.Float);
 			tree.addConstantValue("pi", DataType.Float);

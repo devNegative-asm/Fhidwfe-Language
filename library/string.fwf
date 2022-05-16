@@ -1,6 +1,7 @@
 
 guard
 import one
+import int_size
 
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string
@@ -66,7 +67,6 @@ function ptr stralloc_delete(s:ptr) {//make a string from the given string or li
 alias ptr join(strlist:listptr delim:byte)
 
 function ptr join(strlist:listptr delim:ubyte) {
-	int_size = ?1
 	list_size = / sizeof$ strlist int_size
 	if = list_size 0u {
 		newjjo = malloc$ 1u

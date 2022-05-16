@@ -23,7 +23,7 @@ public class DataType{
 	public static final DataType Ubyte = new DataType("Ubyte",1,false,null,false);
 	public static final DataType Ptr = new DataType("Ptr",2,false,null,false);
 	public static final DataType Void = new DataType("Void",0,false,null,false);
-	public static final DataType File = new DataType("File",1,false,null,false);
+	public static final DataType File = new DataType("File",2,false,null,false);
 	public static final DataType Func = new DataType("Func",2,false,null,false);
 	public static final DataType Op = new DataType("Op",2,false,null,false);
 	

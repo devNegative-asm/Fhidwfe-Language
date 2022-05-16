@@ -1,5 +1,5 @@
-program: bootstrap_linux.o output.o
-	gcc bootstrap_linux.o output.o -o program -no-pie
+program: output.o linux_asm.o
+	ld output.o linux_asm.o -o program
 
 repl: fhidwfe.jar
 	java -jar fhidwfe.jar --mode repl
@@ -7,8 +7,8 @@ repl: fhidwfe.jar
 emu: fhidwfe.jar tniasm.exe
 	java -jar fhidwfe.jar compile main.fwf --o tiasm --target z80Emulator --heap-size 15000
 
-bootstrap_linux.o: bootstrap_linux.c
-	gcc -c bootstrap_linux.c
+linux_asm.o: linuxasm/*
+	nasm -f elf64 linuxasm/linux.asm -o linux_asm.o
 
 output.o: output.asm
 	nasm -f elf64 output.asm

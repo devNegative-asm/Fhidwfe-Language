@@ -118,7 +118,9 @@ public class Parser {
 	 */
 	public List<DataType> getFunctionOutputType(String functionName)
 	{
-		return fnOutputTypes.get(functionName);
+		if(fnOutputTypes.containsKey(functionName))
+			return fnOutputTypes.get(functionName);
+		return this.fnOutputTypesReq.get(functionName);
 	}
 	/**
 	 * Whether the given function exists
@@ -155,7 +157,9 @@ public class Parser {
 		BaseTree tree = new BaseTree(this);
 		while(!t.isEmpty())
 		{
-			tree.addChild(parseOuter(t,tree));
+			SyntaxTree st = parseOuter(t,tree);
+			if(st!=null)
+				tree.addChild(st);
 		}
 		
 		return tree;
@@ -214,8 +218,68 @@ public class Parser {
 					type="";
 					typeDepth = 0;
 				}
-				
-				if(t.get(i).t==Token.Type.FUNCTION)
+				if(t.get(i).t==Token.Type.EXTERN) {
+					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
+					{
+						String rettype = t.get(i+1).s;
+						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
+						DataType returnType = null;
+						try{
+							returnType = DataType.valueOf(rttype);
+						} catch(Exception e)
+						{
+							printFuncError("not a valid type",t.get(i+1));
+						}
+						if(t.get(i+2).t==Token.Type.FUNCTION_NAME)
+						{
+							String name = type+t.get(i+2).s;
+							if(this.hasFunction(name)){
+								throw new RuntimeException("Function "+name+" defined in multiple places at line "+t.get(i+2).linenum);
+							}
+							//fnOutputTypes.put(name, new ArrayList<DataType>(Arrays.asList(returnType)));
+							if(t.get(i+3).t==Token.Type.FUNCTION_PAREN_L)
+							{
+								int argCount = 0;
+								ArrayList<DataType> args = new ArrayList<DataType>();
+								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
+										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
+										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
+								{
+									DataType argtype = null;
+									String argType =  t.get(i+6+argCount*3).s;
+									argType = Character.toUpperCase(argType.charAt(0))+argType.substring(1);
+									try{
+										argtype = DataType.valueOf(argType);
+									} catch(Exception e)
+									{
+										printFuncError("not a valid type",t.get(i+6+argCount*3));
+									}
+									args.add(argtype);
+									argCount++;
+								}
+								if(t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+									printFuncError("used incorrect token type. Expected FUNCTION_ARG, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
+								}
+								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+									printFuncError("used incorrect token type. Expected FUNCTION_ARG_COLON, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
+								}
+								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
+								{
+									this.asmExternFunction(args, returnType, name);
+									//fnInputTypes.put(name, new ArrayList<ArrayList<DataType>>(Arrays.asList(args)));
+								} else {
+									printFuncError("missing function close paren",t.get(i+1));
+								}
+							} else {
+								printFuncError("missing function open paren",t.get(i+1));
+							}
+						} else {
+							printFuncError("missing function name",t.get(i+1));
+						}
+					} else {
+						printFuncError("missing function return type",t.get(i+1));
+					}
+				} else if(t.get(i).t==Token.Type.FUNCTION)
 				{
 					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
 					{
@@ -452,6 +516,9 @@ public class Parser {
 		Token myTok = tok;
 		DataType userType;
 		switch(tok.t) {
+			case EXTERN:
+				while(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R);
+				return null;
 			case ALIAS:
 				//similar to function parsing except that we don't use a body
 				Token retType = t.remove(0);
@@ -485,7 +552,7 @@ public class Parser {
 				}
 				if(t.remove(0).t!=Token.Type.FUNCTION_PAREN_R)
 					pe("expected ) to end alias definition");
-				break;
+				return null;
 			case CORRECT:
 				pe("result from index corrector '?' unused");
 				break;
@@ -642,6 +709,9 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = myTok.s.substring(0, myTok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				if(root.functionIn()==null) {
+					root.notifyCalled(callname);
+				}
 				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
@@ -851,8 +921,6 @@ public class Parser {
 					if(fieldTok.t!=Token.Type.IDENTIFIER) {
 						while(fieldTok.t==Token.Type.FUNCTION || fieldTok.t==Token.Type.ALIAS) {
 							if (fieldTok.t==Token.Type.ALIAS) {
-								System.out.println(fieldTok);
-								System.out.println(t);
 								if(t.remove(0).t!=Token.Type.FUNCTION_RETTYPE) {
 									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
 								}
@@ -1025,6 +1093,9 @@ public class Parser {
 		Token myTok = tok;
 		
 		switch(tok.t) {
+			case EXTERN:
+				pe("cannot declare extern functions in an inner block");
+				break;
 			case CORRECT:
 				pe("result from index corrector '?' unused");
 				break;
@@ -1137,6 +1208,9 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				if(root.functionIn()==null) {
+					root.notifyCalled(callname);
+				}
 				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
@@ -1455,6 +1529,9 @@ public class Parser {
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				if(root.functionIn()==null) {
+					root.notifyCalled(callname);
+				}
 				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
@@ -1550,5 +1627,19 @@ public class Parser {
 	 */
 	public boolean isSymbol(String s) {
 		return symbolTable.contains(s);
+	}
+	
+	private HashSet<String> externASMFunctions = new HashSet<>();
+	
+	public Set<String> getExternFunctions() {
+		HashSet<String> copy = new HashSet<>();
+		externASMFunctions.forEach(x -> copy.add(x));
+		return copy;
+	}
+	
+	public void asmExternFunction(List<DataType> asList, DataType i, String name) {
+		this.registerLibFunction(asList, i, name);
+		externASMFunctions.add(name);
+		inlined.add(name);
 	}
 }

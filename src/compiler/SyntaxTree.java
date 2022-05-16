@@ -15,7 +15,7 @@ import types.TypeResolver;
  */
 public class SyntaxTree extends BaseTree{
 	private Token myToken;
-	private final BaseTree parent;
+	private BaseTree parent;
 	public SyntaxTree(Token t, Parser p, BaseTree parent)
 	{
 		super(p);
@@ -244,6 +244,7 @@ public class SyntaxTree extends BaseTree{
 	 */
 	public String resolveVariableLocation(String varname)
 	{
+		
 		try {
 			return Location.LOCAL+" "+resolveLocalOffset(varname);
 		}catch(RuntimeException e) {
@@ -523,6 +524,13 @@ public class SyntaxTree extends BaseTree{
 		SyntaxTree children = children(1)[0];
 		if(children.getType()!=DataType.Ptr)
 			unexpected(DataType.Ptr,children.getType());
+	}
+	
+	public ArrayList<String> allVarsInScope() {
+		ArrayList<String> result = new ArrayList<>();
+		result.addAll(scopeTypings.keySet());
+		result.addAll(parent.allVarsInScope());
+		return result;
 	}
 	
 	private HashMap<String,DataType> scopeTypings = new HashMap<>();
@@ -1119,10 +1127,12 @@ public class SyntaxTree extends BaseTree{
 	protected SyntaxTree copyWithDifferentParent(BaseTree p)
 	{
 		SyntaxTree copy = new SyntaxTree(myToken,theParser,p);
-		this.getChildren().forEach(child->copy.addChild(child));
-		copy.scopeTypings=this.scopeTypings;
+		this.getChildren().forEach(child->copy.addChild(child.copyWithDifferentParent(copy)));
+		copy.scopeTypings = this.scopeTypings;
 		copy.typeCache = this.typeCache;
-		
+		copy.functionPointers = this.functionPointers;
+		copy.argorder = this.argorder;
+		copy.functionVariables = this.functionVariables;
 		return copy;
 	}
 	public BaseTree getParent() {

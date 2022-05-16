@@ -1,0 +1,49 @@
+guard
+import null
+
+extern int unix_syscall(callID:uint arguments:listuint)
+
+
+//MMAP constants
+
+PROT_READ = 1 // page can be read
+PROT_WRITE = 2 //            /* page can be written */
+PROT_EXEC = 4 //            /* page can be executed */
+PROT_SEM = 8 //            /* page may be used for atomic ops */
+PROT_NONE = 0 //            /* page can not be accessed */
+
+MAP_FIXED = 16 //           /* Interpret addr exactly */
+MAP_ANONYMOUS = 32 //           /* don't use a file */
+MAP_SHARED = 1 //           /* Share changes */
+MAP_PRIVATE = 2
+
+//malloc can't rely on creating a list before calling mmap
+malloc_request_1 = ?6
+malloc_request_2_addr = null
+malloc_request_3_len = 0u
+malloc_request_4_protection = | PROT_READ PROT_WRITE
+malloc_request_5_flags = | MAP_ANONYMOUS MAP_PRIVATE
+malloc_request_6_fd = !1
+malloc_request_7_offset = 0
+
+function ptr malloc(blockSize:uint) {
+	malloc_request_1 = ?6
+	malloc_request_3_len = + ?2u blockSize
+	block = @ptr unix_syscall$ 9 @malloc_request_2_addr
+	if < @int block 0 {
+		return null
+	} ;
+	put_uint$ block malloc_request_3_len
+	put_uint$ + block @ptr ?1u blockSize
+	return + @ptr ?2u block
+}
+
+function void free(block:ptr) {
+	malloc_request_1 = ?2
+	ifnot = block null {
+		malloc_request_2_addr = - block @ptr ?2
+		malloc_request_3_len = deref_uint$ malloc_request_2_addr
+		unix_syscall$ 11 @malloc_request_2_addr
+	} ;
+}
+
