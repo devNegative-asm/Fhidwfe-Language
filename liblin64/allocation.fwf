@@ -74,7 +74,7 @@ function bool find_and_unmalloc(object:ptr block:ptr offset:uint entries:uint re
 				bitLocation = / - object allocated requestSize
 
 				marker = + entry ? / bitLocation 64u
-				bitmask = shift_left$ 1u & 63u bitLocation
+				bitmask = shift_left$ 1u & 63u @uint bitLocation
 
 				//to be considered malloced, the bit must be 0. we will set it to 1 then return true
 				//if it's already 1, this is a double free
@@ -124,7 +124,7 @@ function ptr malloc_fill_attempt_from_entries(block:ptr offset:uint entries:uint
 
 				put_int$ marker & deref_int$ marker bitmask
 
-				return + allocated * lsb requestSize
+				return + allocated * @uint lsb requestSize
 
 			} ;
 		} ;
@@ -252,6 +252,8 @@ function void unmap_memory(block:ptr size:uint) {
 	unix_syscall$ 11 @malloc_request_2_addr
 }
 
+
+alias void free(block:listptr)
 function void free(block:ptr) {
 	mappingsPage = MALLOC_BASE_BLOCK
 

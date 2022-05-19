@@ -19,6 +19,7 @@ function void puti(num:int) {
 	putui$ @uint num
 }
 
+alias void put_hex(i:ptr)
 alias void put_hex(i:int)
 function void put_hex(i:uint) {
 	// we want to access the highest nibble repeatedly

@@ -29,7 +29,6 @@ public class BaseTree {
 		ArrayList<String> unexploredFunctions = new ArrayList<String>();
 		
 		unexploredFunctions.addAll(calledFunctions);
-		System.out.println(calledFunctions);
 		
 		//implementation of graph traversal to determine function dependencies and only compile those that are called by the main program
 		while(!unexploredFunctions.isEmpty()) {

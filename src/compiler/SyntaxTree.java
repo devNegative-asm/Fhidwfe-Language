@@ -481,7 +481,11 @@ public class SyntaxTree extends BaseTree{
 				mismatch(children[0].getType(),children[1].getType());
 			else
 			{
-				System.err.println("WARNING: Implicit cast from "+children[1].getType()+" to "+type+" at line "+this.getToken().linenum);
+				if(type==DataType.Ptr && children[1].getType().numeric()) {
+					
+				} else {
+					System.err.println("WARNING: Implicit cast from "+children[1].getType()+" to "+type+" at line "+this.getToken().linenum);
+				}
 				return type;
 			}
 		} else {

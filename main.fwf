@@ -6,6 +6,8 @@ extern void terminal_mode_default()
 lowercase = ['a','z']
 uppercase = ['A','Z']
 
+
+
 function int control_modified(keycode:ubyte) {
 	if in keycode lowercase {
 		return @int - + keycode 1ub 'a'
@@ -18,15 +20,50 @@ function int control_modified(keycode:ubyte) {
 
 
 
-terminal_mode_raw$
+//terminal_mode_raw$
+//v = 0
+//whilenot = v control_modified$ 'X' {
+//	v = scan_keycode$
+//	puts$ "\raaaaaaaaa"
+//	puts$ "\rbbbbbbbbb"
+//}
+//terminal_mode_default$
 
-v = 0
-whilenot = v control_modified$ 'X' {
-	v = scan_keycode$
-	puts$ "\raaaaaaaaa"
-	puts$ "\rbbbbbbbbb"
+
+
+v = [2 3 5 7]
+for int v with q {
+	puti$ q
+	putln$
+}
+
+for int [8,100] with u {
+	set isPrime
+	for int v with div {
+		if = 0 % u div {
+			puti$ div
+			putchar$ ' '
+			putchar$ '/'
+			putchar$ '/'
+			putchar$ ' '
+			puti$ u
+			putln$
+			reset isPrime
+		} ;
+	}
+	if isPrime {
+		puti$ u
+		println$ " is prime"
+	}  {
+		puti$ u
+		println$ " is not prime"
+	}
 }
 
 
+//free$ v
 
-terminal_mode_default$
+//free$ uppercase
+//free$ lowercase
+
+dump_malloc_page$
