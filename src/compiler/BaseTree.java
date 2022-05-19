@@ -181,7 +181,7 @@ public class BaseTree {
 			if(scopeTypings.containsKey(name.substring(1))) {
 				throw new RuntimeException("Cannot shadow global "+name.substring(1));
 			}
-			globalPointers.add(new Variable(variable.name,(byte)(gotGlobal-variable.getValue()),variable.getType(),theParser));
+			globalPointers.add(new Variable(variable.name,(gotGlobal-variable.getValue()),variable.getType(),theParser));
 		});
 		prepared = true;
 		for(SyntaxTree child:this.getChildren()) {

@@ -24,12 +24,15 @@ function void put_hex(i:uint) {
 	// we want to access the highest nibble repeatedly
 	// this is easiest done by pointer magic
 	int_size = ?1
-	puts$ "0x"
-	for uint (0u,int_size] with added {// only works on little endian architectures
+	putchar$ '0'
+	putchar$ 'x'
+	added = 1u
+	while <= added int_size {
 		offset = @ptr - int_size added
 		thebyte = deref_ubyte$ + @i offset
 		put_hexit$ >> >> >> >> thebyte
 		put_hexit$ & 15ub thebyte
+		added = + added 1u
 	}
 }
 

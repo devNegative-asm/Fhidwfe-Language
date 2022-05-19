@@ -1,5 +1,7 @@
 guard
 import null
+import int_size
+
 
 extern int unix_syscall(callID:uint arguments:listuint)
 
@@ -26,24 +28,359 @@ malloc_request_5_flags = | MAP_ANONYMOUS MAP_PRIVATE
 malloc_request_6_fd = !1
 malloc_request_7_offset = 0
 
-function ptr malloc(blockSize:uint) {
-	malloc_request_1 = ?6
-	malloc_request_3_len = + ?2u blockSize
+
+
+extern int findlsb256(v:ptr)
+
+
+function ptr request_single_page() {
+	return request_page_of_size$ 4096u	
+}
+
+function ptr request_page_of_size(totalSize:uint) {
+	malloc_request_1 = ?6 // mmap takes 6 args
+	malloc_request_3_len = totalSize
 	block = @ptr unix_syscall$ 9 @malloc_request_2_addr
 	if < @int block 0 {
 		return null
 	} ;
-	put_uint$ block malloc_request_3_len
-	put_uint$ + block @ptr ?1u blockSize
-	return + @ptr ?2u block
+	return block
+}
+
+MALLOC_BASE_BLOCK = request_single_page$
+format_page_to_malloc_database$ MALLOC_BASE_BLOCK
+
+ZERO_LIST = 0
+ZERO_LIST_GUARD = 0
+
+
+
+
+function bool find_and_unmalloc(object:ptr block:ptr offset:uint entries:uint requestSize:uint) {
+	entriesBackup = entries
+
+	//find a non-null pointer where object is between base and base + requestSize  * 256
+	whilenot = 0 entries {
+		entry = + block offset
+		allocated = deref_ptr$ + entry ?4u
+		ifnot = allocated null {
+			if &&
+				<= allocated object 
+				< object + allocated * requestSize 256u {
+
+				//free the object
+				//first, find its bit
+
+				bitLocation = / - object allocated requestSize
+
+				marker = + entry ? / bitLocation 64u
+				bitmask = shift_left$ 1u & 63u bitLocation
+
+				//to be considered malloced, the bit must be 0. we will set it to 1 then return true
+				//if it's already 1, this is a double free
+
+				ifnot = 0u & deref_uint$ marker bitmask {
+					error$ "double free detected"
+				} ;
+
+				put_uint$ marker | deref_uint$ marker bitmask
+				return true
+			} ;
+		} ;
+
+
+		offset = + offset ?5u
+		entries = - entries 1u
+	}
+
+	return false
+}
+
+
+
+
+
+function ptr malloc_fill_attempt_from_entries(block:ptr offset:uint entries:uint requestSize:uint) {
+	entriesBackup = entries
+	offsetBackup = offset
+	// if it finds empty space, it will mark that space as used, then return a pointer to the space that can be filled
+	whilenot = 0 entries {
+
+		entry = + block offset
+		allocated = deref_ptr$ + entry ?4u
+
+
+		ifnot = allocated null {
+			lsb = findlsb256$ entry
+			
+			ifnot = !1 lsb {
+				
+				//bitfield entry[lsb] = 0
+				marker = + entry ? / @uint lsb 64u
+
+
+
+				bitmask = ~ shift_left$ 1 @uint & lsb 63
+
+				put_int$ marker & deref_int$ marker bitmask
+
+				return + allocated * lsb requestSize
+
+			} ;
+		} ;
+
+
+		offset = + offset ?5u
+		entries = - entries 1u
+	}
+
+
+	//either all space is taken, or we haven't mapped a valid location yet
+
+	entries = entriesBackup 
+	offset = offsetBackup
+
+	//mmap more space if there's somewhere to store the pointer
+	whilenot = 0 entries {
+		entry = + block offset
+		allocated = deref_ptr$ + entry ?4u
+		if = allocated null {
+			allocated = request_page_of_size$ * 256u requestSize
+			put_ptr$ + entry ?4u allocated
+			if = allocated null {
+				return null
+			} ;
+			put_int$ entry ~1
+			return allocated
+		} ;
+
+
+		offset = + offset ?5u
+		entries = - entries 1u
+	}
+
+	return null
+}
+
+entry_size = ?5u
+vtiny_offset = 0u
+tiny_offset = * entry_size 16u
+vsmall_offset = + tiny_offset * entry_size 16u
+small_offset = + vsmall_offset * entry_size 16u
+normal_offset = + small_offset * entry_size 16u
+
+hnormal_offset = + normal_offset * entry_size 10u
+big_offset = + hnormal_offset * entry_size 10u
+vbig_offset = + big_offset * entry_size 10u
+
+malloc_ll_offset = + vbig_offset * entry_size 8u
+
+function ptr malloc(blockSize:uint) {
+	mappingsPage = MALLOC_BASE_BLOCK
+	functionalSize = + blockSize int_size
+	if = 0u blockSize {
+		return + @ZERO_LIST 8u //as long as the requester follows the contract to not edit size directly, this should be fine
+	} ;
+
+	attempt = null
+	if > functionalSize 2048u {
+		//this belongs in its own page space
+		block = request_page_of_size$ functionalSize
+		if = block null {
+			return null
+		} {
+			put_uint$ block blockSize
+			return + block int_size
+		}
+	} ;
+
+
+	while true {
+		if <= functionalSize 128u {
+			if <= functionalSize 32u {
+				if <= functionalSize 16u {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage vtiny_offset 16u 16u
+				} {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage tiny_offset 16u 32u
+				}
+			} {
+				if <= functionalSize 64u {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage vsmall_offset 16u 64u
+				} {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage small_offset 16u 128u
+				}
+			}
+		} {
+			if <= functionalSize 512u {
+				if <= functionalSize 256u {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage normal_offset 10u 256u
+				} {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage hnormal_offset 10u 512u
+				}
+			} {
+				if <= functionalSize 1024u {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage big_offset 10u 1024u
+				} {
+					attempt = malloc_fill_attempt_from_entries$ mappingsPage vbig_offset 8u 2048u
+				}
+			}
+		}
+		ifnot = attempt null {
+			put_uint$ attempt blockSize
+			return + attempt int_size
+		} {
+			nextDatabasePage = deref_ptr$ + mappingsPage malloc_ll_offset
+			if = nextDatabasePage null {
+				nextDatabasePage = request_single_page$
+				format_page_to_malloc_database$ nextDatabasePage
+				put_ptr$ + mappingsPage malloc_ll_offset nextDatabasePage
+			} ;
+			if = nextDatabasePage null {
+				return null
+			} ;
+			mappingsPage = nextDatabasePage
+		}
+
+	}
+	return null	
+}
+
+function void unmap_memory(block:ptr size:uint) {
+	malloc_request_1 = ?2
+	malloc_request_2_addr = block
+	malloc_request_3_len = size
+	unix_syscall$ 11 @malloc_request_2_addr
 }
 
 function void free(block:ptr) {
-	malloc_request_1 = ?2
+	mappingsPage = MALLOC_BASE_BLOCK
+
 	ifnot = block null {
-		malloc_request_2_addr = - block @ptr ?2
-		malloc_request_3_len = deref_uint$ malloc_request_2_addr
-		unix_syscall$ 11 @malloc_request_2_addr
+		
+		functionalSize = + int_size deref_uint$ - block int_size
+		if = int_size functionalSize {
+			return
+		} ;
+		if > functionalSize 2048u {
+			unmap_memory$ - block int_size functionalSize
+		} ;
+
+		malloced = - block ?1u
+		attempt = false
+
+		//this time attempt means whether the item was found or not as a boolean
+
+		whilenot = mappingsPage null {
+			if <= functionalSize 128u {
+				if <= functionalSize 32u {
+					if <= functionalSize 16u {
+						attempt = find_and_unmalloc$ malloced mappingsPage vtiny_offset 16u 16u
+					} {
+						attempt = find_and_unmalloc$ malloced mappingsPage tiny_offset 16u 32u
+					}
+				} {
+					if <= functionalSize 64u {
+						attempt = find_and_unmalloc$ malloced mappingsPage vsmall_offset 16u 64u
+					} {
+						attempt = find_and_unmalloc$ malloced mappingsPage small_offset 16u 128u
+					}
+				}
+			} {
+				if <= functionalSize 512u {
+					if <= functionalSize 256u {
+						attempt = find_and_unmalloc$ malloced mappingsPage normal_offset 10u 256u
+					} {
+						attempt = find_and_unmalloc$ malloced mappingsPage hnormal_offset 10u 512u
+					}
+				} {
+					if <= functionalSize 1024u {
+						attempt = find_and_unmalloc$ malloced mappingsPage big_offset 10u 1024u
+					} {
+						attempt = find_and_unmalloc$ malloced mappingsPage vbig_offset 8u 2048u
+					}
+				}
+			}
+
+			if attempt {
+				return
+			} {
+				mappingsPage = deref_ptr$ + mappingsPage malloc_ll_offset
+			}
+		}
+		error$ "Attempted to free pointer which was not found in malloc table"
 	} ;
 }
 
+
+
+function void dump_malloc_page() {
+
+	dump_page$ MALLOC_BASE_BLOCK
+}
+
+function void dump_page(page:ptr) {
+	entry_num = 0u
+	puts$ "@ ["
+	put_hex$ page
+	puts$ "]\n"
+
+	while < entry_num 512u {
+		if = 0u % entry_num 5u {
+			putln$
+		} {
+			putchar$ ' '
+		}
+		put_hex$ deref_int$ +page ?entry_num
+		entry_num = + entry_num 1u
+	}
+	putln$
+}
+
+
+
+function void format_page_to_malloc_database(page:ptr) {
+	// 512 words
+	// 4 words per bitmap + ptr
+	// 102 entries to distribute
+	
+	// 16 x 16 bytes vtiny
+	// 16 x 32 bytes tiny
+	// 16 x 64 bytes vsmall
+	// 16 x 128 bytes small
+
+	// 10 x 256 bytes normal
+	// 10 x 512 bytes hnormal
+	// 10 x 1024 bytes big
+	// 8 x 2048 bytes vbig
+
+	// sizes above 2040 go to their own mapped pages
+	
+
+	//use while loops since for loops call malloc
+	entry = 0u
+	while < entry 102u {
+		quarter = 0u
+		while < quarter 4u {
+			put_int$
+				+ page
+				+ vtiny_offset
+					? + quarter
+					* entry 5u
+
+				!1
+
+			quarter = + quarter 1u
+		}
+
+		entry = + entry 1u
+	}
+
+
+	//for uint [0u,102u) with entry {
+	//	for uint[0u,4u) with quarter {
+	//
+	//			
+	//	}
+	//}
+	//dump_page$ page
+}

@@ -23,7 +23,7 @@ public class Variable implements Comparable<Variable>{
 		value = 0;
 		compiletimeIdentifier=null;
 	}
-	public Variable(String name, byte offsetLocation, DataType type, Parser set) {
+	public Variable(String name, long offsetLocation, DataType type, Parser set) {
 		intSize = set.settings;
 		this.constant=true;
 		this.value=offsetLocation;
@@ -33,7 +33,7 @@ public class Variable implements Comparable<Variable>{
 		compiletimeIdentifier = null;
 	}
 	
-	public Variable(String name, byte offsetLocation, SyntaxTree.Location scope, DataType type, Parser set) {
+	public Variable(String name, long offsetLocation, SyntaxTree.Location scope, DataType type, Parser set) {
 		this.constant=true;
 		this.value=offsetLocation;
 		intSize = set.settings;

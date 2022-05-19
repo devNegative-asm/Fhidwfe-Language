@@ -1,5 +1,7 @@
 guard
 import one
+import null
+import int_size
 
 O_RDONLY   =     0
 O_WRONLY    =    1
@@ -48,13 +50,19 @@ function void putchar(c:ubyte) {
 	fwrite$ @file 1 c
 }
 
+fwrite_request = ?3u
+fwrite_request_1 = 0
+fwrite_request_2 = null
+fwrite_request_3 = 0u
+
 function void fwrite(f:file char:ubyte) {
-	temp request = [
-		@ptr f
-		@char
-		one
-	]
-	unix_syscall$ 1 request
+	
+	fwrite_request = ?3u
+	fwrite_request_1 = @int f
+	fwrite_request_2 = @char
+	fwrite_request_3 = 1u
+
+	unix_syscall$ 1 @fwrite_request_1
 }
 
 function int fread(f:file) {
