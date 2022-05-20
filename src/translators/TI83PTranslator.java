@@ -19,7 +19,7 @@ public class TI83PTranslator {
 		
 		ArrayList<String> comp = new ArrayList<String>();
 		HashMap<String,Integer> depths = new HashMap<String,Integer>();
-		p.getSettings().target.addHeader(comp);
+		p.getSettings().addHeader(comp);
 		
 		for(Instruction instruction:instructions) {
 			if(debug) {

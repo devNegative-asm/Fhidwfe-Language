@@ -3,7 +3,7 @@ import null
 
 //
 // Structure of a hashset:
-// 2048 entries
+// some number of entries
 // @ each index, place a linked list, null terminated
 // each node is a listptr. one to the next node, one to the contents
 //
@@ -12,77 +12,107 @@ import null
 //
 //
 
-hashset_size = 512u
-type Hashset (
-	entries:listptr
+
+hashset_size = 512u //really space inefficient because 2 pages to hold 1 page + 1 int, but whatever
+
+
+type Ptrpair (
+	key:ptr
+	value:ptr
 )
 
 
-function Hashset hashset_new() {
-	map = Hashset$
-	map.entries = @listptr malloc$ ?hashset_size
-	for uint [0u,hashset_size) with i {
-		assign_word$ map.entries i null
+type Hashset (
+	entries:listptr
+	hashfunc:func
+	eqfunc:op
+	
+	function void init(hashfunc:func eqfunc:op) {
+		this.hashfunc = hashfunc
+		this.eqfunc = eqfunc
+		this.entries = @listptr malloc$ ?hashset_size
+		for uint [0u,hashset_size) with i {
+			assign_word$ this.entries i null
+		}
 	}
-	return map
-}
 
-function void delete_hashset_entry(link:ptr) {
-	if = link null {
-		return
-	} {
-		delete_hashset_entry$ deref_ptr$ + link @ptr ?1
-		free$ link
+	function void delete() {
+		for uint [0u,hashset_size) with i {
+			this.delete_entry$ access_word$ this.entries i
+		}
+		free$ this.entries
 	}
-}
 
-function void hashset_delete(hashset:Hashset) {
-	for uint [0u,hashset_size) with i {
-		delete_hashset_entry$ access_word$ hashset.entries i
-	}
-	free$ hashset.entries
-	free$ hashset
-}
-
-function void hashset_put(hashset:Hashset element:ptr hashfunc:func eqfunc:op) {
-	index = & - hashset_size 1u @uint $ hashfunc element
-	node = access_word$ hashset.entries index
-	location = + @ptr ?index @ptr hashset.entries
-	whilenot = node null {
-		//either this is the element and I can return, or it's not and I continue
-		ifnot = 0u binop$ eqfunc @uint access_word$ @listptr node 0u @uint element {
+	function void delete_entry(link:ptr) {
+		if = link null {
 			return
 		} {
-			location = + @ptr ?1u node
-			node = access_word$ @listptr node 1u
+			this.delete_entry$ deref_ptr$ + link @ptr ?1
+			free$ link
 		}
 	}
-	node = malloc$ ?2u
-	put_ptr$ location node
-	assign_word$ @listptr node 1u null
-	assign_word$ @listptr node 0u element
-}
 
-function bool hashset_contains(hashset:Hashset element:ptr hashfunc:func eqfunc:op) {
-	index = & - hashset_size 1u @uint $ hashfunc element
-	node = access_word$ hashset.entries index
-	location = + @ptr ?index @ptr hashset.entries
-	whilenot = node null {
-		//either this is the element and I can return, or it's not and I continue
-		ifnot = 0u binop$ eqfunc @uint access_word$ @listptr node 0u @uint element {
-			return true
-		} {
-			node = access_word$ @listptr node 1u
+	function void add(element:ptr) {
+		index = & - hashset_size 1u @uint $ this.hashfunc element
+		node = access_word$ this.entries index
+		location = + @ptr ?index @ptr this.entries
+		whilenot = node null {
+			//either this is the element and I can reassign it and return, or it's not and I continue
+			ifnot = 0u binop$ this.eqfunc @uint access_word$ @listptr node 0u @uint element {
+				assign_word$ @listptr node 0u element
+				return
+			} {
+				location = + @ptr ?1u node
+				node = access_word$ @listptr node 1u
+			}
 		}
+		node = malloc$ ?2u
+		put_ptr$ location node
+		assign_word$ @listptr node 1u null
+		assign_word$ @listptr node 0u element
 	}
-	return false
-}
 
-function void hashset_foreach(hashset:Hashset operation:func) {
-	for ptr hashset.entries with element {
-		whilenot = null element {
-			$ operation access_word$ @listuint element 0u
-			element = access_word$ @listptr element 1u
+	function void remove(element:ptr) {
+		index = & - hashset_size 1u @uint $ this.hashfunc element
+		node = access_word$ this.entries index
+		location = + @ptr ?index @ptr this.entries
+		whilenot = node null {
+			//either this is the element and I can delete it and return, or it's not and I continue
+			ifnot = 0u binop$ this.eqfunc @uint access_word$ @listptr node 0u @uint element {
+				
+				//last.next = node.next
+				put_ptr$ location access_word$ @listptr node 1u
+				free$ node
+
+				return
+			} {
+				location = + @ptr ?1u node
+				node = access_word$ @listptr node 1u
+			}
 		}
 	}
-}
+
+	function bool contains(element:ptr) {
+		index = & - hashset_size 1u @uint $ this.hashfunc element
+		node = access_word$ this.entries index
+		location = + @ptr ?index @ptr this.entries
+		whilenot = node null {
+			//either this is the element and I can return, or it's not and I continue
+			ifnot = 0u binop$ this.eqfunc @uint access_word$ @listptr node 0u @uint element {
+				return true
+			} {
+				node = access_word$ @listptr node 1u
+			}
+		}
+		return false
+	}
+
+	function void foreach(operation:func) {
+		for ptr this.entries with element {
+			whilenot = null element {
+				$ operation access_word$ @listuint element 0u
+				element = access_word$ @listptr element 1u
+			}
+		}
+	}
+)

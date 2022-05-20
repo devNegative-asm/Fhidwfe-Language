@@ -500,15 +500,14 @@ public class SyntaxTree extends BaseTree{
 	{
 		SyntaxTree[] children = children(2,4);
 		DataType type1 = children[0].getType();
-		DataType type2 = children[0].getType();
-		if(type1==Ptr && !type2.builtin())
+		DataType type2 = children[1].getType();
+		if(type1==Ptr && !type2.isFreeable())
 			return Bool;
-		if(type2==Ptr && !type1.builtin())
+		if(type2==Ptr && !type1.isFreeable())
 			return Bool;
 		if(type1==type2)
 			return Bool;
-		return checkBinaryMath();
-		
+		throw new RuntimeException("types "+type1+" and "+type2+" cannot be compared at line "+this.myToken.linenum);
 	}
 	/**
 	 * Check that the one and only child of this syntax tree has a mathematical type
@@ -755,7 +754,6 @@ public class SyntaxTree extends BaseTree{
 			break;
 		case FUNCTION:
 			children = children();
-			
 			SyntaxTree code = children[children.length-1];
 			for(int i=2;i<children.length-1;i++) {
 				this.addVariableToScope(children[i].getToken(), children[i].getTokenString(), 
@@ -824,7 +822,6 @@ public class SyntaxTree extends BaseTree{
 			
 			} else
 				ret = theParser.getFunctionOutputType(getTokenString()).get(argIndex);
-			
 			if(inFunction())
 				this.addDependent(this.functionIn(), getTokenString());
 			else
@@ -834,7 +831,13 @@ public class SyntaxTree extends BaseTree{
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
 			if(ret==DataType.Func || ret==DataType.Op)
 			{
-				parent.notifyCalled(getTokenString().replaceAll("guard_.*?_.*?_.*?_.*?_", ""));
+				if(this.theParser.functionNames().contains(this.myToken.unguardedVersion().tokenString()))
+				{
+					if(inFunction())
+						this.addDependent(this.functionIn(), this.myToken.unguardedVersion().tokenString());
+					else
+						notifyCalled(this.myToken.unguardedVersion().tokenString());
+				}
 			}
 			break;
 		case FIELD_ACCESS:

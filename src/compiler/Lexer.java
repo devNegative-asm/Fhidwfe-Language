@@ -480,7 +480,8 @@ public class Lexer {
 				} else if(functionContext) {
 					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
 				} else if(typeNameNext){
-					tk = new Token(tok,Token.Type.IDENTIFIER,false,fileIn);
+					tk = new Token(tok,Token.Type.TYPE,false,fileIn);
+					DataType.makeUserType(tok);
 					Lexer.type+="|"+tok;
 				} else {
 					if((!inRepl) && (!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
@@ -504,8 +505,17 @@ public class Lexer {
 			functionImmediate = tok.equals("function") || tok.equals("alias") || tok.equals("extern");
 			typeNameNext = tk.t==Token.Type.TYPE_DEFINITION;
 		}
+		//correct type tokens which were misidentified as identifiers
+		ArrayList<Token> newTokens = new ArrayList<>();
+		tokens.forEach(t -> {
+			if(t.t==Token.Type.IDENTIFIER && DataType.typeExists(t.unguardedVersion().s)) {
+				newTokens.add(new Token(t.unguardedVersion().tokenString(),Token.Type.TYPE,t.guarded(),t.srcFile()).setLineNum(t.linenum));
+			} else {
+				newTokens.add(t.setLineNum(t.linenum));
+			}
+		});
 		
-		return tokens;
+		return newTokens;
 	}
 	private class fakeFile extends File {
 		private static final long serialVersionUID = 1L;

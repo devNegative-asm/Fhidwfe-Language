@@ -201,12 +201,15 @@ public class Parser {
 	private void functionSignatures(ArrayList<Token> t) {
 		try {
 			int typeDepth = 0;
+			DataType typeIn = null;
 			String type = "";
 			for(int i=0;i<t.size();i++)
 			{
 				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
 					typeDepth++;
-					type = t.get(i+1).s+".";
+					String typename = t.get(i+1).s;
+					typeIn = DataType.makeUserType(typename);
+					type = typename+".";
 					i+=2;
 					continue;
 				}
@@ -327,6 +330,10 @@ public class Parser {
 								}
 								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
 								{
+									if(typeDepth>0) {
+										argCount++;
+										args.add(0,typeIn);
+									}
 									fnInputTypes.put(name, new ArrayList<ArrayList<DataType>>(Arrays.asList(args)));
 								} else {
 									printFuncError("missing function close paren",t.get(i+1));
@@ -346,7 +353,9 @@ public class Parser {
 			{
 				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
 					typeDepth++;
-					type = t.get(i+1).s+".";
+					String typename = t.get(i+1).s;
+					typeIn = DataType.makeUserType(typename);
+					type = typename+".";
 					i+=2;
 					continue;
 				}
@@ -405,12 +414,17 @@ public class Parser {
 								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
 								{
 									//check that the input types do not clash
+									if(typeDepth>0) {
+										argCount++;
+										args.add(0,typeIn);
+									}
+									
 									if(fnInputTypes.get(name).contains(args))
 										throw new RuntimeException("Aliased function "+name+" must have a different input signature than its alias at line "+t.get(i+2).linenum);
 									int argCounter = 0;
-									for(DataType typeIn:args) {
-										if(typeIn.size!=fnInputTypes.get(name).get(0).get(argCounter++).size) {
-											throw new RuntimeException("Function alias "+name+"'s inputs must be equivalently sized to the original. First failure at arg #"+argCounter+" of type "+typeIn+" at line "+t.get(i+2).linenum);
+									for(DataType fnArgType:args) {
+										if(fnArgType.size!=fnInputTypes.get(name).get(0).get(argCounter++).size) {
+											throw new RuntimeException("Function alias "+name+"'s inputs must be equivalently sized to the original. First failure at arg #"+argCounter+" of type "+fnArgType+" at line "+t.get(i+2).linenum);
 										}
 									}
 									fnInputTypes.get(name).add(args);
@@ -898,7 +912,7 @@ public class Parser {
 					)
 				 */
 				Token typeNameToken = t.remove(0).unguardedVersion();
-				if(typeNameToken.t!=Token.Type.IDENTIFIER) {
+				if(typeNameToken.t!=Token.Type.TYPE) {
 					throw new RuntimeException("type name must be a valid identifier "
 							+typeNameToken.tokenString()+" at line "+typeNameToken.linenum);
 				}
@@ -1002,7 +1016,6 @@ public class Parser {
 		ArrayList<DataType> outputs = fnOutputTypes.get(memberClass.name()+"."+fnname.s);
 		//oh no, how do we deal with functions by the same name in multiple types?
 		Token thisToken = new Token("this",Token.Type.IDENTIFIER,fnname.guarded(),functionToken.srcFile());
-		inputsAndAliases.forEach(list -> list.add(0, memberClass));
 		root.addChild(
 				new SyntaxTree(thisToken,this,root)
 				.addChild(new Token(memberClass.name(),Token.Type.FUNCTION_ARG_TYPE,false,functionToken.srcFile())));
@@ -1546,7 +1559,7 @@ public class Parser {
 						SyntaxTree mallocCall = new SyntaxTree(new Token("malloc",Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
 								this,
 								parent);
-						mallocCall.addChild(new Token(""+customType.getHeapSize(settings, 0),Token.Type.UINT_LITERAL,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum));
+						mallocCall.addChild(new Token(""+customType.getHeapSizeString(settings, 0),Token.Type.UINT_LITERAL,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum));
 						root.addChild(mallocCall);
 						root.addChild(new SyntaxTree(
 								new Token(callname,Token.Type.TYPE,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),

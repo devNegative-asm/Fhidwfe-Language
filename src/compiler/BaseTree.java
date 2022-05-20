@@ -22,13 +22,14 @@ public class BaseTree {
 	 */
 	public boolean functionIsEverCalled(String func) {
 		if(calledCache!=null)
-			return calledCache.contains(func);//do not explore the call heirarchy every time this is called
+			return calledCache.contains(func);//do not explore the call hierarchy every time this is called
 		
 		
 		HashSet<String> exploredFunctions = new HashSet<String>();
 		ArrayList<String> unexploredFunctions = new ArrayList<String>();
 		
 		unexploredFunctions.addAll(calledFunctions);
+		
 		
 		//implementation of graph traversal to determine function dependencies and only compile those that are called by the main program
 		while(!unexploredFunctions.isEmpty()) {
@@ -59,6 +60,9 @@ public class BaseTree {
 	 * @param fnName the function which is called
 	 */
 	public void notifyCalled(String fnName) {
+		if(calledCache!=null) {
+			throw new RuntimeException("call cache poisoned by "+ fnName);
+		}
 		calledFunctions.add(fnName);
 	}
 	/**
@@ -67,6 +71,10 @@ public class BaseTree {
 	 * @param callee
 	 */
 	public void addDependent(String caller, String callee) {
+		if(calledCache!=null) {
+			throw new RuntimeException("call cache poisoned by "+ caller);
+		}
+		
 		if(dependencies.containsKey(caller)) {
 			dependencies.get(caller).add(callee);
 		} else {
@@ -91,22 +99,22 @@ public class BaseTree {
 	{
 		String unguarded = varname.replaceAll("guard_.*?_.*?_.*?_.*?_", "");
 		if(theParser.hasFunction(unguarded)) {
-			if(theParser.getFunctionInputTypes(unguarded).contains(new ArrayList<>(Arrays.asList(DataType.Uint)))) {
-				if(theParser.getFunctionOutputType(unguarded).contains(DataType.Uint)) {
+			if(theParser.getFunctionInputTypes(unguarded).get(0).size()==1) {
+				if(!theParser.getFunctionOutputType(unguarded).contains(DataType.Void)) {
 					addConstantValue(varname,DataType.Func);
 					return DataType.Func;
 				} else {
-					throw new RuntimeException("single-arg function pointer " + unguarded + " must be uint -> uint at line "+linenum);
+					throw new RuntimeException("single-arg function pointer " + unguarded + " must not return void at line "+linenum);
 				}
-			} else if(theParser.getFunctionInputTypes(unguarded).contains(new ArrayList<>(Arrays.asList(DataType.Uint,DataType.Uint)))) {
-				if(theParser.getFunctionOutputType(unguarded).contains(DataType.Uint)) {
+			} else if(theParser.getFunctionInputTypes(unguarded).get(0).size()==2) {
+				if(!theParser.getFunctionOutputType(unguarded).contains(DataType.Void)) {
 					addConstantValue(varname,DataType.Op);
 					return DataType.Op;
 				} else {
-					throw new RuntimeException("single-arg function pointer " + unguarded + " must be uint -> uint at line "+linenum);
+					throw new RuntimeException("double-arg function pointer " + unguarded + " must not return void at line "+linenum);
 				}
 			} else 
-				throw new RuntimeException("function pointer " + unguarded + " must have 1 or 2 uint parameters at line "+linenum);
+				throw new RuntimeException("function pointer " + unguarded + " must have 1 or 2 parameters at line "+linenum);
 			
 		} else {
 			if(scopeTypings.containsKey(varname)) {

@@ -1,12 +1,12 @@
 guard
 
 function byte log2(x:uint) {
-	lg = !1b
+	lg_b_2 = !1b
 	while > x 0u {
 		x = >> x
-		++ @lg
+		++ @lg_b_2
 	}
-	return lg
+	return lg_b_2
 }
 
 function int max(a:int b:int) {

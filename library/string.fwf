@@ -173,8 +173,8 @@ function int str_to_int (num:ptr) {
 	return num1
 }
 
-alias uint stringhash(string:uint)
-function uint stringhash(string:ptr) {
+alias uint string_hash(string:uint)
+function uint string_hash(string:ptr) {
 	hash = 13u
 	whilenot = 0b deref_byte$ string {
 		hash = + * hash 41u as deref_ubyte$ string uint

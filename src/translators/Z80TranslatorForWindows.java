@@ -20,7 +20,7 @@ public class Z80TranslatorForWindows {
 		
 		ArrayList<String> comp = new ArrayList<String>();
 		HashMap<String,Integer> depths = new HashMap<>();
-		p.getSettings().target.addHeader(comp);
+		p.getSettings().addHeader(comp);
 		
 		for(Instruction instruction:instructions) {
 			if(debug) {

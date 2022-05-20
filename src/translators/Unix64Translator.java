@@ -23,7 +23,7 @@ public class Unix64Translator {
 		data.add("Fwf_internal_mxmode:");
 		data.add("	dd 01111111111000000b");
 		HashMap<String,Integer> depths = new HashMap<String,Integer>();
-		p.getSettings().target.addHeader(comp);
+		p.getSettings().addHeader(comp);
 		for(Instruction instruction:instructions) {
 			if(debug) {
 				System.out.println(instruction);

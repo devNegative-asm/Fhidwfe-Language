@@ -61,9 +61,34 @@ for int [8,100] with u {
 }
 
 
-//free$ v
+free$ v
 
-//free$ uppercase
-//free$ lowercase
+free$ uppercase
+free$ lowercase
 
+strhashset = Hashset$
+strhashset.init$ string_hash streq
+
+put_hex$ strhashset.entries
+putln$
+
+strhashset.add$ "yes"
+strhashset.add$ "no"
+strhashset.add$ "maybe"
+strhashset.add$ "1a"
+strhashset.add$ "2"
+strhashset.remove$ "no"
+strhashset.add$ "3b"
+strhashset.add$ "4c"
+
+function int printit(str:ptr) {
+	println$ str
+	return 0
+}
+
+strhashset.foreach$ printit
+
+strhashset.delete$
+free$ strhashset
+download_more_ram$
 dump_malloc_page$

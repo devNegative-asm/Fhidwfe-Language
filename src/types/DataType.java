@@ -56,7 +56,6 @@ public class DataType{
 	private final String name;
 	
 	private ArrayList<Field> fields = new ArrayList<>();
-	boolean fieldsFinalized = false;
 	private class Field implements Comparable<Field>{
 		private String name;
 		private DataType type;
@@ -113,8 +112,6 @@ public class DataType{
 	}
 	
 	public void addField(String name, DataType type) {
-		if(fieldsFinalized)
-			throw new RuntimeException("attempt to add a field to an already-defined type");
 		this.fields.forEach(field -> {
 			if(field.name.equals(name))
 				throw new RuntimeException("Cannot define multiple fields of same type in "+this.name);
@@ -122,27 +119,35 @@ public class DataType{
 		Field newField = new Field(name, type);
 		this.fields.add(newField);
 	}
-	public int getHeapSize(CompilationSettings sett, int elements) {
-		fieldsFinalized = true;
+	
+	public String getHeapSizeString(CompilationSettings sett, int elements) {
 		if(this.isList) {
-			return elements * this.assignable.getSize(sett);
+			return ""+(elements * this.assignable.getSize(sett));
 		} else if(this.isRange()) {
-			return 2 * this.assignable.getSize(sett) + 1;
+			return ""+(2 * this.assignable.getSize(sett) + 1);
 		} else {
-			this.fields.sort(Field::compareTo);
-			int totalSize = 0;
-			for(Field f:fields) {
-				totalSize+=f.getType().getSize(sett);
-			}
-			if(sett.target.needsAlignment) {
-				int difference = totalSize%sett.intsize;
-				if(difference==0)
-					return totalSize;
-				return totalSize-difference+sett.intsize;
-				
-			} else
-				return totalSize;
+			return "Fwf_internal_sizeof_"+this.name;
 		}
+	}
+	
+	public String getHeapSizeString() {
+		return "Fwf_internal_sizeof_"+this.name;
+	}
+	
+	public int getActualHeapSize(CompilationSettings sett) {
+		this.fields.sort(Field::compareTo);
+		int totalSize = 0;
+		for(Field f:fields) {
+			totalSize+=f.getType().getSize(sett);
+		}
+		if(sett.target.needsAlignment) {
+			int difference = totalSize%sett.intsize;
+			if(difference==0)
+				return totalSize;
+			return totalSize-difference+sett.intsize;
+			
+		} else
+			return totalSize;
 	}
 	
 	private final boolean userType;
@@ -338,6 +343,15 @@ public class DataType{
 		if(type == null)
 			throw new IllegalArgumentException("Type by name of "+name.toLowerCase()+" not found");
 		return type;
+	}
+	
+	public static boolean typeExists(String name) {
+		if(Character.isLowerCase(name.charAt(0))) {
+			name = Character.toUpperCase(name.charAt(0))+name.substring(1);
+			return namedTypes.containsKey(name) && !namedTypes.get(name).userType;
+		} else {
+			return namedTypes.containsKey(name);
+		}
 	}
 	
 	public static DataType[] values() {

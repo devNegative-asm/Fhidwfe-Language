@@ -3,6 +3,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import compiler.LibFunctions;
+import types.DataType;
 
 public class CompilationSettings {
 	public enum Target {
@@ -21,132 +22,135 @@ public class CompilationSettings {
 			this.needsAlignment=align;
 		}
 		
-		
-		
-		public void addHeader(List<String> instructions) {
-			switch(this) {
-			case z80Emulator:
-				instructions.addAll(0,Arrays.asList(
-						";allow equate lines to not require colons",
-						"#define ([a-zA-Z_0-9]*)[\\t ]+\\.equ",
-						"$1:	.equ",
-						"",
-						";mnemonics from other assemblers",
-						"#define \\.equ",
-						"EQU",
-						"",
-						"#define \\.db",
-						"DB",
-						"",
-						"#define \\.dw",
-						"DW",
-						"",
-						"#define \\.org",
-						"ORG",
-						"",
-						"#define \\.ds",
-						"DS",
-						"",
-						"#define #include",
-						"INCLUDE",
-						"#define &",
-						"AND",
-						"",
-						"",
-						";introduce bcall macro",
-						"#define bcall\\((.*?)\\)",
-						"DB bcall | DW $1",
-						"",
-						"#define b_call\\((.*?)\\)",
-						"DB bcall | DW $1",
-						"bcall					.equ $EF",
-						"",
-						".org	$0000				;Origin",
-						"",
-						""));
-				break;
-			case TI83pz80:
-				instructions.addAll(0,Arrays.asList(
-						";allow equate lines to not require colons",
-						"#define ([a-zA-Z_0-9]*)[\\t ]+\\.equ",
-						"$1:	.equ",
-						"",
-						";mnemonics from other assemblers",
-						"#define \\.equ",
-						"EQU",
-						"",
-						"#define \\.db",
-						"DB",
-						"",
-						"#define \\.dw",
-						"DW",
-						"",
-						"#define \\.org",
-						"ORG",
-						"",
-						"#define \\.ds",
-						"DS",
-						"",
-						"#define #include",
-						"INCLUDE",
-						"#define &",
-						"AND",
-						"",
-						"",
-						";introduce bcall macro",
-						"#define bcall\\((.*?)\\)",
-						"DB bcall | DW $1",
-						"",
-						"#define b_call\\((.*?)\\)",
-						"DB bcall | DW $1",
-						"bcall					.equ $EF",
-						"",
-						"",
-						"#include		\"ti83plus.inc\"",
-						"#include		\"mirage.inc\"",
-						"",
-						".org	$9d93				;Origin (set back two to account for AsmPrgm)",
-						"	.db	$BB,$6D				;Compiled AsmPrgm token",
-						"",
-						""));
-				break;
-			case WINx64:
-				instructions.addAll(0,Arrays.asList(
-						"Fwf_internal_syscall_0 PROC",
-						"	mov r12, rsp",
-						"	sub rsp, 32",
-						"	and rsp, -16",
-						"	call rax",
-						"	mov rsp, r12",
-						"	ret",
-						"Fwf_internal_syscall_0 ENDP",
-						"e	equ "+Double.doubleToLongBits(Math.E),
-						"pi	equ "+Double.doubleToLongBits(Math.PI),
-						"NaN	equ "+ Double.doubleToLongBits(Double.NaN),
-						"pos_infinity	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
-						"neg_infinity	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
-						));
-				break;
-			case WINx86:
-				break;
-			case LINx64:
-				instructions.addAll(0,Arrays.asList(
-						"%include \"linuxasm/unistd_64.asm\"",
-						"extern Fwf_internal_linux_syscall",
-						"global error",
-						"Fwf_internal_syscall_0:",
-						"	mov r12, rsp",
-						"	and rsp, -16",
-						"	call rax",
-						"	mov rsp, r12",
-						"	ret",
-						"e:	equ "+Double.doubleToLongBits(Math.E),
-						"pi:	equ "+Double.doubleToLongBits(Math.PI),
-						"NaN:	equ "+ Double.doubleToLongBits(Double.NaN),
-						"pos_infinity:	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
-						"neg_infinity:	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
-						));
+	}
+	public void addHeader(List<String> instructions) {
+		switch(this.target) {
+		case z80Emulator:
+			instructions.addAll(0,Arrays.asList(
+					";allow equate lines to not require colons",
+					"#define ([a-zA-Z_0-9]*)[\\t ]+\\.equ",
+					"$1:	.equ",
+					"",
+					";mnemonics from other assemblers",
+					"#define \\.equ",
+					"EQU",
+					"",
+					"#define \\.db",
+					"DB",
+					"",
+					"#define \\.dw",
+					"DW",
+					"",
+					"#define \\.org",
+					"ORG",
+					"",
+					"#define \\.ds",
+					"DS",
+					"",
+					"#define #include",
+					"INCLUDE",
+					"#define &",
+					"AND",
+					"",
+					"",
+					";introduce bcall macro",
+					"#define bcall\\((.*?)\\)",
+					"DB bcall | DW $1",
+					"",
+					"#define b_call\\((.*?)\\)",
+					"DB bcall | DW $1",
+					"bcall					.equ $EF",
+					"",
+					".org	$0000				;Origin",
+					"",
+					""));
+			break;
+		case TI83pz80:
+			instructions.addAll(0,Arrays.asList(
+					";allow equate lines to not require colons",
+					"#define ([a-zA-Z_0-9]*)[\\t ]+\\.equ",
+					"$1:	.equ",
+					"",
+					";mnemonics from other assemblers",
+					"#define \\.equ",
+					"EQU",
+					"",
+					"#define \\.db",
+					"DB",
+					"",
+					"#define \\.dw",
+					"DW",
+					"",
+					"#define \\.org",
+					"ORG",
+					"",
+					"#define \\.ds",
+					"DS",
+					"",
+					"#define #include",
+					"INCLUDE",
+					"#define &",
+					"AND",
+					"",
+					"",
+					";introduce bcall macro",
+					"#define bcall\\((.*?)\\)",
+					"DB bcall | DW $1",
+					"",
+					"#define b_call\\((.*?)\\)",
+					"DB bcall | DW $1",
+					"bcall					.equ $EF",
+					"",
+					"",
+					"#include		\"ti83plus.inc\"",
+					"#include		\"mirage.inc\"",
+					"",
+					".org	$9d93				;Origin (set back two to account for AsmPrgm)",
+					"	.db	$BB,$6D				;Compiled AsmPrgm token",
+					"",
+					""));
+			break;
+		case WINx64:
+			instructions.addAll(0,Arrays.asList(
+					"Fwf_internal_syscall_0 PROC",
+					"	mov r12, rsp",
+					"	sub rsp, 32",
+					"	and rsp, -16",
+					"	call rax",
+					"	mov rsp, r12",
+					"	ret",
+					"Fwf_internal_syscall_0 ENDP",
+					"e	equ "+Double.doubleToLongBits(Math.E),
+					"pi	equ "+Double.doubleToLongBits(Math.PI),
+					"NaN	equ "+ Double.doubleToLongBits(Double.NaN),
+					"pos_infinity	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
+					"neg_infinity	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
+					));
+			break;
+		case WINx86:
+			break;
+		case LINx64:
+			instructions.addAll(0,Arrays.asList(
+					"%include \"linuxasm/unistd_64.asm\"",
+					"extern Fwf_internal_linux_syscall",
+					"global error",
+					"Fwf_internal_syscall_0:",
+					"	mov r12, rsp",
+					"	and rsp, -16",
+					"	call rax",
+					"	mov rsp, r12",
+					"	ret",
+					"e:	equ "+Double.doubleToLongBits(Math.E),
+					"pi:	equ "+Double.doubleToLongBits(Math.PI),
+					"NaN:	equ "+ Double.doubleToLongBits(Double.NaN),
+					"pos_infinity:	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
+					"neg_infinity:	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
+					));
+			for(DataType type:DataType.values()) {
+				if(!type.builtin())
+					instructions.add(0,type.getHeapSizeString()+": equ "+type.getActualHeapSize(this));
 			}
+			
 		}
 	}
 	public static A setIntByteSize(int len) {

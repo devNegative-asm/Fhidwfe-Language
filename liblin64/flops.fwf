@@ -80,8 +80,8 @@ function float ln(x:float) {
 	if isNaN$ x {
 		error$ "log of NaN\n"
 	} ;
-	log2 = as exponent_from_float$ x float
-	guess = * log2 0.693147180559945309417232121458
+	log_base_2 = as exponent_from_float$ x float
+	guess = * log_base_2 0.693147180559945309417232121458
 	//iterate with newton's method a few times
 	l_guess = + guess 10.
 	for uint [0u,32u] with qq {

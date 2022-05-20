@@ -50,10 +50,35 @@ function void putchar(c:ubyte) {
 	fwrite$ @file 1 c
 }
 
+function void putchar_error(c:ubyte) {
+	fwrite$ @file 2 c
+}
+function void putln_error() {
+	fwrite$ @file 2 '\r'
+	fwrite$ @file 2 '\n'
+}
+
 fwrite_request = ?3u
 fwrite_request_1 = 0
 fwrite_request_2 = null
 fwrite_request_3 = 0u
+
+function void puts_error(s:ptr) {
+    set reading
+    while reading {
+        x = deref_ubyte$ s
+        if = x 0ub {
+            return
+        } { if = x '\n' {
+                putln_error$
+            } {
+                putchar_error$ x
+            }
+            s = + s one
+        }
+    }
+}
+
 
 function void fwrite(f:file char:ubyte) {
 	
@@ -158,7 +183,7 @@ function listubyte freadmany(f:file max:uint) {
 	index = 0u
 	while < index max {
 		result = fread$ f
-		if = ~0u result {
+		if = !1 result {
 			put_ubyte$ + as index ptr ret 0ub
 			return as realloc$ ret + 1u index listubyte
 		} {
