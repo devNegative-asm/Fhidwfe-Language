@@ -64,6 +64,10 @@ public class CompilationSettings {
 					".org	$0000				;Origin",
 					"",
 					""));
+			for(DataType type:DataType.values()) {
+				if(!type.builtin())
+					instructions.add(0,type.getHeapSizeString()+": EQU "+type.getActualHeapSize(this));
+			}
 			break;
 		case TI83pz80:
 			instructions.addAll(0,Arrays.asList(
@@ -109,6 +113,10 @@ public class CompilationSettings {
 					"	.db	$BB,$6D				;Compiled AsmPrgm token",
 					"",
 					""));
+			for(DataType type:DataType.values()) {
+				if(!type.builtin())
+					instructions.add(0,type.getHeapSizeString()+": EQU "+type.getActualHeapSize(this));
+			}
 			break;
 		case WINx64:
 			instructions.addAll(0,Arrays.asList(
@@ -126,6 +134,10 @@ public class CompilationSettings {
 					"pos_infinity	equ "+Double.doubleToLongBits(Double.POSITIVE_INFINITY),
 					"neg_infinity	equ "+Double.doubleToLongBits(Double.NEGATIVE_INFINITY)
 					));
+			for(DataType type:DataType.values()) {
+				if(!type.builtin())
+					instructions.add(0,type.getHeapSizeString()+": equ "+type.getActualHeapSize(this));
+			}
 			break;
 		case WINx86:
 			break;
