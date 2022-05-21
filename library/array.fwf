@@ -17,6 +17,18 @@ alias void memcpy(a:listbyte b:listbyte c:uint)
 alias void memcpy(a:listubyte b:listubyte c:uint)
 
 
+alias uint access_word(a:listuint index:uint)
+alias ptr access_word(a:listptr index:uint)
+alias func access_word(a:listfunc index:uint)
+alias file access_word(a:listfile index:uint)
+alias op access_word(a:listop index:uint)
+alias uint access_word(a:listuint index:int)
+alias ptr access_word(a:listptr index:int)
+alias func access_word(a:listfunc index:int)
+alias file access_word(a:listfile index:int)
+alias op access_word(a:listop index:int)
+alias int access_word(a:listint index:int)
+
 function int access_word(list:listint index:uint) {
 	if = as list ptr null {
 		error$ "nullptr"
@@ -56,6 +68,8 @@ function byte access_byte(list:listbyte index:uint) {
 	return 0b
 }
 alias void assign_byte(list:listubyte index:uint b:ubyte)
+alias void assign_byte(list:listubyte index:int b:ubyte)
+alias void assign_byte(list:listbyte index:int b:byte)
 function void assign_byte(list:listbyte index:uint b:byte) {
 	if = as list ptr null {
 		error$ "nullptr"
@@ -71,8 +85,19 @@ function void assign_byte(list:listbyte index:uint b:byte) {
 		error$ ovflow
 	}
 }
-alias void assign_word(list:listuint index:uint b:uint)
-alias void assign_word(list:listptr index:uint b:ptr)
+
+alias void assign_word(a:listuint index:uint b:uint)
+alias void assign_word(a:listptr index:uint b:ptr)
+alias void assign_word(a:listfunc index:uint b:func)
+alias void assign_word(a:listfile index:uint b:file)
+alias void assign_word(a:listop index:uint b:op)
+alias void assign_word(a:listuint index:int b:uint)
+alias void assign_word(a:listptr index:int b:ptr)
+alias void assign_word(a:listfunc index:int b:func)
+alias void assign_word(a:listfile index:int b:file)
+alias void assign_word(a:listop index:int b:op)
+alias void assign_word(a:listint index:int b:int)
+
 function void assign_word(list:listint index:uint b:int) {
 	if = as list ptr null {
 		error$ "nullptr"
@@ -89,9 +114,6 @@ function void assign_word(list:listint index:uint b:int) {
 		error$ ovflow
 	}
 }
-alias uint access_word(a:listuint index:uint)
-alias ptr access_word(a:listptr index:uint)
-alias func access_word(a:listfunc index:uint)
 
 alias uint switch_b(a:ubyte l1:listubyte fns:listfunc args:listuint default:uint)
 function uint switch_b(a:byte l1:listbyte fns:listfunc args:listuint default:uint) {
@@ -194,3 +216,97 @@ function listbyte double_len(a:listbyte) {
 	free$ as a ptr
 	return b
 }
+
+type Arraylist (
+	eqfunc:op
+	elements:listptr
+	size:uint
+	capacity:uint
+
+	function void init(equalityOperator:op) {
+		this.capacity = 10u
+		this.size = 0u
+		this.elements = malloc$ ?10u
+		this.eqfunc = equalityOperator
+	}
+
+	alias void add(elem:int)
+	alias void add(elem:uint)
+	function void add(elem:ptr) {
+		if = this.size this.capacity {
+			newcap = << this.capacity
+			this.capacity = newcap
+			this.elements = realloc$ @ptr this.elements ?newcap
+		} ;
+		(this.size)this.elements = elem
+		this.size = + this.size 1u
+	}
+
+	alias ptr get(index:int)
+	function ptr get(index:uint) {
+		if >= index this.size {
+			error$ "attempted to get beyond bounds of arraylist"
+		} ;
+		return (index)this.elements
+	}
+
+	alias void remove_index(index:int)
+	function void remove_index(index:uint) {
+		if >= index this.size {
+			error$ "attempted to remove beyond bounds of arraylist"
+		} ;
+		startCopyFrom = + index 1u
+		numToCopy = - this.size startCopyFrom
+		for uint [0u,numToCopy) with offset {
+			(+ index offset)this.elements = (+ startCopyFrom offset)this.elements
+		}
+		this.size = - this.size 1u
+	}
+
+	alias bool contains(elem:ptr)
+	alias bool contains(elem:uint)
+	function bool contains(elem:int) {
+		return >= this.index_of$ elem 0
+	}
+
+	alias int index_of(elem:int)
+	alias int index_of(elem:uint)
+	function int index_of(elem:ptr) {
+		temp iterator = [0u,this.size)
+		for uint iterator with index {
+			ifnot = 0u binop$ this.eqfunc elem (index)this.elements {
+				return @int index
+			} ;
+		}
+		return !1
+	}
+
+	alias ptr fold_left(baseval:ptr action:op)
+	alias int fold_left(baseval:int action:op)
+	function uint fold_left(baseval:uint action:op) {
+		for uint [0u,this.size) with index {
+			elem = (index)this.elements
+			baseval = binop$ action baseval elem
+		}
+		return baseval
+	}
+
+	function void foreach(action:func) {
+		for uint [0u,this.size) with index {
+			$ action (index)this.elements
+		}
+	}
+
+	function void clear() {
+		free$ this.elements
+		this.init$ this.eqfunc
+	}
+
+	function void delete() {
+		free$ this.elements
+		this.elements = null
+		this.capacity = 0u
+		this.size = 0u
+	}
+
+)

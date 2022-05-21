@@ -5,9 +5,6 @@ extern void terminal_mode_default()
 
 lowercase = ['a','z']
 uppercase = ['A','Z']
-
-
-
 function int control_modified(keycode:ubyte) {
 	if in keycode lowercase {
 		return @int - + keycode 1ub 'a'
@@ -19,76 +16,22 @@ function int control_modified(keycode:ubyte) {
 }
 
 
-
-//terminal_mode_raw$
-//v = 0
-//whilenot = v control_modified$ 'X' {
-//	v = scan_keycode$
-//	puts$ "\raaaaaaaaa"
-//	puts$ "\rbbbbbbbbb"
-//}
-//terminal_mode_default$
-
-
-
-v = [2 3 5 7]
-for int v with q {
-	puti$ q
-	putln$
-}
-
-for int [8,100] with u {
-	set isPrime
-	for int v with div {
-		if = 0 % u div {
-			puti$ div
-			putchar$ ' '
-			putchar$ '/'
-			putchar$ '/'
-			putchar$ ' '
-			puti$ u
-			putln$
-			reset isPrime
-		} ;
-	}
-	if isPrime {
-		puti$ u
-		println$ " is prime"
-	}  {
-		puti$ u
-		println$ " is not prime"
-	}
-}
-
-
-free$ v
-
-free$ uppercase
-free$ lowercase
-
-strhashset = Hashset$
-strhashset.init$ string_hash streq
-
-put_hex$ strhashset.entries
-putln$
-
-strhashset.add$ "yes"
-strhashset.add$ "no"
-strhashset.add$ "maybe"
-strhashset.add$ "1a"
-strhashset.add$ "2"
-strhashset.remove$ "no"
-strhashset.add$ "3b"
-strhashset.add$ "4c"
-
-function int printit(str:ptr) {
-	println$ str
+function int puts_alias(str:ptr) {
+	puts$ str
 	return 0
 }
 
-strhashset.foreach$ printit
+strings = Arraylist$
+strings.init$ streq
 
-strhashset.delete$
-free$ strhashset
+strings.add$ "hello "
+strings.add$ "world"
+strings.add$ "!\n"
+
+strings.foreach$ puts_alias
+strings.delete$
+free$ strings
+
+
+//free$ recycles memory to be used later in fhidwfe. download_more_ram$ returns unused memory to the OS
 download_more_ram$
-dump_malloc_page$

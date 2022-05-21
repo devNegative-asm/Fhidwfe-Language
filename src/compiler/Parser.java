@@ -182,7 +182,7 @@ public class Parser {
 				sub = parseOuter(t,originalBase);
 			} catch(Exception e) {
 				try {
-					sub = parseExpr(backup, originalBase, false);
+					sub = parseExpr(backup, originalBase);
 				} catch(Exception b) {
 					b.initCause(e);
 					throw b;
@@ -601,7 +601,7 @@ public class Parser {
 				pe("result from ~ unused");
 				break;
 			case DECREMENT_LOC:
-				root.addChild(parseExpr(t,root,false));
+				root.addChild(parseExpr(t,root));
 				break;
 			case DIVIDE:
 				pe("result from / unused");
@@ -633,7 +633,7 @@ public class Parser {
 						// then an identifier
 						// then an inner block
 							
-						root.addChild(forLoopType).addChild(parseExpr(t,root,false));
+						root.addChild(forLoopType).addChild(parseExpr(t,root));
 						/*
 						 * For loop possibilities:
 						 * range: discrete values that fall in the range
@@ -730,7 +730,7 @@ public class Parser {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
-						root.addChild(parseExpr(t,root,false));
+						root.addChild(parseExpr(t,root));
 					}
 				} else {
 					pe("function not found");
@@ -762,7 +762,7 @@ public class Parser {
 						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
 						for(int i=0;i<args;i++)
 						{
-							root.addChild(parseExpr(t,root,false));
+							root.addChild(parseExpr(t,root));
 						}
 					} else {
 						pe("function not found");
@@ -778,7 +778,7 @@ public class Parser {
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					
-					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot));
 					if(!parent.hasVariable(root.getTokenString()))
 						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
 					return newRoot;
@@ -791,7 +791,7 @@ public class Parser {
 			case IF_LT:
 			case IF_NE:
 			case IF_LE:
-				root.addChild(parseExpr(t,root,false)).addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case SHIFT_LEFT:
 				pe("result from shift unused");
@@ -800,16 +800,16 @@ public class Parser {
 				pe("result from shift unused");
 				break;
 			case IF:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case IFNOT:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case IN:
 				pe("result from in unused");
 				break;
 			case INCREMENT_LOC:
-				root.addChild(parseExpr(t,root,false));
+				root.addChild(parseExpr(t,root));
 				break;
 			case INT_LITERAL:
 				pe("cannot use bare ints");
@@ -843,7 +843,33 @@ public class Parser {
 				pe("cannot use bare block");
 				break;
 			case OPEN_RANGE_EXCLUSIVE:
-				pe("cannot use bare ranges");
+				// array assignment (index) list = input_val
+				// reformat to assign_something$ list (index) input_val
+				SyntaxTree indexVal = parseExpr(t,root);
+				if(t.remove(0).t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
+					pe("list assignments must be done using (index)list = ...");
+				}
+				SyntaxTree listValue = parseExpr(t,root);
+				if(t.remove(0).t!=Token.Type.EQ_SIGN) {
+					pe("list assignments must be done using (index)list = ...");
+				}
+				SyntaxTree rightSide = parseExpr(t,root);
+				String calledFunction = "assign_";
+				if(listValue.getType().assignable().size>1) {
+					calledFunction+="word";
+				} else {
+					calledFunction+="byte";
+				}
+				if(root.functionIn()==null) {
+					root.notifyCalled(calledFunction);
+				} else {
+					root.addDependent(root.functionIn(), calledFunction);
+				}
+				// rearrange
+				root = new SyntaxTree(new Token(calledFunction,Token.Type.FUNC_CALL_NAME,false,root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				root.addChild(listValue.copyWithDifferentParent(root));
+				root.addChild(indexVal.copyWithDifferentParent(root));
+				root.addChild(rightSide.copyWithDifferentParent(root));
 				break;
 			case OPEN_RANGE_INCLUSIVE:
 				pe("cannot use bare ranges");
@@ -863,7 +889,7 @@ public class Parser {
 				}
 				break;
 			case RETURN:
-				root.addChild(parseExpr(t,root,true)); //return from this
+				root.addChild(parseExpr(t,root)); //return from this
 				if(t.size()!=0)
 				{
 					pe("should not be returning before end of program");
@@ -899,10 +925,10 @@ public class Parser {
 				pe("cannot use bare ints");
 				break;
 			case WHILE:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root));
 				break;
 			case WHILENOT:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root));
 				break;
 			case TYPE_DEFINITION:
 				/*
@@ -1143,7 +1169,7 @@ public class Parser {
 				pe("result from ~ unused");
 				break;
 			case DECREMENT_LOC:
-				root.addChild(parseExpr(t,root,false));
+				root.addChild(parseExpr(t,root));
 				break;
 			case DIVIDE:
 				pe("result from / unused");
@@ -1172,7 +1198,7 @@ public class Parser {
 						// then "with"
 						// then an identifier
 						// then an inner block
-						root.addChild(forLoopType).addChild(parseExpr(t,root,false));
+						root.addChild(forLoopType).addChild(parseExpr(t,root));
 						if(t.remove(0).t!=Token.Type.WITH)
 							pe("expected with after for");
 						if(t.get(0).t!=Token.Type.IDENTIFIER)
@@ -1228,7 +1254,7 @@ public class Parser {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
-						root.addChild(parseExpr(t,root,false));
+						root.addChild(parseExpr(t,root));
 					}
 				} else {
 					pe("function not found");
@@ -1260,7 +1286,7 @@ public class Parser {
 				} else {
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					newRoot.addChild(root.copyWithDifferentParent(newRoot))
-							.addChild(parseExpr(t,newRoot,true))
+							.addChild(parseExpr(t,newRoot))
 							.addChild(new SyntaxTree(myTok,this,newRoot));
 					if(!parent.hasVariable(root.getTokenString()))
 						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
@@ -1284,7 +1310,7 @@ public class Parser {
 						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
 						for(int i=0;i<args;i++)
 						{
-							root.addChild(parseExpr(t,root,false));
+							root.addChild(parseExpr(t,root));
 						}
 					} else {
 						pe("function not found");
@@ -1301,7 +1327,7 @@ public class Parser {
 					
 					SyntaxTree newRoot = new SyntaxTree(new Token("assign",Token.Type.EQ_SIGN,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					
-					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot,true));
+					newRoot.addChild(root.copyWithDifferentParent(newRoot)).addChild(parseExpr(t,newRoot));
 					if(!parent.hasVariable(root.getTokenString()))
 						parent.addVariableToScope(secondToken, root.getTokenString(), newRoot.getChild(1).getType());
 					return newRoot;
@@ -1314,19 +1340,19 @@ public class Parser {
 			case IF_LT:
 			case IF_NE:
 			case IF_LE:
-				root.addChild(parseExpr(t,root,false)).addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case IF:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case IFNOT:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root)).addChild(parseBlock(t,root));
 				break;
 			case IN:
 				pe("result from in unused");
 				break;
 			case INCREMENT_LOC:
-				root.addChild(parseExpr(t,root,false));
+				root.addChild(parseExpr(t,root));
 				break;
 			case INT_LITERAL:
 				pe("cannot use bare ints");
@@ -1360,7 +1386,33 @@ public class Parser {
 				pe("cannot use bare block");
 				break;
 			case OPEN_RANGE_EXCLUSIVE:
-				pe("cannot use bare ranges");
+				// array assignment (index) list = input_val
+				// reformat to assign_something$ list (index) input_val
+				SyntaxTree indexVal = parseExpr(t,root);
+				if(t.remove(0).t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
+					pe("list assignments must be done using (index)list = ...");
+				}
+				SyntaxTree listValue = parseExpr(t,root);
+				if(t.remove(0).t!=Token.Type.EQ_SIGN) {
+					pe("list assignments must be done using (index)list = ...");
+				}
+				SyntaxTree rightSide = parseExpr(t,root);
+				String calledFunction = "assign_";
+				if(listValue.getType().assignable().size>1) {
+					calledFunction+="word";
+				} else {
+					calledFunction+="byte";
+				}
+				if(root.functionIn()==null) {
+					root.notifyCalled(calledFunction);
+				} else {
+					root.addDependent(root.functionIn(), calledFunction);
+				}
+				// rearrange
+				root = new SyntaxTree(new Token(calledFunction,Token.Type.FUNC_CALL_NAME,false,root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				root.addChild(listValue.copyWithDifferentParent(root));
+				root.addChild(indexVal.copyWithDifferentParent(root));
+				root.addChild(rightSide.copyWithDifferentParent(root));
 				break;
 			case OPEN_RANGE_INCLUSIVE:
 				pe("cannot use bare ranges");
@@ -1384,7 +1436,7 @@ public class Parser {
 				if(function==null)
 				{
 					try{
-						root.addChild(parseExpr(t,root,true));
+						root.addChild(parseExpr(t,root));
 					} catch(Exception e){
 						//use no return value
 					}
@@ -1392,7 +1444,7 @@ public class Parser {
 					DataType retType = fnOutputTypes.get(function).get(0);
 					if(retType!=DataType.Void)
 					{
-						root.addChild(parseExpr(t,root,true)); //return from this
+						root.addChild(parseExpr(t,root)); //return from this
 					}
 				}
 				break;
@@ -1432,10 +1484,10 @@ public class Parser {
 				pe("cannot use bare ints");
 				break;
 			case WHILE:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root));
 				break;
 			case WHILENOT:
-				root.addChild(parseExpr(t,root,false)).addChild(parseBlock(t,root));
+				root.addChild(parseExpr(t,root)).addChild(parseBlock(t,root));
 				break;
 			case WITH:
 				pe("expected with after for");
@@ -1451,7 +1503,7 @@ public class Parser {
 	 * @param inAssignment whether this expression is in an assignment (I don't think this is used and I actually forgot its purpose)
 	 * @return the syntax tree representing this expression
 	 */
-	private SyntaxTree parseExpr(ArrayList<Token> t, BaseTree parent, boolean inAssignment) {
+	private SyntaxTree parseExpr(ArrayList<Token> t, BaseTree parent) {
 		tok = t.remove(0);
 		SyntaxTree root = new SyntaxTree(tok,this,parent);
 		switch(tok.t)
@@ -1472,7 +1524,7 @@ public class Parser {
 			case DIVIDE:
 			case IN:
 			case EQ_SIGN:
-				root.addChild(parseExpr(t,root,inAssignment)).addChild(parseExpr(t,root,inAssignment));
+				root.addChild(parseExpr(t,root)).addChild(parseExpr(t,root));
 				break;
 			case BYTE_LITERAL:
 			case FLOAT_LITERAL:
@@ -1501,7 +1553,7 @@ public class Parser {
 						int args = fnInputTypes.get(classFunc).get(0).size() - 1;
 						for(int i=0;i<args;i++)
 						{
-							root.addChild(parseExpr(t,root,false));
+							root.addChild(parseExpr(t,root));
 						}
 					} else {
 						pe("function not found");
@@ -1513,7 +1565,7 @@ public class Parser {
 					String removed = tok.s.replaceAll("guard_.*?_.*?_.*?_.*?(_.*)$", "$1");
 					DataType cast = DataType.valueOf(Character.toUpperCase(removed.charAt(1))+removed.substring(2));
 					root = new SyntaxTree(new Token("as",Token.Type.AS,false,tok.srcFile()).setLineNum(tok.linenum),this,parent);
-					root.addChild(parseExpr(t,root,inAssignment));
+					root.addChild(parseExpr(t,root));
 					root.addChild(new Token(cast.name(),Token.Type.TYPE,false,tok.srcFile()).setLineNum(tok.linenum));
 					break;
 				} catch(IllegalArgumentException|IndexOutOfBoundsException e) {
@@ -1526,13 +1578,13 @@ public class Parser {
 			case COMPLEMENT:
 			case SHIFT_LEFT:
 			case SHIFT_RIGHT:
-				root.addChild(parseExpr(t,root,inAssignment));
+				root.addChild(parseExpr(t,root));
 				break;
 			case NEGATE:
-				root.addChild(parseExpr(t,root,inAssignment));
+				root.addChild(parseExpr(t,root));
 				break;
 			case AS:
-				root.addChild(parseExpr(t,root,inAssignment));
+				root.addChild(parseExpr(t,root));
 				if(t.get(0).t==Token.Type.TYPE) {
 					root.addChild(t.remove(0));
 				} else {
@@ -1549,7 +1601,7 @@ public class Parser {
 					int args = fnInputTypes.get(callname).get(0).size();
 					for(int i=0;i<args;i++)
 					{
-						root.addChild(parseExpr(t,root,inAssignment));
+						root.addChild(parseExpr(t,root));
 					}
 				} else {
 					try {
@@ -1570,29 +1622,54 @@ public class Parser {
 					}
 				}
 				break;
-			case OPEN_RANGE_EXCLUSIVE:
 			case OPEN_RANGE_INCLUSIVE:
+			case OPEN_RANGE_EXCLUSIVE:
 				
 				SyntaxTree possibleRoot = new SyntaxTree(new Token(",",Token.Type.RANGE_COMMA,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 				SyntaxTree openBracket = new SyntaxTree(root.getToken(),this,possibleRoot);
-				SyntaxTree result1 = parseExpr(t,possibleRoot,inAssignment);
+				SyntaxTree result1 = parseExpr(t,possibleRoot);
 				if(t.get(0).t==Token.Type.RANGE_COMMA) {
 					t.remove(0);
 					root = possibleRoot;
 					root.addChild(openBracket);
 					root.addChild(result1);
-					root.addChild(parseExpr(t,root,inAssignment));
+					root.addChild(parseExpr(t,root));
 					Token endChoice = t.remove(0);
 					if(endChoice.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE && endChoice.t!=Token.Type.CLOSE_RANGE_INCLUSIVE)
 						pe("not a valid way to end a range");
 					root.addChild(endChoice);
 				} else {
-					//this is a list
-					root.addChild(result1.copyWithDifferentParent(root));
-					while(t.get(0).t!=Token.Type.CLOSE_RANGE_EXCLUSIVE && t.get(0).t!=Token.Type.CLOSE_RANGE_INCLUSIVE) {
-						root.addChild(parseExpr(t,root,inAssignment));
+					if(root.getToken().t==Token.Type.OPEN_RANGE_EXCLUSIVE) {
+						// array access (index) list
+						// reformat to access_something$ list (index)
+						if(t.remove(0).t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
+							pe("list accesses must be done using (index)list");
+						}
+						SyntaxTree listValue = parseExpr(t,root);
+						String calledFunction = "access_";
+						if(listValue.getType().assignable().size>1) {
+							calledFunction+="word";
+						} else {
+							calledFunction+="byte";
+						}
+						if(root.functionIn()==null) {
+							root.notifyCalled(calledFunction);
+						} else {
+							root.addDependent(root.functionIn(), calledFunction);
+						}
+						// rearrange
+						root = new SyntaxTree(new Token(calledFunction,Token.Type.FUNC_CALL_NAME,false,root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+						root.addChild(listValue.copyWithDifferentParent(root));
+						root.addChild(result1.copyWithDifferentParent(root));
+					} else {
+						//list literal
+						root.addChild(result1.copyWithDifferentParent(root));
+						while(t.get(0).t!=Token.Type.CLOSE_RANGE_INCLUSIVE) {
+							root.addChild(parseExpr(t,root));
+						}
+						t.remove(0);
 					}
-					t.remove(0);
+					
 				}
 			break;
 			default:

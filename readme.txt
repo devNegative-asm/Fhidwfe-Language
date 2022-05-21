@@ -65,10 +65,12 @@ byte literal:		[0-9]+b
 ubyte literal:		[0-9]+ub
 float literal:		[0-9]+[fF]|[0-9]*\.[0-9]+|[0-9]+\.[0-9]*
 range literal:		[([] [expr_lower],[expr_upper] [)\]]
-list literal:		[([] expr... [)\]]
+list literal:		\[ expr... \]
 variable:			var_name
 pointer-to:			@var_name
 field access:		var.fieldname
+list reading:		(index)list
+list writing:		(index)list = expr
 
 type definition:	type TypeName (
 						fieldname:fieldType ...

@@ -104,7 +104,7 @@ public class Lexer {
 	{
 		//cut on spaces or special characters
 		//match words, literals, numbers surrounded by u, ub, b, f
-		String tokenRegex = "\\s+|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))|(?=[.][a-zA-Z_])";
+		String tokenRegex = "\\s+|(?<=[\\[\\]()])|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))|(?=[.][a-zA-Z_])";
 		while(holding.isEmpty())
 		{
 			if(hasNextString())
