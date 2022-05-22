@@ -33,5 +33,19 @@ strings.delete$
 free$ strings
 
 
+
+tester = Ilk$
+tester.x = [6 0 1 2 3 4 5]
+
+puti$ ((6) tester.x) tester.x
+println$ ""
+
+
+type Ilk(
+	x:listint
+)
+
+
+
 //free$ recycles memory to be used later in fhidwfe. download_more_ram$ returns unused memory to the OS
 download_more_ram$

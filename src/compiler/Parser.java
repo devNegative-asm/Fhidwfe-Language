@@ -205,6 +205,9 @@ public class Parser {
 			String type = "";
 			for(int i=0;i<t.size();i++)
 			{
+				if(typeDepth>=1 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
+					pe("cannot define nested types");
+				}
 				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
 					typeDepth++;
 					String typename = t.get(i+1).s;
@@ -220,6 +223,47 @@ public class Parser {
 				if(typeDepth<=0) {
 					type="";
 					typeDepth = 0;
+				}
+			}
+			typeDepth = 0;
+			typeIn = null;
+			type = "";
+			
+			for(int i=0;i<t.size();i++)
+			{
+				if(typeDepth>=1 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
+					pe("cannot define nested types");
+				}
+				if(typeDepth==0 && t.get(i).t==Token.Type.TYPE_DEFINITION) {
+					typeDepth++;
+					String typename = t.get(i+1).s;
+					typeIn = DataType.makeUserType(typename);
+					type = typename+".";
+					i+=2;
+					continue;
+				}
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.OPEN_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.OPEN_RANGE_INCLUSIVE))
+					typeDepth++;
+				if(typeDepth > 0 && (t.get(i).t==Token.Type.CLOSE_RANGE_EXCLUSIVE || t.get(i).t==Token.Type.CLOSE_RANGE_INCLUSIVE))
+					typeDepth--;
+				if(typeDepth<=0) {
+					type="";
+					typeDepth = 0;
+				}
+				
+				if(typeDepth==1 && t.get(i).t==Token.Type.IDENTIFIER) {
+					if(t.get(i+1).t==Token.Type.FUNCTION_ARG_COLON)
+						if(t.get(i+2).t==Token.Type.TYPE) {
+							String fieldName = t.get(i).unguardedVersion().tokenString();
+							String fieldType = t.get(i+2).unguardedVersion().tokenString();
+							String properTypeName = Character.toUpperCase(fieldType.charAt(0)) + fieldType.substring(1);
+							DataType fieldDataType = DataType.valueOf(properTypeName);
+							DataType.valueOf(type.substring(0,type.length()-1)).addField(fieldName, fieldDataType);
+							i++;
+							continue;
+						} else {
+							throw new RuntimeException("Expected proper field type in definition of "+t.get(i).unguardedVersion().tokenString()+" at line "+t.get(i).linenum);
+						}
 				}
 				if(t.get(i).t==Token.Type.EXTERN) {
 					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
@@ -418,12 +462,17 @@ public class Parser {
 										argCount++;
 										args.add(0,typeIn);
 									}
-									
 									if(fnInputTypes.get(name).contains(args))
 										throw new RuntimeException("Aliased function "+name+" must have a different input signature than its alias at line "+t.get(i+2).linenum);
 									int argCounter = 0;
 									for(DataType fnArgType:args) {
-										if(fnArgType.size!=fnInputTypes.get(name).get(0).get(argCounter++).size) {
+										if(
+												fnArgType.size
+												!=fnInputTypes
+												.get(name)
+												.get(0)
+												.get(argCounter++)
+												.size) {
 											throw new RuntimeException("Function alias "+name+"'s inputs must be equivalently sized to the original. First failure at arg #"+argCounter+" of type "+fnArgType+" at line "+t.get(i+2).linenum);
 										}
 									}
@@ -958,7 +1007,12 @@ public class Parser {
 				
 				Token fieldTok = t.remove(0);
 				while(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE) {
-					if(fieldTok.t!=Token.Type.IDENTIFIER) {
+					if(fieldTok.t==Token.Type.IDENTIFIER) {
+						if(t.remove(0).t!=Token.Type.FUNCTION_ARG_COLON
+								|| t.remove(0).t!=Token.Type.TYPE) {
+							pe("Expected name:type in field definition");
+						}
+					} else {
 						while(fieldTok.t==Token.Type.FUNCTION || fieldTok.t==Token.Type.ALIAS) {
 							if (fieldTok.t==Token.Type.ALIAS) {
 								if(t.remove(0).t!=Token.Type.FUNCTION_RETTYPE) {
@@ -990,19 +1044,11 @@ public class Parser {
 							}
 						}
 						if(fieldTok.t!=Token.Type.CLOSE_RANGE_EXCLUSIVE)
-							throw new RuntimeException("Expected proper field name or function in definition of "+typeName+" at line "+fieldTok.linenum);
+							throw new RuntimeException("Expected proper field name or function in definition of "
+									+typeName+" at line "+fieldTok.linenum
+									+" instead found "+fieldTok);
 						break;
 					}
-					String idName = fieldTok.unguardedVersion().s;
-					fieldTok = t.remove(0);
-					if(fieldTok.t!=Token.Type.FUNCTION_ARG_COLON)
-						throw new RuntimeException("Expected name:type syntax in definition of "+typeName+" at line "+fieldTok.linenum);
-					fieldTok = t.remove(0);
-					if(fieldTok.t!=Token.Type.TYPE)
-						throw new RuntimeException("Expected proper field type in definition of "+typeName+" at line "+fieldTok.linenum);
-					String properTypeName = Character.toUpperCase(fieldTok.s.charAt(0)) + fieldTok.s.substring(1);
-					DataType type = DataType.valueOf(properTypeName);
-					userType.addField(idName, type);
 					if(this.fnInputTypes.containsKey("free")) {
 						fnInputTypes.get("free").add(new ArrayList<>(Arrays.asList(userType)));
 						fnOutputTypes.get("free").add(DataType.Void);
