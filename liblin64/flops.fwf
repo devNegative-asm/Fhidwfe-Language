@@ -214,7 +214,8 @@ function float str_to_float(str:ptr) {
 		char = deref_ubyte$ str
 		if in char digits {
 			if pastE {
-				exponent = str_to_int$ str
+				temp exponentString = String$ str
+				exponent = exponentString.to_int$
 				if negative {
 					return !* result f_pow_int$ 10f - exponent logdividing
 				} {

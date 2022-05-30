@@ -38,7 +38,7 @@ function int access_word(list:listint index:uint) {
 		index = ? index //turn it into a usable index
 		return deref_int$ + as list ptr as index ptr
 	} {
-		puts$ "index "
+		puts$ "read "
 		putui$ index
 		puts$ " of size "
 		putui$ sizeof$ list
@@ -58,7 +58,7 @@ function byte access_byte(list:listbyte index:uint) {
 	if < index sizeof$ list {
 		return deref_byte$ + as list ptr as index ptr
 	} {
-		puts$ "index "
+		puts$ "read "
 		putui$ index
 		puts$ " of size "
 		putui$ sizeof$ list
@@ -77,7 +77,7 @@ function void assign_byte(list:listbyte index:uint b:byte) {
 	if < index sizeof$ list {
 		put_byte$ + as list ptr as index ptr b
 	} {
-		puts$ "index "
+		puts$ "write "
 		putui$ index
 		puts$ " of size "
 		putui$ sizeof$ list
@@ -106,7 +106,7 @@ function void assign_word(list:listint index:uint b:int) {
 		index = ?index
 		put_int$ + as list ptr as index ptr b
 	} {
-		puts$ "index "
+		puts$ "write "
 		putui$ index
 		puts$ " of size "
 		putui$ sizeof$ list

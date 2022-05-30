@@ -1,0 +1,16 @@
+guard
+import null
+import int_size
+import one
+import stdout
+
+stdout = @Output null
+type Output (
+	function void println(s:String) {
+		fwrite_many$ @file 1 s.chars
+		putchar$ 10ub
+	}
+	function void print(s:String) {
+		fwrite_many$ @file 1 s.chars
+	}
+)

@@ -223,6 +223,9 @@ public class Parser {
 					String typename = t.get(i+1).s;
 					typeIn = DataType.makeUserType(typename);
 					type = typename+".";
+					if(t.get(i+2).t!=Token.Type.OPEN_RANGE_EXCLUSIVE) {
+						throw new RuntimeException("type "+typename+" must be defined with a ( afterwards at line "+t.get(i).linenum);
+					}
 					i+=2;
 					continue;
 				}
@@ -260,7 +263,6 @@ public class Parser {
 					type="";
 					typeDepth = 0;
 				}
-				
 				if(typeDepth==1 && t.get(i).t==Token.Type.IDENTIFIER) {
 					if(t.get(i+1).t==Token.Type.FUNCTION_ARG_COLON)
 						if(t.get(i+2).t==Token.Type.TYPE) {
@@ -920,6 +922,9 @@ public class Parser {
 				}
 				SyntaxTree rightSide = parseExpr(t,root);
 				String calledFunction = "assign_";
+				if(listValue.getType().assignable()==null) {
+					pe("list assignments can only be done to list types, not "+listValue.getType());
+				}
 				if(listValue.getType().assignable().size>1) {
 					calledFunction+="word";
 				} else {
@@ -1464,6 +1469,9 @@ public class Parser {
 				}
 				SyntaxTree rightSide = parseExpr(t,root);
 				String calledFunction = "assign_";
+				if(listValue.getType().assignable()==null) {
+					pe("list assignments can only be done to list types, not "+listValue.getType());
+				}
 				if(listValue.getType().assignable().size>1) {
 					calledFunction+="word";
 				} else {
@@ -1728,6 +1736,9 @@ public class Parser {
 						}
 						SyntaxTree listValue = parseExpr(t,root);
 						String calledFunction = "access_";
+						if(listValue.getType().assignable()==null) {
+							pe("list reading can only be done to list types, not "+listValue.getType());
+						}
 						if(listValue.getType().assignable().size>1) {
 							calledFunction+="word";
 						} else {

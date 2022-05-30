@@ -18,7 +18,7 @@ function bool line_done() {// returns whether the last consumed character was a 
 	return false
 }
 
-function void getline(str:ptr) {
+function uint getline(str:ptr) {
 	//empty the string
 	maxlen = sizeof$ str
 	for uint [0u,maxlen) with x {
@@ -33,7 +33,7 @@ function void getline(str:ptr) {
 		} {
 			if = char '\n' {
 				set consumed
-				return
+				return size
 			} {
 				put_ubyte$ + @ptr size str char
 				size = + size 1u
@@ -41,18 +41,20 @@ function void getline(str:ptr) {
 		}
 	}
 	reset consumed
+	return size
 }
 
 
 type Input (
 	function String next_line() {
 		space = malloc$ 4095u
-		getline$ space
+		size = getline$ space
 		ifnot consumed {
 			error$ "input string beyond input buffer size"
 		} {
 
 		}
+		space = realloc$ space size
 		rv = String$ space
 		free$ space
 		return rv

@@ -3,15 +3,15 @@ import one
 import null
 import int_size
 
-O_RDONLY   =     0
-O_WRONLY    =    1
-O_RDWR    =      2
-O_CREAT  =       64  
-O_EXCL    =      128 
-O_NOCTTY   =     256 
-O_TRUNC     =    512
-O_APPEND     =   1024
-O_NONBLOCK    =  2048
+O_RDONLY   =	 0
+O_WRONLY	=	1
+O_RDWR	=	  2
+O_CREAT  =	   64  
+O_EXCL	=	  128 
+O_NOCTTY   =	 256 
+O_TRUNC	 =	512
+O_APPEND	 =   1024
+O_NONBLOCK	=  2048
 O_NOFOLLOW   =   131072
 S_IRUSR = 256 //user has read permission
 S_IWUSR = 128 //user has write permission
@@ -64,22 +64,32 @@ fwrite_request_2 = null
 fwrite_request_3 = 0u
 
 function void puts_error(s:ptr) {
-    set reading
-    while reading {
-        x = deref_ubyte$ s
-        if = x 0ub {
-            return
-        } { if = x '\n' {
-                putln_error$
-            } {
-                putchar_error$ x
-            }
-            s = + s one
-        }
-    }
+	set reading
+	while reading {
+		x = deref_ubyte$ s
+		if = x 0ub {
+			return
+		} { if = x '\n' {
+				putln_error$
+			} {
+				putchar_error$ x
+			}
+			s = + s one
+		}
+	}
 }
 
+alias void fwrite_many(f:file chars:listbyte)
+function void fwrite_many(f:file chars:listubyte) {
+	fwrite_request = ?3u
+	fwrite_request_1 = @int f
+	fwrite_request_2 = @ptr chars
+	fwrite_request_3 = sizeof$ chars
 
+	unix_syscall$ 1 @fwrite_request_1
+}
+
+alias void fwrite(f:file char:byte)
 function void fwrite(f:file char:ubyte) {
 	
 	fwrite_request = ?3u
@@ -110,7 +120,10 @@ function void fflush(f:file) {
 
 function file fopen_w(path:ptr) {
 	if file_is_protected$ path {
-		error$ concat$ concat$ "file " path " is protected."
+		a = String$ "file "
+		a = a.append$ String$ path
+		a = a.append$ String$ " is protected."
+		error$ a.c_str$
 	} ;
 	temp request = [
 		@int path
@@ -118,15 +131,19 @@ function file fopen_w(path:ptr) {
 		| | S_IRUSR S_IWUSR S_IRGRP
 	]
 	fd = unix_syscall$ 2 request
-    if < fd 0 {
-    	error$ concat$ "failed to open file " path
-    } ;
-    return @file fd
+	if < fd 0 {
+		b = String$ "failed to open file "
+		error$ b.append$ String$ path
+	} ;
+	return @file fd
 }
 
 function file fopen_a(path:ptr) {
 	if file_is_protected$ path {
-		error$ concat$ concat$ "file " path " is protected."
+		a = String$ "file "
+		a = a.append$ String$ path
+		a = a.append$ String$ " is protected."
+		error$ a.c_str$
 	} ;
 	temp request = [
 		@int path
@@ -134,26 +151,31 @@ function file fopen_a(path:ptr) {
 		| | S_IRUSR S_IWUSR S_IRGRP
 	]
 	fd = unix_syscall$ 2 request
-    if < fd 0 {
-    	error$ concat$ "failed to open file " path
-    } ;
-    return @file fd
+	if < fd 0 {
+		b = String$ "failed to open file "
+		error$ b.append$ String$ path
+	} ;
+	return @file fd
 }
 
 function file fopen_r(path:ptr) {
 	if file_is_protected$ path {
-		error$ concat$ concat$ "file " path " is protected."
+		a = String$ "file "
+		a = a.append$ String$ path
+		a = a.append$ String$ " is protected."
+		error$ a.c_str$
 	} ;
-    temp request = [
-        @int path
-        | O_NOFOLLOW O_RDONLY 
-        0
-    ]
-    fd = unix_syscall$ 2 request
-    if < fd 0 {
-    	error$ concat$ "failed to open file " path
-    } ;
-    return @file fd 
+	temp request = [
+		@int path
+		| O_NOFOLLOW O_RDONLY 
+		0
+	]
+	fd = unix_syscall$ 2 request
+	if < fd 0 {
+		b = String$ "failed to open file "
+		error$ b.append$ String$ path
+	} ;
+	return @file fd 
 }
 
 function void fclose(f:file) {
@@ -161,11 +183,11 @@ function void fclose(f:file) {
 	unix_syscall$ 3 request
 }
 
-function void fwrites(f:file s:ptr) {
-	len = strlen$ s
-	for uint [0u,len) with index {
-		fwrite$ f deref_ubyte$ + s as index ptr
-	}
+function void fwrite_c_str(f:file s:ptr) {
+	whilenot = 0ub deref_ubyte$ s {
+		fwrite$ f deref_ubyte$ s
+		s = + s 1u
+	} 
 }
 
 alias void fwritebytes(f:file a:listbyte)
@@ -179,15 +201,14 @@ function void fwritebytes(f:file lis:listubyte) {
 //read as many bytes as possible from the file, up to the given max
 
 function listubyte freadmany(f:file max:uint) {
-	ret = malloc$ + 1u max
+	ret = @listubyte malloc$ max
 	index = 0u
 	while < index max {
 		result = fread$ f
 		if = !1 result {
-			put_ubyte$ + as index ptr ret 0ub
-			return as realloc$ ret + 1u index listubyte
+			return @listubyte realloc$ ret index
 		} {
-			put_ubyte$ + as index ptr ret as result ubyte
+			(index)ret = @ubyte result
 			index = + index 1u
 		}
 	}

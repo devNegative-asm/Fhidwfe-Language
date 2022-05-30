@@ -1,4 +1,6 @@
 Enjoy Fhidwfe!
+WARNING: Currently, z80 and windows versions are not up to date. The standard library will likely not entirely work
+
 This is a C-like language which takes some syntax and feature inspiration from functional languages and python.
 This is not a functional language at all though, so be warned.
 This software is provided as-is. This compiler is does not come with any warranty, implied or otherwise.

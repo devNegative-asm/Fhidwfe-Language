@@ -6,14 +6,11 @@ import null
 
 type String (
 	length:int
-	backinglist:listubyte
 	chars:listubyte
 	
 	function void init(cstring:ptr) {
-		this.length = strlen$ cstring
+		this.length = sizeof$ cstring
 		this.chars = @listubyte malloc$ @uint this.length
-		this.backinglist = @listubyte malloc$ + 1u @uint this.length
-		strcpy$ this.backinglist cstring
 		memcpy$ @ptr this.chars cstring @uint this.length
 	}
 
@@ -28,12 +25,14 @@ type String (
 	}
 
 	function ptr c_str() {
-		return @ptr this.backinglist
+		cstr = @listubyte malloc$ @uint + this.length 1
+		memcpy$ cstr this.chars @uint this.length
+		(this.length)cstr = 0ub
+		return @ptr cstr
 	}
 
 	function void delete() {
 		ifnot = this null {
-			free$ this.backinglist
 			free$ this.chars
 		} ;
 	}
@@ -45,29 +44,27 @@ type String (
 		len = @uint + this.length other.length
 		result.length = len
 		rawchars = malloc$ len
-		cstr = malloc$ + 1u len
-		result.backinglist = cstr
-		result.chars = rawchars
-		strcpy$ result.backinglist this.backinglist
-		strcpy$ + @ptr result.backinglist this.length other.backinglist
-		memcpy$ result.chars result.backinglist len
+
+		memcpy$ rawchars this.chars @uint this.length
+		memcpy$ + rawchars this.length other.chars @uint other.length
+
 		return result
 	}
 
 	function int to_int() {
-		return str_to_int$ this.backinglist
+		return str_to_int$ this.chars
 	}
 
 	function bool eq(other:String) {
-		return streq$ this.backinglist other.backinglist
+		return streq$ this.chars other.chars
 	}
 
-	function bool eqs(other:ptr) {
-		return streq$ this.backinglist other
+	function bool eqs(other:listubyte) {
+		return streq$ this.chars other
 	}
 
 	function int compare(other:String) {
-		return strcmp$ this.backinglist other.backinglist
+		return strcmp$ this.chars other.chars
 	}
 
 	function String join(strings:listptr) {
@@ -80,7 +77,7 @@ type String (
 			/ sizeof$ strings int_size
 			1u
 
-		totalLength = + 1u * @uint this.length myrepeats
+		totalLength = * @uint this.length myrepeats
 
 		for ptr strings with strptr {
 			theString = @String strptr
@@ -90,15 +87,15 @@ type String (
 		placementTarget = malloc$ totalLength
 		retval = placementTarget
 		firststring = @String deref_ptr$ strings
-		strcpy$ placementTarget firststring.backinglist
+		memcpy$ placementTarget firststring.chars @uint firststring.length
 
 		placementTarget = + placementTarget firststring.length
 
 		for uint (0u,/ sizeof$ strings int_size) with index {
-			strcpy$ placementTarget this.backinglist
+			memcpy$ placementTarget this.chars @uint this.length
 			placementTarget = + placementTarget this.length
 			theString2 = @String (index)strings
-			strcpy$ placementTarget theString2.backinglist
+			memcpy$ placementTarget theString2.chars @uint theString2.length
 			placementTarget = + placementTarget theString2.length
 		}
 		rv = String$ retval
@@ -109,53 +106,48 @@ type String (
 	//toUpperCase
 )
 
-//use String.append if you really want this
-function ptr concat(a:ptr b:ptr) {
-	finalLen = + 1u + strlen$ a strlen$ b
-	retval = malloc$ finalLen
-	strcpy$ retval a
-	strcpy$ + retval strlen$ a b
-	return retval
-}
 
 function uint strlen(s:ptr) {
-	offset = 0u
-	while true {
-		x = deref_byte$ s
-		if = x 0b {
-			return offset
-		} {
-			s = + s as 1 ptr
-			offset = + offset 1u
-		}
+	return sizeof$ s
+}
+
+
+function void dump_list(bytes:listubyte) {
+	puti$ sizeof$ bytes
+	for ubyte bytes with b {
+		puts$" "
+		putui$ @uint b
 	}
-	return offset
+	putln$
 }
 
 import one
-function bool streq(str1:ptr str2:ptr) {
+function bool streq(str1:listubyte str2:listubyte) {
 	return = 0 strcmp$ str1 str2
 }
 
 function bool string_eq(str1:String str2:String) {
-	return streq$ str1.backinglist str2.backinglist
+	return streq$ str1.chars str2.chars
 }
 
-function int strcmp(str1:ptr str2:ptr) {
+function int strcmp(str1:listubyte str2:listubyte) {
 	//str1 - str2
-	while = deref_byte$ str1 deref_byte$ str2 {
-		if = 0b deref_byte$ str1 {//they both terminated at the same time
-			return 0
-		} {
-			str1 = + one str1
-			str2 = + one str2
-		}
+	stopComparingAt = umin$ strlen$ str1 strlen$ str2
+	temp iterable = [0u,stopComparingAt)
+
+	for uint iterable with index {
+		b1 = @uint (index)str1
+		b2 = @uint (index)str2
+		ifnot = 0u - b1 b2 {
+			return - @int b1 @int b2 
+		} ;
 	}
-	return  - as deref_ubyte$ str1 int as deref_byte$ str2 int
+
+	//the longer one is higher
+	return @int - strlen$ str1 strlen$ str2 
 }
 
-
-function int str_to_int (num:ptr) {
+function int str_to_int (num:listubyte) {
 	//scans the given string for the longest input that matches
 	//  /-?[0-9]*
 	// parses that as an integer, ignoring overflows
@@ -168,26 +160,40 @@ function int str_to_int (num:ptr) {
 	reset negative
 	read = num
 	num1 = 0
-	if = deref_ubyte$ num '-' {
+	if = (0)num '-' {
 		set negative
-		read = + read one
 	} ;
-	while in deref_ubyte$ read digits {
-		num1 = + * 10 num1 as - deref_ubyte$ read '0' int
-		read = + one read
+	set first
+	for ubyte num with char {
+		set mustread
+		if first {
+			if negative {
+				reset mustread
+			} ;
+		} ;
+		if mustread {
+			if in char digits {
+				num1 = + * 10 num1 @int - char '0'
+			} {
+				if negative {
+					return !num1
+				} {
+					return num1
+				}
+			}
+		} ;
 	}
 	if negative {
-		num1 = !num1
+		return !num1
 	} ;
 	return num1
 }
 
 alias uint string_hash(string:uint)
-function uint string_hash(string:ptr) {
+function uint string_hash(string:listubyte) {
 	hash = 13u
-	whilenot = 0b deref_byte$ string {
-		hash = + * hash 41u as deref_ubyte$ string uint
-		string = + string one
+	for ubyte string with char {
+		hash = + * hash 41u @uint char
 	}
 	return hash
 }

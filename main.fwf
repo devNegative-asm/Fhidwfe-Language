@@ -37,7 +37,7 @@ function int main() {
 	whilenot exitingflag {
 		puts$ "var name: "
 		command = stdin.next_line$
-		if command.eqs$ "exit" {
+		if command.eqs$ @listubyte "exit" {
 			command.delete$
 			free$ command
 			set exitingflag
