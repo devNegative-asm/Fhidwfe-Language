@@ -26,6 +26,7 @@ import compiler.Token;
 import compiler.Translator;
 import interpreter.Eval;
 import interpreter.Value;
+import optimizers.Optimizers;
 import preprocessor.Preprocessor;
 import settings.CompilationSettings;
 import settings.ConstantPropagater;
@@ -245,6 +246,7 @@ public class Main {
 			
 			ArrayList<String> assembly = Translator.translate(p, VMCode,false);
 			ConstantPropagater.propagateConstants(assembly);
+			assembly = Optimizers.getOptimizer(settings).optimize(assembly, settings);
 			PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
 			for(String ins:assembly) {
 				pr.println(ins);

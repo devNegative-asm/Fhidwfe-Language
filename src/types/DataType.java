@@ -173,6 +173,8 @@ public class DataType{
 		isList = false;
 		DataType.namedTypes.put(name, this);
 		userType = userMade;
+		if(userMade)
+			freeable.add(this);
 	}
 	private DataType(String name, int siz, boolean Range, DataType assignable, boolean list)
 	{

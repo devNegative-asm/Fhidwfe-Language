@@ -501,9 +501,9 @@ public class SyntaxTree extends BaseTree{
 		SyntaxTree[] children = children(2,4);
 		DataType type1 = children[0].getType();
 		DataType type2 = children[1].getType();
-		if(type1==Ptr && !type2.isFreeable())
+		if(type1==Ptr && type2.isFreeable())
 			return Bool;
-		if(type2==Ptr && !type1.isFreeable())
+		if(type2==Ptr && type1.isFreeable())
 			return Bool;
 		if(type1==type2)
 			return Bool;
@@ -812,12 +812,27 @@ public class SyntaxTree extends BaseTree{
 						throw new RuntimeException("Could not find function or alias named "+getTokenString()+" with input signature "+usedTypes+" at line "+this.getToken().linenum);
 					}
 				}
-				//if we cast implicitly, we can only do it to the first function definition
-				if(getTokenString().isEmpty()) {
-					System.err.println("WARNING: Implicit cast as argument to $. Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+				//skip generating warnings when the output is unambiguous and the implicit casts are to pointer
+				boolean generateWarnings = false;
+				
+				if(theParser.getCollapsedFunctionOutputTypes(getTokenString()).size()==1) {
+					for(int argc=0;argc<usedTypes.size();argc++) {
+						DataType usedType = usedTypes.get(argc);
+						DataType expectedType = theParser.getFunctionInputTypes(getTokenString()).get(0).get(argc);
+						if(expectedType!=usedType) {
+							if(!(expectedType==Ptr && usedType.isFreeable())) {
+								generateWarnings = true;
+							}
+						}
+					}
 				} else {
+					generateWarnings = true;
+				}
+				generateWarnings &= !(getTokenString().isEmpty() || getTokenString().equals("binop"));
+				if(generateWarnings) {
 					System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
 				}
+				//if we cast implicitly, we output to the function's default output type
 				ret = theParser.getFunctionOutputType(getTokenString()).get(0);
 			
 			} else

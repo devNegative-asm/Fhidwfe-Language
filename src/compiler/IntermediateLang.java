@@ -148,12 +148,21 @@ public class IntermediateLang {
 		}
 		return results;
 	}
-	private ArrayList<Instruction> deferDeletion(ArrayList<Instruction> instructions) {
+	private ArrayList<Instruction> deferDeletion(ArrayList<Instruction> instructions, Parser theParser) {
 		
 		ArrayList<Instruction> deletions = new ArrayList<>();
 		for(int i=0;i<instructions.size();i++) {
 			if(instructions.get(i).in==InstructionType.deffered_delete) {				
 				deletions.add(InstructionType.retrieve_local_int.cv(instructions.get(i).getArgs()[0]));
+				String typename = instructions.get(i).getArgs()[1];
+				DataType type = DataType.valueOf(typename);
+				if(!type.builtin()) {
+					if(theParser.functionNames().contains(type.name()+".delete"))
+					{
+						deletions.add(InstructionType.copy.cv());
+						deletions.add(InstructionType.call_function.cv(type.name()+".delete"));
+					}
+				}
 				deletions.add(InstructionType.call_function.cv("free"));
 				instructions.remove(i--);
 			}
@@ -374,7 +383,7 @@ public class IntermediateLang {
 					}
 					if(tree.getChildren().size()==3 && tree.getChild(2).getToken().t==Token.Type.TEMP) {
 						if(tree.getChild(1).getType().isFreeable())
-							results.add(new Instruction(InstructionType.deffered_delete,placement));
+							results.add(InstructionType.deffered_delete.cv(placement, tree.getChild(1).getType().name()));
 						else
 							throw new RuntimeException("only pointer-type variables can be temp at line "+tree.getToken().linenum);
 					}
@@ -647,7 +656,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				blockElems.addAll(generateSubInstructions(child));
 			}
-			results.addAll(this.deferDeletion(blockElems));
+			results.addAll(this.deferDeletion(blockElems,tree.theParser));
 			break;
 
 		case OPEN_RANGE_EXCLUSIVE:

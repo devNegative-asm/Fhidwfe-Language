@@ -1,5 +1,6 @@
 guard
-
+import null
+import stdin
 
 set consumed //probably the first time I ever actually used a flag
 
@@ -41,3 +42,26 @@ function void getline(str:ptr) {
 	}
 	reset consumed
 }
+
+
+type Input (
+	function String next_line() {
+		space = malloc$ 4095u
+		getline$ space
+		ifnot consumed {
+			error$ "input string beyond input buffer size"
+		} {
+
+		}
+		rv = String$
+		rv.init$ space
+		free$ space
+		return rv
+	}
+	function int next_int() {
+		temp istring = this.next_line$
+		return istring.to_int$
+	}
+)
+// Input is stateless, so this is fine
+stdin = @Input null

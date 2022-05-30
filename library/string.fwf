@@ -2,6 +2,70 @@
 guard
 import one
 import int_size
+import null
+
+function String string(cstr:ptr) {
+	result = String$
+	result.init$ cstr
+	return result
+}
+
+type String (
+	length:int
+	backinglist:listubyte
+	chars:listubyte
+	
+	function void init(cstring:ptr) {
+		this.length = strlen$ cstring
+		this.chars = @listubyte malloc$ @uint this.length
+		this.backinglist = @listubyte malloc$ + 1u @uint this.length
+		strcpy$ this.backinglist cstring
+		memcpy$ @ptr this.chars cstring @uint this.length
+	}
+
+	function listubyte to_char_list() {
+		return this.chars
+	}
+
+	function ptr c_str() {
+		return @ptr this.backinglist
+	}
+
+	function void delete() {
+		ifnot = this null {
+			free$ this.backinglist
+			free$ this.chars
+		} ;
+	}
+
+	function String append(other:String) {
+		result = String$
+		len = @uint + this.length other.length
+		result.length = len
+		rawchars = malloc$ len
+		cstr = malloc$ + 1u len
+		result.backinglist = cstr
+		result.chars = rawchars
+		strcpy$ result.backinglist this.backinglist
+		strcpy$ + @ptr result.backinglist this.length other.backinglist
+		memcpy$ result.chars result.backinglist len
+		return result
+	}
+
+	function int to_int() {
+		return str_to_int$ this.backinglist
+	}
+
+	function bool eq(other:String) {
+		return streq$ this.backinglist other.backinglist
+	}
+
+	function int compare(other:String) {
+		return strcmp$ this.backinglist other.backinglist
+	}
+)
+
+
 
 function ptr concat(s1:ptr s2:ptr) {
 	//concat s1 with s2 and return it as a new string

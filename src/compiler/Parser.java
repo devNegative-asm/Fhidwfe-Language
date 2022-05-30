@@ -112,7 +112,7 @@ public class Parser {
 		return new ArrayList<ArrayList<DataType>>(fnInputTypes.get(functionName));
 	}
 	/**
-	 * Get the set of each possible output type as defined by this function's aliases
+	 * Get the list of each possible output type as defined by this function's aliases
 	 * @param functionName the function
 	 * @return a list of aliased output types
 	 */
@@ -121,6 +121,16 @@ public class Parser {
 		if(fnOutputTypes.containsKey(functionName))
 			return fnOutputTypes.get(functionName);
 		return this.fnOutputTypesReq.get(functionName);
+	}
+	/**
+	 * Get the collapsed set of output types, removing duplicates, as defined by this function's aliases
+	 * @param functionName the function
+	 * @return a set of aliased output types
+	 */
+	public Set<DataType> getCollapsedFunctionOutputTypes(String functionName) {
+		HashSet<DataType> result = new HashSet<>();
+		getFunctionOutputType(functionName).forEach(result::add);
+		return result;
 	}
 	/**
 	 * Whether the given function exists
@@ -266,7 +276,7 @@ public class Parser {
 						}
 				}
 				if(t.get(i).t==Token.Type.EXTERN) {
-					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
+					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE || t.get(i+1).t==Token.Type.TYPE)
 					{
 						String rettype = t.get(i+1).s;
 						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
@@ -328,7 +338,7 @@ public class Parser {
 					}
 				} else if(t.get(i).t==Token.Type.FUNCTION)
 				{
-					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
+					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE || t.get(i+1).t==Token.Type.TYPE)
 					{
 						String rettype = t.get(i+1).s;
 						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
@@ -414,7 +424,7 @@ public class Parser {
 				
 				if(t.get(i).t==Token.Type.ALIAS)//alias syntax is the same as function syntax, but the function already has to be defined and its types have to be the same size
 				{
-					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE)
+					if(t.get(i+1).t==Token.Type.FUNCTION_RETTYPE || t.get(i+1).t==Token.Type.TYPE)
 					{
 						String rettype = t.get(i+1).s;
 						String rttype = Character.toUpperCase(rettype.charAt(0))+rettype.substring(1);
@@ -585,7 +595,7 @@ public class Parser {
 			case ALIAS:
 				//similar to function parsing except that we don't use a body
 				Token retType = t.remove(0);
-				if(retType.t!=Token.Type.FUNCTION_RETTYPE)
+				if(retType.t!=Token.Type.FUNCTION_RETTYPE && retType.t!=Token.Type.TYPE)
 					pe("expected return type");
 				root.addChild(retType);
 				
@@ -712,7 +722,7 @@ public class Parser {
 				break;
 			case FUNCTION:
 				retType = t.remove(0);
-				if(retType.t!=Token.Type.FUNCTION_RETTYPE)
+				if(retType.t!=Token.Type.FUNCTION_RETTYPE && retType.t!=Token.Type.TYPE)
 					pe("expected return type");
 				root.addChild(retType);
 				
@@ -1015,9 +1025,10 @@ public class Parser {
 					} else {
 						while(fieldTok.t==Token.Type.FUNCTION || fieldTok.t==Token.Type.ALIAS) {
 							if (fieldTok.t==Token.Type.ALIAS) {
-								if(t.remove(0).t!=Token.Type.FUNCTION_RETTYPE) {
+								if(t.get(0).t!=Token.Type.FUNCTION_RETTYPE && t.get(0).t!=Token.Type.TYPE) {
 									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
 								}
+								t.remove(0);
 								if(t.remove(0).t!=Token.Type.FUNCTION_NAME) {
 									throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
 								}
@@ -1071,7 +1082,7 @@ public class Parser {
 	private SyntaxTree parseClassFunction(Token functionToken, ArrayList<Token> t, DataType memberClass, SyntaxTree parent) {
 		SyntaxTree root = new SyntaxTree(functionToken,this,parent);
 		Token retType = t.remove(0);
-		if(retType.t!=Token.Type.FUNCTION_RETTYPE)
+		if(retType.t!=Token.Type.FUNCTION_RETTYPE && retType.t!=Token.Type.TYPE)
 			pe("expected return type");
 		root.addChild(retType);
 		
@@ -1663,7 +1674,17 @@ public class Parser {
 								new Token(callname,Token.Type.TYPE,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
 								this,
 								parent));
-					} catch(Exception e) {
+						if(root.functionIn()!=null) {
+							if(this.functionNames().contains(callname+".delete"))
+								if(this.getFunctionInputTypes(callname+".delete").get(0).size()==1)
+								{
+									root.addDependent(root.functionIn(), callname+".delete");
+								} else {
+									throw new RuntimeException("function "+callname+".delete must have no parameters");
+								}
+						}
+					} catch(IllegalArgumentException e) {
+						e.printStackTrace();
 						pe("function or type not found");
 					}
 				}

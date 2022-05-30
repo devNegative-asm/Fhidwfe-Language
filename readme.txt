@@ -81,6 +81,7 @@ instance.methodname$ args...
 
 
 Temp variables are automatically freed when the block ends or the function returns.
+Objects declared temp will automatically have their delete$ function called if that function exists
 
 String literals are the same as C except the only escape sequences are \\ \" \r \n \t \0
 characters are the same as C except they share the escape sequence limitations and they are of type ubyte.

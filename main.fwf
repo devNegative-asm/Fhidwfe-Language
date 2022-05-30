@@ -1,4 +1,5 @@
 guard
+import stdin
 
 extern void terminal_mode_raw()
 extern void terminal_mode_default()
@@ -21,31 +22,31 @@ function int puts_alias(str:ptr) {
 	return 0
 }
 
-strings = Arraylist$
-strings.init$ streq
-
-strings.add$ "hello "
-strings.add$ "world"
-strings.add$ "!\n"
-
-strings.foreach$ puts_alias
-strings.delete$
-free$ strings
 
 
 
-tester = Ilk$
-tester.x = [6 0 1 2 3 4 5]
 
-puti$ ((6) tester.x) tester.x
-println$ ""
+function int main() {
+	puts$ "number 1: "
+	x = stdin.next_int$
+	puts$ "number 2: "
+	y = stdin.next_int$
+	puts$ "number 3: "
+	z = stdin.next_int$
+
+	puts$ "the sum is: "
+	puti$ + x + y z
+	putln$
+	return 0
+}
 
 
-type Ilk(
-	x:listint
-)
 
-
+exit_code = main$
 
 //free$ recycles memory to be used later in fhidwfe. download_more_ram$ returns unused memory to the OS
+
 download_more_ram$
+dump_malloc_page$
+return exit_code
+
