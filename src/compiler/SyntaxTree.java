@@ -794,6 +794,9 @@ public class SyntaxTree extends BaseTree{
 		case FUNCTION_RETTYPE:
 			ret = DataType.SYNTAX;
 			break;
+		case CONSTRUCTOR_CALL:
+			this.getChild(0).getType();
+			
 		case FUNC_CALL_NAME:
 			//type check the arguments
 			//then return my return type
@@ -803,22 +806,29 @@ public class SyntaxTree extends BaseTree{
 				DataType type = args.getType();
 				usedTypes.add(type);
 			}
-			int argIndex = theParser.getFunctionInputTypes(getTokenString()).indexOf(usedTypes);
+			String functionCalled;
+			if(this.getTokenType()==Token.Type.CONSTRUCTOR_CALL) {
+				usedTypes.set(0, DataType.valueOf(getTokenString()));
+				functionCalled = getTokenString()+".init";
+			} else {
+				functionCalled = getTokenString();
+			}
+			int argIndex = theParser.getFunctionInputTypes(functionCalled).indexOf(usedTypes);
 			if(argIndex==-1) {
 				
 				//attempt implicit cast
 				for(int argc=0;argc<usedTypes.size();argc++) {
-					if(!usedTypes.get(argc).canCastTo(theParser.getFunctionInputTypes(getTokenString()).get(0).get(argc))) {
-						throw new RuntimeException("Could not find function or alias named "+getTokenString()+" with input signature "+usedTypes+" at line "+this.getToken().linenum);
+					if(!usedTypes.get(argc).canCastTo(theParser.getFunctionInputTypes(functionCalled).get(0).get(argc))) {
+						throw new RuntimeException("Could not find function or alias named "+functionCalled+" with input signature "+usedTypes+" at line "+this.getToken().linenum);
 					}
 				}
 				//skip generating warnings when the output is unambiguous and the implicit casts are to pointer
 				boolean generateWarnings = false;
 				
-				if(theParser.getCollapsedFunctionOutputTypes(getTokenString()).size()==1) {
+				if(theParser.getCollapsedFunctionOutputTypes(functionCalled).size()==1) {
 					for(int argc=0;argc<usedTypes.size();argc++) {
 						DataType usedType = usedTypes.get(argc);
-						DataType expectedType = theParser.getFunctionInputTypes(getTokenString()).get(0).get(argc);
+						DataType expectedType = theParser.getFunctionInputTypes(functionCalled).get(0).get(argc);
 						if(expectedType!=usedType) {
 							if(!(expectedType==Ptr && usedType.isFreeable())) {
 								generateWarnings = true;
@@ -828,19 +838,21 @@ public class SyntaxTree extends BaseTree{
 				} else {
 					generateWarnings = true;
 				}
-				generateWarnings &= !(getTokenString().isEmpty() || getTokenString().equals("binop"));
+				generateWarnings &= !(functionCalled.isEmpty() || functionCalled.equals("binop"));
 				if(generateWarnings) {
-					System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(getTokenString()).get(0)+" at line "+getToken().linenum);
+					System.err.println("WARNING: Implicit cast as argument to "+getTokenString()+". Maybe use an alias instead? Converted "+usedTypes+" -> "+theParser.getFunctionInputTypes(functionCalled).get(0)+" at line "+getToken().linenum);
 				}
 				//if we cast implicitly, we output to the function's default output type
-				ret = theParser.getFunctionOutputType(getTokenString()).get(0);
+				ret = theParser.getFunctionOutputType(functionCalled).get(0);
 			
 			} else
-				ret = theParser.getFunctionOutputType(getTokenString()).get(argIndex);
+				ret = theParser.getFunctionOutputType(functionCalled).get(argIndex);
 			if(inFunction())
-				this.addDependent(this.functionIn(), getTokenString());
+				this.addDependent(this.functionIn(), functionCalled);
 			else
-				notifyCalled(getTokenString());
+				notifyCalled(functionCalled);
+			if(this.getTokenType()==Token.Type.CONSTRUCTOR_CALL)
+				ret = DataType.valueOf(getTokenString());
 			break;
 		case IDENTIFIER:
 			ret = this.resolveVariableType(this.getTokenString(),this.getToken().linenum);
@@ -946,6 +958,8 @@ public class SyntaxTree extends BaseTree{
 			{
 				save = DataType.Int;//empty lists are all int lists. If you want a different kind of empty list, cast it.
 			}
+			if(!save.builtin())
+				save = DataType.Ptr;
 			for(DataType data : DataType.values()) {
 				if(data.assignable(save)&&!data.isRange()) {
 					ret = data;

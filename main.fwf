@@ -27,12 +27,23 @@ function int puts_alias(str:ptr) {
 
 
 function int main() {
+
 	puts$ "number 1: "
 	x = stdin.next_int$
 	puts$ "number 2: "
 	y = stdin.next_int$
 	puts$ "number 3: "
 	z = stdin.next_int$
+
+	temp i = String$ "number 1"
+	temp j = String$ "number 2"
+	temp k = String$ "number 3"
+
+	temp combiner = String$ " + "
+	temp stringlist = [i j k]
+	temp result = combiner.join$ stringlist
+	println$ result.backinglist
+
 
 	puts$ "the sum is: "
 	puti$ + x + y z
@@ -47,6 +58,6 @@ exit_code = main$
 //free$ recycles memory to be used later in fhidwfe. download_more_ram$ returns unused memory to the OS
 
 download_more_ram$
-dump_malloc_page$
+//dump_malloc_page$
 return exit_code
 

@@ -779,6 +779,9 @@ public class Parser {
 			case FUNCTION_RETTYPE:
 				pe("no function identified");
 				break;
+			case CONSTRUCTOR_CALL:
+				pe("result from "+tok.s+" unused");
+				break;
 			case FUNC_CALL_NAME:
 				String callname = myTok.s.substring(0, myTok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
@@ -1301,6 +1304,9 @@ public class Parser {
 			case FUNCTION_RETTYPE:
 				pe("no function identified");
 				break;
+			case CONSTRUCTOR_CALL:
+				pe("result from "+tok.s+" unused");
+				break;
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
 				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
@@ -1648,11 +1654,15 @@ public class Parser {
 					pe("cast with as [value] [type]");
 				}
 				break;
+			case CONSTRUCTOR_CALL:
 			case FUNC_CALL_NAME:
 				String callname = tok.s.substring(0, tok.s.length()-1);
-				root = new SyntaxTree(new Token(callname,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
+				root = new SyntaxTree(new Token(callname,tok.t,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 				if(root.functionIn()==null) {
-					root.notifyCalled(callname);
+					if(tok.t==Token.Type.CONSTRUCTOR_CALL) {
+						root.notifyCalled(callname+".init");
+					} else 
+						root.notifyCalled(callname);
 				}
 				if(this.fnInputTypes.containsKey(callname)) {
 					int args = fnInputTypes.get(callname).get(0).size();
@@ -1664,16 +1674,17 @@ public class Parser {
 					try {
 						
 						DataType customType = DataType.valueOf(callname);
-						root = new SyntaxTree(new Token("as", Token.Type.AS,root.getToken().guarded(),root.getToken().srcFile()), this, parent);
+						
 						SyntaxTree mallocCall = new SyntaxTree(new Token("malloc",Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
 								this,
 								parent);
 						mallocCall.addChild(new Token(""+customType.getHeapSizeString(settings, 0),Token.Type.UINT_LITERAL,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum));
 						root.addChild(mallocCall);
-						root.addChild(new SyntaxTree(
-								new Token(callname,Token.Type.TYPE,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),
-								this,
-								parent));
+						if(!fnInputTypes.containsKey(callname+".init"))
+							pe("cannot construct type "+callname+" without a .init member function");
+						for(int i=0;i<fnInputTypes.get(callname+".init").get(0).size()-1;i++) {
+							root.addChild(parseExpr(t,root));
+						}
 						if(root.functionIn()!=null) {
 							if(this.functionNames().contains(callname+".delete"))
 								if(this.getFunctionInputTypes(callname+".delete").get(0).size()==1)

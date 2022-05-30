@@ -470,6 +470,15 @@ public class IntermediateLang {
 		case FUNCTION_PAREN_R:
 		case FUNCTION_RETTYPE:
 			break;
+		case CONSTRUCTOR_CALL:
+			results.addAll(generateSubInstructions(tree.getChild(0)));
+			results.add(InstructionType.copy.cv());
+			for(int i=1;i<tree.getChildren().size(); i++) {
+				results.addAll(generateSubInstructions(tree.getChild(i)));
+			}
+			results.add(InstructionType.call_function.cv(tree.getTokenString()+".init"));
+			//results.add(InstructionType.pop_discard.cv());
+			break;
 		case FUNC_CALL_NAME:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));

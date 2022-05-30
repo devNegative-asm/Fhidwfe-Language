@@ -127,8 +127,9 @@ public class X64Optimizer implements Optimizer {
 	
 	@Override
 	public ArrayList<String> optimize(ArrayList<String> instructions, CompilationSettings settings) {
-		ArrayList<String> optimized = new ArrayList<>();
-		instructions = (ArrayList<String>) instructions.clone();
+		ArrayList<String> temp = new ArrayList<>();
+		temp.addAll(instructions);
+		instructions = temp;
 		instructions.removeIf(String::isEmpty);
 		int totalLines = instructions.size();
 		int passCount = 0;

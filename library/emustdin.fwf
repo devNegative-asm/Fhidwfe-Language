@@ -53,8 +53,7 @@ type Input (
 		} {
 
 		}
-		rv = String$
-		rv.init$ space
+		rv = String$ space
 		free$ space
 		return rv
 	}

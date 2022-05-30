@@ -101,6 +101,7 @@ public class Token {
 		EQ_SIGN,
 		FUNC_CALL_NAME,
 		CLASS_FUNC_CALL,
+		CONSTRUCTOR_CALL,
 		TYPE,
 		IS,
 		AS,
