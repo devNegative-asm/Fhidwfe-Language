@@ -58,7 +58,7 @@ casting:			as [expr] [type]
 unary operator:		[op] [expr_1]
 binary operator:	[op] [expr_1] [expr_2]
 function call:		func_name$ args...
-construct type:		TypeName$
+construct type:		TypeName$ args...
 int literal:		[0-9]+
 uint literal:		[0-9]+u
 byte literal:		[0-9]+b
@@ -146,6 +146,7 @@ op		same as func, but for 2 argument funcions
 
 casting is done by the keyword "as" which can do the following conversions. Anything not listed here has undefined behavior
 any type other than float -> ptr	(no conversion)
+ptr -> user defined type or list	(no conversion)
 ptr or uint or int -> byte or ubyte	(drop higher order bytes)
 numeric type -> numeric type		(drop higher order bytes if target is smaller)
 byte -> int							(sign extend)
@@ -161,8 +162,8 @@ A for loop can iterate over a list or a range. When iterating over the elements 
 	loop iterations.
 A for loop iterates over a range with the following protocol. Any changes made to the range variable inside the loop will be ignored for the purposes of iteration.
 	1. treating the range like a list, retrieve its first and second elements into r_min and r_max
-	2. if the range is exclusive below, increment r_min without checking overflow
-	3. if the range is exclusive above, decrement r_max without checking overflow
+	2. if the range is exclusive below, increment r_min, exiting on overflow
+	3. if the range is exclusive above, decrement r_max, exiting on underflow
 	4. if r_max is the largest value for its data type, the loop will never end as the internal test x>r_max will never fail. Use a while loop, or
 		unravel the for instead.
 	4. if r_min > r_max, the number of iterations is 0. 
@@ -190,7 +191,13 @@ Types:
 	Pointers to fields are illegal.
 	To use the output of a function as an object and access its fields, it must first be assigned to a variable.
 	instances of types are not guaranteed to start off with valid data, so fields can hold arbitrary data until they are assigned.
-	
+	Every type should have a .init$ and .delete$ member function.
+		init$ is called when constructing an instance of a type. It may be called multiple times
+		delete$ is called on objects declared temp when they go out of scope
+		delete$ must guard against "this" being null before accessing fields
+		these are both optional with stateless types, as null can be assigned to the object (see stdin)
+	Unlike java, calling a member function does not rely on the object being non-null.
+		This can be used to save memory on structures like linked lists or binary trees, since the object-like behavior of null can be defined
 
 Aliases:
 	Functions cannot be overloaded, but they can be given alias type signatures. This is done with the same syntax as the function header but with 'alias'
@@ -203,6 +210,11 @@ Aliases:
 	Aliases are meant to be a safer version of union types for functions that move or write data. They are absolutely NOT meant for polymorphic behavior,
 		and will give unexpected results if used for such.
 	
+Externs:
+	extern functions are expected to follow Fhidwfe's calling strategy of in-order arguments on the stack& saving the base pointer
+	extern functions are declared the same as aliases
+	the name of the extern function must be the C-style name of the function it is linked with
+
 Variables:
 	Variables are technically allocated when they enter scope, but are unusable until their first assignment.
 	Type inference is used to give types to local and global variables, but they retain that same type for future uses
@@ -252,8 +264,7 @@ Calling convention:
 	
 	In order to write an assembly function which can be called, it is the callee's responsibility to save the frame pointer.
 	
-Heap:
-	(for z80 only, x86 implementations use C's malloc and free)
+Heap Z80:
 
 	The heap is maintained with similar usage requirements as C's malloc and free.
 	The builtin library uses O(n^2) time for mallocing n objects due to its linked list implementation.
@@ -269,7 +280,18 @@ Heap:
 	
 	As it is implemented now, restoring both the head and tail of the heap's linked list will effectively free every object.
 	
-	
+Heap x64:
+
+	Malloc will return one of several block sizes such as 8, 24, ... 2040
+	(2^n-8) 4<=n<=11
+	Then the block sizes switch to 4088, ...
+	(2^12*n-8) 1<=n
+	This makes the most efficient lists be of length 1 less than a power of 2 or 1 less than a multiple of 4096.
+	The first time a small object is malloced, space is made for 256 objects of that size.
+	mallocs of size >2040 will be given their own memory mapping, independent of the malloc table.
+	free$ will only return memory to the OS if the original malloc size was >2040.
+		otherwise, it just marks the memory as reusable in the malloc table.
+	the function download_more_ram$ returns free'd memory to the OS when possible
 	
 	
 	

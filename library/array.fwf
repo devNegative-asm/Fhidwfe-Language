@@ -318,12 +318,8 @@ type ArrayStringMap (
 		return <= 0 this.keys.index_of$ key
 	}
 	function void for_each(operator:op) {
-		if this.is_empty$ {
-			return
-		} {
-			for uint [0u,this.keys.size) with index {
-				binop$ operator (index)this.keys.elements (index)this.values.elements
-			}
+		for uint [0u,this.keys.size) with index {
+			binop$ operator (index)this.keys.elements (index)this.values.elements
 		}
 	} 
 	function bool is_empty() {

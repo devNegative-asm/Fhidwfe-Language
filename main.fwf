@@ -16,13 +16,10 @@ function int control_modified(keycode:ubyte) {
 	return 3
 }
 
-
 function int puts_alias(str:ptr) {
 	puts$ str
 	return 0
 }
-
-
 
 
 
@@ -35,6 +32,7 @@ function int free_keys(a:ptr b:ptr) {
 
 function int main() {
 	reset exitingflag
+
 	temp varmappings = ArrayStringMap$
 	
 	whilenot exitingflag {

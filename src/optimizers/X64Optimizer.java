@@ -1,5 +1,6 @@
 package optimizers;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -85,7 +86,7 @@ public class X64Optimizer implements Optimizer {
 			if(!passMatched) {
 				m = compile("mov r(..), (\\d+)").matcher(in);
 				if(m.find()) {
-					long value = Long.parseLong(m.group(2));
+					long value = parseLong(m.group(2));
 					if(is32Bit(value)) {
 						results.add(String.format("\tmov e%s, %s",m.group(1), m.group(2)));
 						continue;
@@ -103,7 +104,7 @@ public class X64Optimizer implements Optimizer {
 			
 			m = compile("imul rax, (\\d+)").matcher(in);
 			if(m.find()) {
-				long mulconst = Long.parseLong(m.group(1));
+				long mulconst = parseLong(m.group(1));
 				if(isPowerof2(mulconst)) {
 					results.add("\tshl rax, "+log2(mulconst));
 					continue;
@@ -138,7 +139,7 @@ public class X64Optimizer implements Optimizer {
 			passMatched = false;
 			//optimize literals followed by a shift by a constant
 			instructions = multiPatternOptimization(instructions,
-					m-> "\tmov r"+m.group(1)+", "+(Long.parseLong(m.group(2))<<Long.parseLong(m.group(3))),
+					m-> "\tmov r"+m.group(1)+", "+(parseLong(m.group(2))<<parseLong(m.group(3))),
 					"mov r(..), (\\d+)",
 					"s[ah]l r\\1, (\\d+)"
 					);
@@ -184,7 +185,7 @@ public class X64Optimizer implements Optimizer {
 			
 			//unary negate
 			instructions = multiPatternOptimization(instructions,
-					m -> "mov r$1, "+(m.group(3).equals("not")? ~Long.parseLong(m.group(2)):-Long.parseLong(m.group(2))),
+					m -> "mov r$1, "+(m.group(3).equals("not")? ~parseLong(m.group(2)):-parseLong(m.group(2))),
 					"mov r(..), (\\d+)",
 					"(neg|not) r\\1"
 					);
@@ -220,7 +221,7 @@ public class X64Optimizer implements Optimizer {
 					);
 			//repeated shift left or right
 			instructions = multiPatternOptimization(instructions,
-					m -> "s$1 $2, "+Math.min(63l,Long.parseLong(m.group(3))+Long.parseLong(m.group(5))),
+					m -> "s$1 $2, "+Math.min(63l,parseLong(m.group(3))+parseLong(m.group(5))),
 					"s([ah][lr]) (\\w+?), (\\d+)",
 					"s\\1 (\\2), (\\d+)"
 					);
@@ -269,5 +270,7 @@ public class X64Optimizer implements Optimizer {
 		
 		return instructions;
 	}
-
+	private long parseLong(String s) {
+		return new BigInteger(s).longValue();
+	}
 }

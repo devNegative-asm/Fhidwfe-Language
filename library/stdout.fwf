@@ -19,6 +19,14 @@ function void puti(num:int) {
 	putui$ @uint num
 }
 
+function void put_bool(b:bool) {
+	if b {
+		puts$ "true"
+	} {
+		puts$ "false"
+	}
+}
+
 alias void put_hex(i:ptr)
 alias void put_hex(i:int)
 function void put_hex(i:uint) {

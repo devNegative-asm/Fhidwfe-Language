@@ -191,8 +191,8 @@ public class IntermediateLang {
 		Token.Type toktype = tok.t;
 		DataType type = tree.getType(); 
 		String str = tok.s;
-		//TODO implement pipelined if branching
-		
+
+		boolean testFeatureRangeGuards = true;
 		switch(toktype) {
 		case SHIFT_LEFT:
 			for(SyntaxTree child:tree.getChildren()) {
@@ -909,6 +909,7 @@ public class IntermediateLang {
 			location = loc(loopingLocation.split(" ")[0]);
 			String index = loopingLocation.split(" ")[1];
 			boolean byteType = loopType.assignable().getSize(settings)==1;
+			boolean signedType = loopType.assignable().signed();
 			id = fresh();
 			
 			if(loopType.isList) {//list type iterable
@@ -922,7 +923,7 @@ public class IntermediateLang {
 				results.add(InstructionType.stackdecrement_intsize.cv());
 				results.add(InstructionType.load_i.cv());//2
 				results.add(InstructionType.retrieve_immediate_int.cv("0"));//3
-				//top of stack is [void*] [size_in_bytes] [index]
+				//top of stack is [list*] [size_in_bytes] [index]
 				
 				//start looping
 				results.add(InstructionType.general_label.cv("__for_loop_start_"+id));
@@ -988,7 +989,8 @@ public class IntermediateLang {
 				// [rnglow] [rnglow]
 				
 				//dereference rnghigh and decrement it if it's open above
-				
+
+				long boundsChecking = fresh();
 				if(byteType)
 				{
 					//get flags variable
@@ -1015,6 +1017,23 @@ public class IntermediateLang {
 					// decrement
 					results.add(InstructionType.swap13.cv());
 					results.add(InstructionType.stackdecrement_byte.cv());
+					
+					if(testFeatureRangeGuards) {
+						// if result overflowed to MAX_UBYTE, this was closed high on 0 on a ubyte range
+						// if result overflowed to MAX_BYTE, this was closed high on MIN_INT on a ubyte range
+						results.add(InstructionType.copy.cv());
+						if(!signedType) {
+							results.add(InstructionType.retrieve_immediate_byte.cv("255"));
+						} else {
+							results.add(InstructionType.retrieve_immediate_byte.cv("127"));
+						}
+						// flags [rnglow] [rnghigh] [rnghigh] comparison
+						results.add(InstructionType.branch_not_equal_b.cv("__for_boundsChecking_high_success_"+boundsChecking));
+						results.add(InstructionType.pop_discard.cv());
+						results.add(InstructionType.goto_address.cv("__for_loop_exit_"+id));
+						results.add(InstructionType.general_label.cv("__for_boundsChecking_high_success_"+boundsChecking));
+					}
+					
 					results.add(InstructionType.swap13.cv());
 					
 					//if closed below, leave it alone
@@ -1026,6 +1045,17 @@ public class IntermediateLang {
 					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
 					//increment
 					results.add(InstructionType.stackincrement_byte.cv());
+					if(testFeatureRangeGuards) {
+						// if result overflowed to 0, this was closed low on MAX_UBYTE on a ubyte range
+						// if result overflowed to MIN_BYTE, this was closed high on MAX_BYTE on a byte range
+						results.add(InstructionType.copy.cv());
+						if(!signedType) {
+							results.add(InstructionType.retrieve_immediate_byte.cv("0"));
+						} else {
+							results.add(InstructionType.retrieve_immediate_byte.cv("-128"));
+						}
+						results.add(InstructionType.branch_equal_to_b.cv("__for_loop_exit_"+id));
+					}
 					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
 				}
 				else
@@ -1054,6 +1084,21 @@ public class IntermediateLang {
 					// decrement
 					results.add(InstructionType.swap13.cv());
 					results.add(InstructionType.stackdecrement.cv());
+					if(testFeatureRangeGuards) {
+						// if result overflowed to MAX_UINT, this was closed high on 0 on a uint range
+						// if result overflowed to MAX_INT, this was closed high on MIN_INT on a int range
+						results.add(InstructionType.copy.cv());
+						if(!signedType) {
+							results.add(InstructionType.retrieve_immediate_int.cv("-1"));
+						} else {
+							results.add(InstructionType.retrieve_immediate_int.cv(String.valueOf(Integer.MAX_VALUE)));
+						}
+						// flags [rnglow] [rnghigh] [rnghigh] comparison
+						results.add(InstructionType.branch_not_equal_i.cv("__for_boundsChecking_high_success_"+boundsChecking));
+						results.add(InstructionType.pop_discard.cv());
+						results.add(InstructionType.goto_address.cv("__for_loop_exit_"+id));
+						results.add(InstructionType.general_label.cv("__for_boundsChecking_high_success_"+boundsChecking));
+					}
 					results.add(InstructionType.swap13.cv());
 					
 					//if closed below, leave it alone
@@ -1065,6 +1110,17 @@ public class IntermediateLang {
 					results.add(InstructionType.branch_address.cv("__for_ran_skip_"+ll));
 					//increment
 					results.add(InstructionType.stackincrement.cv());
+					if(testFeatureRangeGuards) {
+						// if result overflowed to 0, this was closed low on MAX_UINT on a uint range
+						// if result overflowed to MIN_INT, this was closed high on MAX_INT on an int range
+						results.add(InstructionType.copy.cv());
+						if(!signedType) {
+							results.add(InstructionType.retrieve_immediate_int.cv("0"));
+						} else {
+							results.add(InstructionType.retrieve_immediate_int.cv(String.valueOf(Integer.MIN_VALUE)));
+						}
+						results.add(InstructionType.branch_equal_to_i.cv("__for_loop_exit_"+id));
+					}
 					results.add(InstructionType.general_label.cv("__for_ran_skip_"+ll));
 				}
 				//(rnghigh - (0 or 1)) (rnglow + (1 or 0)) 
