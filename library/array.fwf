@@ -115,83 +115,18 @@ function void assign_word(list:listint index:uint b:int) {
 	}
 }
 
-alias uint switch_b(a:ubyte l1:listubyte fns:listfunc args:listuint default:uint)
-function uint switch_b(a:byte l1:listbyte fns:listfunc args:listuint default:uint) {
-	result = default
-	ifnot = ?sizeof$ l1 sizeof$ fns {
-		error$ "switch cases not of the same length"
-	} ;
-	for uint [0u,sizeof$ l1) with test {
-		b = access_byte$ l1 test
-		if = b a {
-			result = $ access_word$ fns test access_word$ args test
-		} ;
-	}
-	return result
-}
-
-alias uint switch_i(a:uint l1:listuint fns:listfunc args:listuint default:uint)
-alias uint switch_i(a:ptr l1:listptr fns:listfunc args:listuint default:uint)
-function uint switch_i(a:int l1:listint fns:listfunc args:listuint default:uint) {
-	result = default
-	ifnot = sizeof$ l1 sizeof$ fns {
-		error$ "switch cases not of the same length"
-	} ;
-	for uint [0u,/ sizeof$ l1 int_size) with test {
-		b = access_word$ l1 test
-		if = b a {
-			result = $ access_word$ fns test access_word$ args test
-		} ;
-	}
-	return result
-}
-
-alias uint switch_b_to(a:ubyte l1:listubyte fns:listfunc args:listuint default:uint)
-function uint switch_b_to(a:byte l1:listbyte fns:listfunc args:listuint default:uint) {
-	result = default
-	ifnot = ?sizeof$ l1 sizeof$ fns {
-		error$ "switch cases not of the same length"
-	} ;
-	for uint [0u,sizeof$ l1) with test {
-		b = access_byte$ l1 test
-		if = b a {
-			result = $ access_word$ fns test access_word$ args test
-		} ;
-	}
-	free$ as l1 ptr
-	free$ as fns ptr
-	free$ as args ptr
-	return result
-}
-
-alias uint switch_i_to(a:uint l1:listuint fns:listfunc args:listuint default:uint)
-alias uint switch_i_to(a:ptr l1:listptr fns:listfunc args:listuint default:uint)
-function uint switch_i_to(a:int l1:listint fns:listfunc args:listuint default:uint) {
-	result = default
-	ifnot = sizeof$ l1 sizeof$ fns {
-		error$ "switch cases not of the same length"
-	} ;
-	for uint [0u,/ sizeof$ l1 int_size) with test {
-		b = access_word$ l1 test
-		if = b a {
-			result = $ access_word$ fns test access_word$ args test
-		} ;
-	}
-	free$ as l1 ptr
-	free$ as fns ptr
-	free$ as args ptr
-	return result
-}
-
 alias listint map(fn:func list:listint)
 alias listptr map(fn:func list:listptr)
 function listuint map(fn:func list:listuint) {
 	if = as list ptr null {
 		error$ "nullptr"
 	} ;
-	result = as malloc$ sizeof$ list listuint
+	if = sizeof$ list 0u {
+		return @listuint malloc$ 0u
+	} ;
+	result = @listuint malloc$ sizeof$ list
 	for uint [0u,/ sizeof$ list int_size) with index {
-		assign_word$ result index $ fn access_word$ list index
+		(index)result = $ fn (index)list
 	}
 	return result
 }
@@ -203,8 +138,11 @@ function listuint map_to(fn:func list:listuint) {
 		error$ "nullptr"
 	} ;
 	result = as malloc$ sizeof$ list listuint
+	if = 0u sizeof$ list {
+		return list
+	} ;
 	for uint [0u,/ sizeof$ list int_size) with index {
-		assign_word$ result index $ fn access_word$ list index
+		(index)result = $ fn (index)list
 	}
 	free$ as list ptr
 	return result
@@ -232,6 +170,9 @@ type Arraylist (
 
 	alias void add(elem:int)
 	alias void add(elem:uint)
+	alias void add(elem:file)
+	alias void add(elem:func)
+	alias void add(elem:op)
 	function void add(elem:ptr) {
 		if = this.size this.capacity {
 			newcap = << this.capacity
@@ -272,6 +213,9 @@ type Arraylist (
 	alias int index_of(elem:int)
 	alias int index_of(elem:uint)
 	function int index_of(elem:ptr) {
+		if = 0u this.size {
+			return !1
+		} ;
 		temp iterator = [0u,this.size)
 		for uint iterator with index {
 			ifnot = 0u binop$ this.eqfunc elem (index)this.elements {
@@ -303,10 +247,86 @@ type Arraylist (
 	}
 
 	function void delete() {
-		free$ this.elements
-		this.elements = null
-		this.capacity = 0u
-		this.size = 0u
+		ifnot = this null {
+			free$ this.elements
+			this.elements = null
+			this.capacity = 0u
+			this.size = 0u
+		} ;
 	}
 
+	function bool is_empty() {
+		return = 0u this.size
+	}
+
+)
+
+function bool is_alias(x:ptr y:ptr) {
+	return = x y
+}
+
+type ArrayStringMap (
+	keys:Arraylist
+	values:Arraylist
+	function void init() {
+		this.keys = Arraylist$ string_eq
+		this.values = Arraylist$ is_alias
+	}
+	
+	alias void put(key:String value:int)
+	alias void put(key:String value:uint)
+	alias void put(key:String value:func)
+	alias void put(key:String value:op)
+	alias void put(key:String value:file)
+	function void put(key:String value:ptr) {
+		index = this.keys.index_of$ key
+		if = !1 index {
+			this.keys.add$ key
+			this.values.add$ value
+		} {
+			(index)this.values.elements = value
+		}
+	}
+	function ptr get(key:String) {
+		index = this.keys.index_of$ key
+		if = !1 index {
+			return null
+		} ;
+		return (index)this.values.elements
+	}
+	function void remove(key:String) {
+		index = this.keys.index_of$ key
+		if = !1 index {
+			return
+		} ;
+		this.values.remove_index$ index
+		this.keys.remove_index$ index
+	}
+	function void clear() {
+		this.delete$
+		this.init$ 
+	}
+	function void delete() {
+		ifnot = this null {
+			this.keys.delete$
+			free$ this.keys
+			this.values.delete$
+			free$ this.values
+		} ;
+	}
+	function bool contains_key(key:String) {
+		return <= 0 this.keys.index_of$ key
+	}
+	function void for_each(operator:op) {
+		if this.is_empty$ {
+			return
+		} {
+			for uint [0u,this.keys.size) with index {
+				binop$ operator (index)this.keys.elements (index)this.values.elements
+			}
+		}
+	} 
+	function bool is_empty() {
+		return = 0u this.keys.size
+	}
 )

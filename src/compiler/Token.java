@@ -172,6 +172,10 @@ public class Token {
 		TYPE_DEFINITION,
 		FIELD_ACCESS,
 		EXTERN;
+
+		boolean isType() {
+			return this==Type.FUNCTION_ARG_TYPE || this==Type.TYPE;
+		}
 		
 	}
 }

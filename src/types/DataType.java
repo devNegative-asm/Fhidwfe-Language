@@ -160,7 +160,9 @@ public class DataType{
 		if(DataType.namedTypes.keySet().contains(name)) {
 			return DataType.namedTypes.get(name);
 		}
-		return new DataType(name);
+		DataType result = new DataType(name);
+		implicitlyConvertible.put(result, new ArrayList<DataType>(Arrays.asList(Ptr)));
+		return result;
 	}
 	private DataType(String name) {
 		this(name, true);

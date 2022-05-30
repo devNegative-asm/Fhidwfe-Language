@@ -37,10 +37,12 @@ type Hashset (
 	}
 
 	function void delete() {
-		for uint [0u,hashset_size) with i {
-			this.delete_entry$ access_word$ this.entries i
-		}
-		free$ this.entries
+		ifnot = this null {
+			for uint [0u,hashset_size) with i {
+				this.delete_entry$ access_word$ this.entries i
+			}
+			free$ this.entries
+			} ;
 	}
 
 	function void delete_entry(link:ptr) {

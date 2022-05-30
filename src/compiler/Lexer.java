@@ -508,7 +508,7 @@ public class Lexer {
 		//correct type tokens which were misidentified as identifiers
 		ArrayList<Token> newTokens = new ArrayList<>();
 		tokens.forEach(t -> {
-			if(t.t==Token.Type.IDENTIFIER && DataType.typeExists(t.unguardedVersion().s)) {
+			if((t.t==Token.Type.IDENTIFIER||t.t==Token.Type.FUNCTION_ARG) && DataType.typeExists(t.unguardedVersion().s)) {
 				newTokens.add(new Token(t.unguardedVersion().tokenString(),Token.Type.TYPE,false,t.srcFile()).setLineNum(t.linenum));
 			} else if(t.s.length()!=1&&t.t==Token.Type.FUNC_CALL_NAME && DataType.typeExists(t.s.substring(0,t.s.length()-1))) {
 				newTokens.add(new Token(t.unguardedVersion().tokenString(),Token.Type.CONSTRUCTOR_CALL,false,t.srcFile()).setLineNum(t.linenum));

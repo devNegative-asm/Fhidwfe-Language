@@ -21,6 +21,12 @@ type String (
 		return this.chars
 	}
 
+	function void for_chars(operation:func) {
+		for ubyte this.chars with c {
+			$ operation @uint c
+		}
+	}
+
 	function ptr c_str() {
 		return @ptr this.backinglist
 	}
@@ -54,6 +60,10 @@ type String (
 
 	function bool eq(other:String) {
 		return streq$ this.backinglist other.backinglist
+	}
+
+	function bool eqs(other:ptr) {
+		return streq$ this.backinglist other
 	}
 
 	function int compare(other:String) {
@@ -125,6 +135,10 @@ function uint strlen(s:ptr) {
 import one
 function bool streq(str1:ptr str2:ptr) {
 	return = 0 strcmp$ str1 str2
+}
+
+function bool string_eq(str1:String str2:String) {
+	return streq$ str1.backinglist str2.backinglist
 }
 
 function int strcmp(str1:ptr str2:ptr) {

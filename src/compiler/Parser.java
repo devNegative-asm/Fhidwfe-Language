@@ -300,7 +300,7 @@ public class Parser {
 								ArrayList<DataType> args = new ArrayList<DataType>();
 								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
 										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
-										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
+										t.get(i+6+argCount*3).t.isType())
 								{
 									DataType argtype = null;
 									String argType =  t.get(i+6+argCount*3).s;
@@ -314,10 +314,10 @@ public class Parser {
 									args.add(argtype);
 									argCount++;
 								}
-								if(t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+								if(t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON && t.get(i+6+argCount*3).t.isType()) {
 									printFuncError("used incorrect token type. Expected FUNCTION_ARG, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
 								}
-								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG && t.get(i+6+argCount*3).t.isType()) {
 									printFuncError("used incorrect token type. Expected FUNCTION_ARG_COLON, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
 								}
 								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
@@ -362,7 +362,7 @@ public class Parser {
 								ArrayList<DataType> args = new ArrayList<DataType>();
 								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
 										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
-										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
+										t.get(i+6+argCount*3).t.isType())
 								{
 									DataType argtype = null;
 									String argType =  t.get(i+6+argCount*3).s;
@@ -376,10 +376,10 @@ public class Parser {
 									args.add(argtype);
 									argCount++;
 								}
-								if(t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+								if(t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON && t.get(i+6+argCount*3).t.isType()) {
 									printFuncError("used incorrect token type. Expected FUNCTION_ARG, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
 								}
-								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG && t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE) {
+								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG && t.get(i+6+argCount*3).t.isType()) {
 									printFuncError("used incorrect token type. Expected FUNCTION_ARG_COLON, found instead "+t.get(i+4+argCount*3).t,t.get(i+1));
 								}
 								if(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_PAREN_R)
@@ -390,6 +390,9 @@ public class Parser {
 									}
 									fnInputTypes.put(name, new ArrayList<ArrayList<DataType>>(Arrays.asList(args)));
 								} else {
+									System.out.println(t.get(i+4+argCount*3));
+									System.out.println(t.get(i+5+argCount*3));
+									System.out.println(t.get(i+6+argCount*3));
 									printFuncError("missing function close paren",t.get(i+1));
 								}
 							} else {
@@ -451,7 +454,7 @@ public class Parser {
 								ArrayList<DataType> args = new ArrayList<DataType>();
 								while(t.get(i+4+argCount*3).t==Token.Type.FUNCTION_ARG &&
 										t.get(i+5+argCount*3).t==Token.Type.FUNCTION_ARG_COLON &&
-										t.get(i+6+argCount*3).t==Token.Type.FUNCTION_ARG_TYPE)
+										t.get(i+6+argCount*3).t.isType())
 								{
 									DataType argtype = null;
 									String argType =  t.get(i+6+argCount*3).s;
@@ -618,7 +621,7 @@ public class Parser {
 						pe("expected type marker :");
 					
 					Token ttype = t.remove(0);
-					if(ttype.t!=Token.Type.FUNCTION_ARG_TYPE)
+					if(!ttype.t.isType())
 						pe("expected argument type");
 					
 					root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
@@ -745,7 +748,7 @@ public class Parser {
 						pe("expected type marker :");
 					
 					Token ttype = t.remove(0);
-					if(ttype.t!=Token.Type.FUNCTION_ARG_TYPE)
+					if(!ttype.t.isType())
 						pe("expected argument type");
 					
 					root.addChild(new SyntaxTree(param,this,root).addChild(ttype));
@@ -1045,7 +1048,7 @@ public class Parser {
 									if(t.remove(0).t!=Token.Type.FUNCTION_ARG_COLON) {
 										throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
 									}
-									if(t.remove(0).t!=Token.Type.FUNCTION_ARG_TYPE) {
+									if(!t.remove(0).t.isType()) {
 										throw new RuntimeException("invalid alias syntax at line "+fieldTok.linenum);
 									}
 								}
@@ -1119,7 +1122,7 @@ public class Parser {
 				pe("expected type marker :");
 			
 			Token ttype = t.remove(0);
-			if(ttype.t!=Token.Type.FUNCTION_ARG_TYPE)
+			if(!ttype.t.isType())
 				pe("expected argument type");
 			
 			root.addChild(new SyntaxTree(param,this,root).addChild(ttype));

@@ -26,28 +26,39 @@ function int puts_alias(str:ptr) {
 
 
 
+function int free_keys(a:ptr b:ptr) {
+	c = @String a
+	c.delete$
+	free$ a
+	return 0
+}
+
 function int main() {
+	reset exitingflag
+	temp varmappings = ArrayStringMap$
+	
+	whilenot exitingflag {
+		puts$ "var name: "
+		command = stdin.next_line$
+		if command.eqs$ "exit" {
+			command.delete$
+			free$ command
+			set exitingflag
+		} {
+			if varmappings.contains_key$ command {
+				puts$ "that variable maps to "
+				puti$ @int varmappings.get$ command
+				putln$
+				free$ command
+			} {
+				puts$ "value: "
+				number = stdin.next_int$
+				varmappings.put$ command number
+			}
+		}
+	}
+	varmappings.for_each$ free_keys
 
-	puts$ "number 1: "
-	x = stdin.next_int$
-	puts$ "number 2: "
-	y = stdin.next_int$
-	puts$ "number 3: "
-	z = stdin.next_int$
-
-	temp i = String$ "number 1"
-	temp j = String$ "number 2"
-	temp k = String$ "number 3"
-
-	temp combiner = String$ " + "
-	temp stringlist = [i j k]
-	temp result = combiner.join$ stringlist
-	println$ result.backinglist
-
-
-	puts$ "the sum is: "
-	puti$ + x + y z
-	putln$
 	return 0
 }
 
