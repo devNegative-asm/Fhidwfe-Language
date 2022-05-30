@@ -19,18 +19,16 @@ public class VariableTree {
 	}
 	private boolean doneEditing = false;
 	public void doneEditing() {
-		if(!doneEditing) {
-			ArrayList<String> names = new ArrayList<>();
-			checkNameConflicts(names);
-		}
+		ArrayList<String> names = new ArrayList<>();
+		checkNameConflicts(names);
 		doneEditing = true;
 		//verification step
 		
 	}
 	private void checkNameConflicts(ArrayList<String> names){
 		for(Variable b:myvars) {
-			if(names.contains(b.getName())||names.contains(b.getName()))
-				throw new RuntimeException("Variable name "+b.getName()+", clashes with another local variable");
+			if(names.contains(b.getName()))
+				throw new RuntimeException("Variable name "+b.getName()+", clashes with another local variable\n"+SyntaxTree.currentlyPreparing);
 			names.add(b.getName());
 		}
 		for(VariableTree tree:children) {

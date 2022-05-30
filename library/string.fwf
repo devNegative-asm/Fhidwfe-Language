@@ -97,9 +97,9 @@ type String (
 		for uint (0u,/ sizeof$ strings int_size) with index {
 			strcpy$ placementTarget this.backinglist
 			placementTarget = + placementTarget this.length
-			theString = @String (index)strings
-			strcpy$ placementTarget theString.backinglist
-			placementTarget = + placementTarget theString.length
+			theString2 = @String (index)strings
+			strcpy$ placementTarget theString2.backinglist
+			placementTarget = + placementTarget theString2.length
 		}
 		rv = String$ retval
 		free$ retval

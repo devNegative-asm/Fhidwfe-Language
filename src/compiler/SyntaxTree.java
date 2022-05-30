@@ -94,7 +94,6 @@ public class SyntaxTree extends BaseTree{
 			throw new RuntimeException("@@contact devs attempt to get local space needed on "+this.getTokenString()+" at "+this.getToken().linenum+" before preparing");
 		}
 	}
-	boolean prepared = false;
 	
 	/**
 	 * Calculate the local variable tree and update the parent
@@ -112,12 +111,14 @@ public class SyntaxTree extends BaseTree{
 		}
 		prepared = true;
 	}
+	public static String currentlyPreparing;
 	/**
 	 * Prepare this tree for variable offset calculation
 	 * @param align whether to align byte variables on int boundaries
 	 */
 	public void prepareVariables(boolean align) {
 		if(isFunction()) {
+			currentlyPreparing = "error while processing "+this.getChild(1).getTokenString();
 			this.argorder.forEach((name) -> {
 				functionVariables.add(new Variable(name,SyntaxTree.Location.ARG,DataType.Uint,theParser));//all args should be of int type in terms of stack operations
 			});//do not sort arguments. They come on the stack.
@@ -132,6 +133,7 @@ public class SyntaxTree extends BaseTree{
 			VariableTree localsTree = new VariableTree(null);
 			children()[children().length-1].getNeededLocals(localsTree,align);
 			this.localSpace = localsTree.getMaxSize(theParser,align);
+			
 			HashMap<String,Variable> vars = localsTree.getVars();
 			vars.forEach((name, var)->{
 				localPointers.add(var);
@@ -154,7 +156,7 @@ public class SyntaxTree extends BaseTree{
 	 */
 	public long resolveLocalOffset(String varname) {
 		if(!prepared) {
-			throw new RuntimeException("@@contact devs. attemted to resolve global variables before prepared or type checked");
+			throw new RuntimeException("@@contact devs. attemted to resolve "+varname+" variable before prepared or type checked");
 		}
 		for(Variable v:localPointers) {
 			if(v.getName().equals(varname)) {
@@ -248,15 +250,23 @@ public class SyntaxTree extends BaseTree{
 		try {
 			return Location.LOCAL+" "+resolveLocalOffset(varname);
 		}catch(RuntimeException e) {
+			if(e.getMessage().contains("@@"))
+				throw e;
 			try {
 				return Location.ARG+" "+resolveArgOffset(varname);
 			} catch(RuntimeException e2) {
+				if(e2.getMessage().contains("@@"))
+					throw e2;
 				try {
 					return Location.GLOBAL+" "+resolveGlobalLoopVariables(varname);
 				}catch(RuntimeException e3) {
+					if(e3.getMessage().contains("@@"))
+						throw e3;
 					try {
 						return Location.GLOBAL+" "+resolveGlobalToString(varname);
 					} catch(RuntimeException e4) {
+						if(e4.getMessage().contains("@@"))
+							throw e4;
 						return Location.NONE+" "+resolveConstant(varname);
 					}
 				}
@@ -745,7 +755,7 @@ public class SyntaxTree extends BaseTree{
 				parent.resolveVariableType(children[2].getTokenString(), this.getToken().linenum);
 				except = true;
 			}catch(RuntimeException Ineedthis) {
-				children[3].addVariableToScope(this.getToken(), children[2].getTokenString(), loopType);
+				//children[3].addVariableToScope(this.getToken(), children[2].getTokenString(), loopType);
 			}
 			if(except) {
 				throw new RuntimeException("For loop cannot shadow "+children[2].getTokenString()+" from a higher scope at line "+this.getToken().linenum);

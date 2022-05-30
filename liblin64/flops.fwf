@@ -3,11 +3,17 @@ import int_size
 import pi
 import e
 import NaN
-function void putfloatdigits(num:float) {
+function void put_float_bad(num:float) {
 	puti$ as num int//cast num to an int and print that
 	//now the decimal part
 	putchar$'.'
-	fpart = as * 100000. fracpart$ num uint
+	fpart = 0u
+	if < num 0f {
+		fpart = @uint * 100000. fracpart$ !num
+	} {
+		fpart = @uint * 100000. fracpart$ num
+	}
+	
 	//there could be leading zeroes
 	if < fpart 10000u {
 		putchar$ '0'
@@ -190,4 +196,54 @@ function bool isFinite(x:float) {
 }
 function bool isNaN(x:float) {
 	return ~ || isFinite$ x = 0u rawmantissa$ x
+}
+function float str_to_float(str:ptr) {
+	temp digits = ['0','9']
+	result = 0f
+	dividing = 1f
+	logdividing = 0
+	reset pastPoint
+	reset pastE
+	reset negative
+	if = '-' deref_ubyte$ str {
+		dividing = !1f
+		set negative
+		str = + str 1u
+	} ;
+	whilenot = 0ub deref_ubyte$ str {
+		char = deref_ubyte$ str
+		if in char digits {
+			if pastE {
+				exponent = str_to_int$ str
+				if negative {
+					return !* result f_pow_int$ 10f - exponent logdividing
+				} {
+					return * result f_pow_int$ 10f - exponent logdividing
+				}
+			} {
+				result = * result 10f
+				result = + result @float - char '0'
+				if pastPoint {
+					dividing = * 10f dividing
+					logdividing = + 1 logdividing
+				} ;
+			}
+		} {
+			if || = char 'e' = char 'E' {
+				set pastE
+			} {
+				if = char '.' {
+					if pastPoint {
+						return / result dividing
+					} {
+						set pastPoint
+					}
+				} {
+					return / result dividing
+				}
+			}
+		}
+		str = + str 1u
+	}
+	return / result dividing
 }

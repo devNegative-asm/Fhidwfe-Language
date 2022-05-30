@@ -34,7 +34,6 @@ function int main() {
 	reset exitingflag
 
 	temp varmappings = ArrayStringMap$
-	
 	whilenot exitingflag {
 		puts$ "var name: "
 		command = stdin.next_line$
@@ -55,6 +54,7 @@ function int main() {
 			}
 		}
 	}
+
 	varmappings.for_each$ free_keys
 
 	return 0
