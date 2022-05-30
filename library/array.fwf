@@ -121,9 +121,6 @@ function listuint map(fn:func list:listuint) {
 	if = as list ptr null {
 		error$ "nullptr"
 	} ;
-	if = sizeof$ list 0u {
-		return @listuint malloc$ 0u
-	} ;
 	result = @listuint malloc$ sizeof$ list
 	for uint [0u,/ sizeof$ list int_size) with index {
 		(index)result = $ fn (index)list
@@ -138,9 +135,6 @@ function listuint map_to(fn:func list:listuint) {
 		error$ "nullptr"
 	} ;
 	result = as malloc$ sizeof$ list listuint
-	if = 0u sizeof$ list {
-		return list
-	} ;
 	for uint [0u,/ sizeof$ list int_size) with index {
 		(index)result = $ fn (index)list
 	}
