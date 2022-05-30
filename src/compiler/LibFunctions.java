@@ -659,8 +659,8 @@ public class LibFunctions {
 						switch(architecture) {
 							case LINx64:
 								replacement = Arrays.asList(
-										InstructionType.rawinstruction.cv("push 10"),
-										InstructionType.rawinstruction.cv("call Fwf_us_putchar")
+										InstructionType.retrieve_immediate_byte.cv("10"),
+										InstructionType.call_function.cv("putchar")
 								);
 								break;
 							case WINx64:
