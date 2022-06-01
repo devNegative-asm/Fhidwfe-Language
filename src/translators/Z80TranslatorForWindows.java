@@ -143,7 +143,8 @@ public class Z80TranslatorForWindows {
 				comp.addAll(Arrays.asList(
 						"	push ix",
 						"	ld ix,$0000",
-						"	add ix,sp"));
+						"	add ix,sp",
+						"	ld hl,$0000"));
 				for(int x=0;x<pushes;x++) {
 					comp.add("	push hl");//dumb as hell, but at least it preserves hl and ix
 					//dec sp * 2 is 1 cycle slower and 1 byte longer

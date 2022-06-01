@@ -1,0 +1,16 @@
+guard
+import null
+import int_size
+import one
+import stdout
+
+stdout = @Output null
+type Output (
+	function void println(s:String) {
+		puts$ s.chars
+		putln$
+	}
+	function void print(s:String) {
+		puts$ s.chars
+	}
+)

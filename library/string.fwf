@@ -160,6 +160,9 @@ function int str_to_int (num:listubyte) {
 	reset negative
 	read = num
 	num1 = 0
+	if = 0u sizeof$ num {
+		return 0
+	} ;
 	if = (0)num '-' {
 		set negative
 	} ;
@@ -182,6 +185,7 @@ function int str_to_int (num:listubyte) {
 				}
 			}
 		} ;
+		reset first
 	}
 	if negative {
 		return !num1

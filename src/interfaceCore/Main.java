@@ -474,6 +474,7 @@ public class Main {
 		while(PROCESSOR.isIFF1() || !PROCESSOR.isHalted())
 		{
 			PROCESSOR.execute();
+			int pc = PROCESSOR.getRegPC();
 			inCount++;
 		}
 		long endTime = System.currentTimeMillis();

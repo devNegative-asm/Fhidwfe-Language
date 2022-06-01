@@ -1,5 +1,6 @@
 guard
 import stdin
+import stdout
 
 extern void terminal_mode_raw()
 extern void terminal_mode_default()
@@ -21,8 +22,6 @@ function int puts_alias(str:ptr) {
 	return 0
 }
 
-
-
 function int free_keys(a:ptr b:ptr) {
 	c = @String a
 	c.delete$
@@ -30,9 +29,10 @@ function int free_keys(a:ptr b:ptr) {
 	return 0
 }
 
+
+
 function int main() {
 	reset exitingflag
-
 	temp varmappings = ArrayStringMap$
 	whilenot exitingflag {
 		puts$ "var name: "
@@ -46,6 +46,7 @@ function int main() {
 				puts$ "that variable maps to "
 				puti$ @int varmappings.get$ command
 				putln$
+				command.delete$
 				free$ command
 			} {
 				puts$ "value: "

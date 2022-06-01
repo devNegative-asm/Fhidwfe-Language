@@ -47,7 +47,7 @@ function uint getline(str:ptr) {
 
 type Input (
 	function String next_line() {
-		space = malloc$ 4095u
+		space = malloc$ - ???8u 1u
 		size = getline$ space
 		ifnot consumed {
 			error$ "input string beyond input buffer size"

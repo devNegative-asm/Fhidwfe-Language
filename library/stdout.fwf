@@ -57,17 +57,11 @@ alias void puts(s:listbyte)
 alias void puts(s:listubyte)
 
 function void puts(s:ptr) {//similar to puts in C.
-	set reading
-	while reading {
-		x = deref_ubyte$ s
-		if = x 0ub {
-			return
-		} { if = x '\n' {
-				putln$
-			} {
-				putchar$ x
-			}
-			s = + s one
+	for ubyte @listubyte s with char {
+		if = char '\n' {
+			putln$
+		} {
+			putchar$ char
 		}
 	}
 }

@@ -3,6 +3,7 @@ one = as 1 ptr
 guard
 import int_size
 import null
+
 ovflow = "Array overflow."
 
 alias uint sizeof(a:listubyte)
