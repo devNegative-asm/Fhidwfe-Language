@@ -84,6 +84,7 @@ function ptr realloc(object:ptr size:uint) {
 	newSize = umin$ sizeof$ object size
 	result = malloc$ size
 	memcpy$ result object newSize
+	free$ object
 	return result
 }
 
