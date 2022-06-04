@@ -29,8 +29,6 @@ function int free_keys(a:ptr b:ptr) {
 	return 0
 }
 
-
-
 function int main() {
 	reset exitingflag
 	temp varmappings = ArrayStringMap$

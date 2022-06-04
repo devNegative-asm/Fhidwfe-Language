@@ -18,6 +18,17 @@ type String (
 		return this.chars
 	}
 
+	function String reverse() {
+		result = String$ ""
+		result.delete$
+		result.length = this.length
+		result.chars = malloc$ @uint this.length
+		for int [0,this.length) with index {
+			(index)result.chars = (- - this.length index 1)this.chars
+		}
+		return result
+	}
+
 	function void for_chars(operation:func) {
 		for ubyte this.chars with c {
 			$ operation @uint c
@@ -44,7 +55,7 @@ type String (
 		len = @uint + this.length other.length
 		result.length = len
 		rawchars = malloc$ len
-
+		result.chars = rawchars
 		memcpy$ rawchars this.chars @uint this.length
 		memcpy$ + rawchars this.length other.chars @uint other.length
 
@@ -106,6 +117,21 @@ type String (
 	//toUpperCase
 )
 
+truestring = @String null
+falsestring = @String null
+reset boolsetup
+
+function String bool_to_string(b:bool) {
+	ifnot boolsetup {
+		set boolsetup
+		truestring = String$ "true"
+		falsestring = String$ "false"
+	} ;
+	if b {
+		return truestring
+	} ;
+	return falsestring
+}
 
 function uint strlen(s:ptr) {
 	return sizeof$ s
@@ -200,4 +226,34 @@ function uint string_hash(string:listubyte) {
 		hash = + * hash 41u @uint char
 	}
 	return hash
+}
+
+
+function String int_to_string(i:int) {
+	temp restResult = @String null
+	if < i 0 {
+		restResult = uint_to_string$ @uint !i
+		temp negativeSign = String$ "-"
+		return negativeSign.append$ restResult
+	} ;
+	return uint_to_string$ @uint i
+}
+
+function String uint_to_string(i:uint) {
+	temp buffer = @listubyte null
+	length = 0u
+	if = i 0u {
+		buffer = @listubyte malloc$ 1u
+		(0)buffer = '0'
+	} {
+		buffer = @listubyte malloc$ 20u
+		while > i 0u {
+			(length)buffer = + '0' @ubyte % i 10u
+			length = + length 1u
+			i = / i 10u
+		}
+		buffer = @listubyte realloc$ buffer length
+	}
+	temp reversed = String$ buffer
+	return reversed.reverse$
 }
