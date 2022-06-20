@@ -861,10 +861,10 @@ public class IntermediateLang {
 		case TYPE:
 			break;
 		case UBYTE_LITERAL:
-			results.add(InstructionType.retrieve_immediate_byte.cv(str.replace("ub", "").replace("bu", "")));
+			results.add(InstructionType.retrieve_immediate_byte.cv(str.replaceAll("^(\\d+)(ub|bu)$", "$1")));
 			break;
 		case UINT_LITERAL:
-			results.add(InstructionType.retrieve_immediate_int.cv(str.replace("u", "")));
+			results.add(InstructionType.retrieve_immediate_int.cv(str.replaceAll("^(\\d+)u$", "$1")));
 			break;
 		case WHILE:
 			long id;
