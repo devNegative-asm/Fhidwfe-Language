@@ -1,0 +1,9 @@
+function int nanosleep(nanoseconds: uint){
+	temp timespec = [/ nanoseconds 1000000000u, % nanoseconds 1000000000u]
+	temp args = [
+		@ptr timespec
+		null
+	]
+	errorcode = unix_syscall$ 35 args
+	return errorcode
+}
