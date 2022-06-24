@@ -1,5 +1,6 @@
 import null
 import stdin
+import stdout
 guard
 
 function void pw2(char:ubyte) {
@@ -50,8 +51,8 @@ type Cube (
 			(index)this.u = 'Y'
 			(index)this.d = 'W'
 			(index)this.b = 'O'
-			(index)this.r = 'B'
-			(index)this.l = 'G'
+			(index)this.r = 'G'
+			(index)this.l = 'B'
 		}
 	}
 
@@ -511,28 +512,32 @@ type Cube (
 		b = this.b
 		l = this.l
 		r = this.r
-		puts$ "      "
+		puts$ "        "
 		pw2$ (0)u
 		pw2$ (1)u
 		pw2$ (2)u
-		puts$ "\n      "
+		puts$ "\n        "
 		pw2$ (3)u
 		pw2$ (4)u
 		pw2$ (5)u
-		puts$ "\n      "
+		puts$ "\n        "
 		pw2$ (6)u
 		pw2$ (7)u
 		pw2$ (8)u
 		putln$
+		putln$
 		pw2$ (0)l
 		pw2$ (1)l
 		pw2$ (2)l
+		puts$ "  "
 		pw2$ (0)f
 		pw2$ (1)f
 		pw2$ (2)f
+		puts$ "  "
 		pw2$ (0)r
 		pw2$ (1)r
 		pw2$ (2)r
+		puts$ "  "
 		pw2$ (0)b
 		pw2$ (1)b
 		pw2$ (2)b
@@ -540,12 +545,15 @@ type Cube (
 		pw2$ (3)l
 		pw2$ (4)l
 		pw2$ (5)l
+		puts$ "  "
 		pw2$ (3)f
 		pw2$ (4)f
 		pw2$ (5)f
+		puts$ "  "
 		pw2$ (3)r
 		pw2$ (4)r
 		pw2$ (5)r
+		puts$ "  "
 		pw2$ (3)b
 		pw2$ (4)b
 		pw2$ (5)b
@@ -553,25 +561,29 @@ type Cube (
 		pw2$ (6)l
 		pw2$ (7)l
 		pw2$ (8)l
+		puts$ "  "
 		pw2$ (6)f
 		pw2$ (7)f
 		pw2$ (8)f
+		puts$ "  "
 		pw2$ (6)r
 		pw2$ (7)r
 		pw2$ (8)r
+		puts$ "  "
 		pw2$ (6)b
 		pw2$ (7)b
 		pw2$ (8)b
 
-		puts$ "\n      "
+		putln$
+		puts$ "\n        "
 		pw2$ (0)d
 		pw2$ (1)d
 		pw2$ (2)d
-		puts$ "\n      "
+		puts$ "\n        "
 		pw2$ (3)d
 		pw2$ (4)d
 		pw2$ (5)d
-		puts$ "\n      "
+		puts$ "\n        "
 		pw2$ (6)d
 		pw2$ (7)d
 		pw2$ (8)d
@@ -587,7 +599,7 @@ function void cls() {
 	puts$ "[2J"
 }
 
-function void random_scramble(cube:Cube) {
+function void random_scramble(cube:Cube debug:bool) {
 	puts$ "spam the keyboard (seed): "
 	temp line = stdin.next_line$
 	temp cstr = line.c_str$
@@ -596,173 +608,249 @@ function void random_scramble(cube:Cube) {
 	cube.print$
 	nanosleep$ 800000000u
 	for int [1,21] with i {
-		nanosleep$ 300000000u
-		cls$
-		cube.print$
+		ifnot debug {
+			nanosleep$ 300000000u
+			cls$
+			cube.print$
+		} ;
 		bits = & 7u seed
 		seed = >> >> >> seed
 		if = bits 0u {
 			cube.R$
+			if debug {
+			puts$ "R"
+			};
 		} ;
 		if = bits 1u {
 			cube.L$
+			if debug {
+			puts$ "L"
+			};
 		} ;
 		if = bits 2u {
 			cube.U$
+			if debug {
+			puts$ "U"
+			};
 		} ;
 		if = bits 3u {
 			cube.D$
+			if debug {
+			puts$ "D"
+			};
 		} ;
 		if = bits 4u {
 			cube.B$
+			if debug {
+			puts$ "B"
+			};
 		} ;
 		if = bits 5u {
 			cube.F$
+			if debug {
+			puts$ "F"
+			};
 		} ;
 		if = bits 6u {
 			cube.S$
+			if debug {
+			puts$ "S"
+			};
 		} ;
 		if = bits 7u {
 			cube.M$
+			if debug {
+			puts$ "M"
+			};
 		} ;
 	}
-	
+	if debug {
+	putln$
+	} ;
 }
 
-function void interp(cube:Cube) {
-	temp line = stdin.next_line$
 
+history = @String null
+
+escapeUpSequence = [27ub 91ub 65ub]
+
+function bool interp(cube:Cube) {
+	line = stdin.next_line$
+
+	if ||
+		line.eqs$ "exit"
+		line.eqs$ "quit" {
+		string_free$ line
+		return false
+	} ;
+	if line.eqs$ escapeUpSequence {
+		string_free$ line
+		line = history
+	} {
+		string_free$ history
+		history = line
+	}
+
+	temp moves = line.split$ ' '
+	for int [0,@int moves.size) with move {
+		interp_move$ cube @String (move)moves.elements
+	}
+	moves.foreach$ string_free
+	return true
+}
+
+function void interp_move(cube:Cube line:String) {
 	
-	if line.eqs$ @listubyte "R" {
+	if line.eqs$ "R" {
 		cube.R$
 	} ;
-	if line.eqs$ @listubyte "R2" {
+	if line.eqs$ "R2" {
 		cube.R$
 		cube.R$
 	} ;
-	if line.eqs$ @listubyte "R'" {
+	if line.eqs$ "R'" {
 		cube.Rp$
 	} ;
 
-	if line.eqs$ @listubyte "L" {
+	if line.eqs$ "L" {
 		cube.L$
 	} ;
-	if line.eqs$ @listubyte "L2" {
+	if line.eqs$ "L2" {
 		cube.L$
 		cube.L$
 	} ;
-	if line.eqs$ @listubyte "L'" {
+	if line.eqs$ "L'" {
 		cube.Lp$
 	} ;
 
-	if line.eqs$ @listubyte "U" {
+	if line.eqs$ "U" {
 		cube.U$
 	} ;
-	if line.eqs$ @listubyte "U2" {
+	if line.eqs$ "U2" {
 		cube.U$
 		cube.U$
 	} ;
-	if line.eqs$ @listubyte "U'" {
+	if line.eqs$ "U'" {
 		cube.Up$
 	} ;
 
-	if line.eqs$ @listubyte "D" {
+	if line.eqs$ "D" {
 		cube.D$
 	} ;
-	if line.eqs$ @listubyte "D2" {
+	if line.eqs$ "D2" {
 		cube.D$
 		cube.D$
 	} ;
-	if line.eqs$ @listubyte "D'" {
+	if line.eqs$ "D'" {
 		cube.Dp$
 	} ;
 
-	if line.eqs$ @listubyte "F" {
+	if line.eqs$ "F" {
 		cube.F$
 	} ;
-	if line.eqs$ @listubyte "F2" {
+	if line.eqs$ "F2" {
 		cube.F$
 		cube.F$
 	} ;
-	if line.eqs$ @listubyte "F'" {
+	if line.eqs$ "F'" {
 		cube.Fp$
 	} ;
 
-	if line.eqs$ @listubyte "B" {
+	if line.eqs$ "B" {
 		cube.B$
 	} ;
-	if line.eqs$ @listubyte "B2" {
+	if line.eqs$ "B2" {
 		cube.B$
 		cube.B$
 	} ;
-	if line.eqs$ @listubyte "B'" {
+	if line.eqs$ "B'" {
 		cube.Bp$
 	} ;
 
-	if line.eqs$ @listubyte "M" {
+	if line.eqs$ "M" {
 		cube.M$
 	} ;
-	if line.eqs$ @listubyte "M2" {
+	if line.eqs$ "M2" {
 		cube.M$
 		cube.M$
 	} ;
-	if line.eqs$ @listubyte "M'" {
+	if line.eqs$ "M'" {
 		cube.Mp$
 	} ;
 
-	if line.eqs$ @listubyte "S" {
+	if line.eqs$ "S" {
 		cube.S$
 	} ;
-	if line.eqs$ @listubyte "S2" {
+	if line.eqs$ "S2" {
 		cube.S$
 		cube.S$
 	} ;
-	if line.eqs$ @listubyte "S'" {
+	if line.eqs$ "S'" {
 		cube.Sp$
 	} ;
 
-	if line.eqs$ @listubyte "E" {
+	if line.eqs$ "E" {
 		cube.E$
 	} ;
-	if line.eqs$ @listubyte "E2" {
+	if line.eqs$ "E2" {
 		cube.E$
 		cube.E$
 	} ;
-	if line.eqs$ @listubyte "E'" {
+	if line.eqs$ "E'" {
 		cube.Ep$
 	} ;
 
-	if line.eqs$ @listubyte "X" {
+	if line.eqs$ "X" {
 		cube.X$
 	} ;
-	if line.eqs$ @listubyte "X'" {
+
+	if line.eqs$ "X2" {
+		cube.X$
+		cube.X$
+	} ;
+	if line.eqs$ "X'" {
 		cube.Xp$
 	} ;
-	if line.eqs$ @listubyte "Y" {
+	if line.eqs$ "Y" {
 		cube.Y$
 	} ;
-	if line.eqs$ @listubyte "Y'" {
+	if line.eqs$ "Y2" {
+		cube.Y$
+		cube.Y$
+	} ;
+	if line.eqs$ "Y'" {
 		cube.Yp$
 	} ;
-	if line.eqs$ @listubyte "Z" {
+	if line.eqs$ "Z" {
 		cube.Z$
 	} ;
-	if line.eqs$ @listubyte "Z'" {
+	if line.eqs$ "Z2" {
+		cube.Z$
+		cube.Z$
+	} ;
+	if line.eqs$ "Z'" {
 		cube.Zp$
 	} ;
 }
 
+function int println_alias(str:String) {
+	println$ @ptr str.chars
+	return 0
+}
+
 function void main() {
 	temp playcube = Cube$
-	random_scramble$ playcube
-	playcube.print$
-	
+	random_scramble$ playcube false
 
 
-	while true {
+	set cur_playing
+	while cur_playing {
 		cls$
 		playcube.print$
-		interp$ playcube
+		ifnot interp$ playcube {
+			reset cur_playing
+		} ;
+		download_more_ram$
 	}
 
 	playcube.print$
@@ -770,4 +858,3 @@ function void main() {
 }
 
 main$
-download_more_ram$

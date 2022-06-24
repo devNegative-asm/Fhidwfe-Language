@@ -18,6 +18,7 @@ type String (
 		return this.chars
 	}
 
+
 	function String reverse() {
 		result = String$ ""
 		result.delete$
@@ -48,6 +49,62 @@ type String (
 		} ;
 	}
 
+
+	//returns an arraylist of strings
+	alias Arraylist split(delimiter:byte)
+	function Arraylist split(delimiter:ubyte) {
+		results = Arraylist$ string_eq
+		startSubstring = 0
+		endSubstring = this.length
+
+		whilenot = !1 this.indexof$ delimiter startSubstring {
+
+			nextDelim = this.indexof$ delimiter startSubstring
+
+			results.add$
+				this.substring$
+					startSubstring
+					nextDelim
+
+			startSubstring = + nextDelim 1
+		}
+		results.add$
+			this.substring$
+				startSubstring
+				endSubstring
+		return results
+	}
+
+	function int indexof(character:ubyte start:int) {
+		if >= start this.length {
+			return !1
+		} ;
+		temp myrange = [start,this.length)
+		for int myrange with index {
+			if = character (index)this.chars {
+				return index
+			} ;
+		}
+		return !1
+	}
+
+	function String substring(start:int end:int) {
+
+		if < end start {
+			puts$ "chars "
+			puti$ start
+			puts$ " to "
+			puti$ end
+			error$ " -> negative size substring"
+		} ;
+
+		temp result = @listubyte malloc$ @uint - end start
+		for int [start,end) with index {
+			(- index start)result = (index)this.chars
+		}
+		return String$ result
+	}
+
 	function String append(other:String) {
 		result = String$ ""
 		result.delete$
@@ -70,6 +127,7 @@ type String (
 		return streq$ this.chars other.chars
 	}
 
+	alias bool eqs(other:ptr)
 	function bool eqs(other:listubyte) {
 		return streq$ this.chars other
 	}
@@ -139,7 +197,7 @@ function uint strlen(s:ptr) {
 
 
 function void dump_list(bytes:listubyte) {
-	puti$ sizeof$ bytes
+	putui$ sizeof$ bytes
 	for ubyte bytes with b {
 		puts$" "
 		putui$ @uint b
@@ -256,4 +314,10 @@ function String uint_to_string(i:uint) {
 	}
 	temp reversed = String$ buffer
 	return reversed.reverse$
+}
+
+function int string_free(s:String) {
+	s.delete$
+	free$ s
+	return 0
 }
