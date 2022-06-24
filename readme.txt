@@ -121,7 +121,7 @@ Builtin operators are called with prefix order. Thus, there is no order of opera
 in		test whether a number is inside a range
 ?		multiplies its argument by int_size. This is faster than actually multiplying and is useful for creating list indicies.
 $		(technically a function, not an operator) runs its first argument as a function, passing its second argument as the only parameter to that function
-binop$  same as $, but for 2 argument functions
+binop:  same as $, but for 2 argument functions
 
 Saved for future use:
 `		(unimplemented) Used to create format strings for printf-like behavior
