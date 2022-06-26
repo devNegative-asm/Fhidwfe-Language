@@ -136,8 +136,7 @@ int		signed int.
 ubyte	unsigned byte, also usable as a character.
 byte	signed byte.
 ptr		same as uint, but used to access memory locations.
-file	a file index. This is NOT equivalent to C's FILE*. File is a 1 byte type with a valid range of 0-62. Any values above 62 represent invalid files.
-			Internally, this byte is used as the index of a FILE*[]
+file	a file index. This is NOT equivalent to C's FILE*. File is an int-sized type whose values have different meanings per-OS. On Linux, this is the file descriptor.
 func	a function pointer. Only single arg uint -> uint functions can be used this way.
 float	defined to be of size sizeof(float)==sizeof(void*). Float operations are only available on architectures that natively support flops.
 			Conversion from uint -> float is lower accuracy than int -> float.
