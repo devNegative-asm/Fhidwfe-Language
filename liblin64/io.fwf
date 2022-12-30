@@ -3,8 +3,17 @@ import null
 import int_size
 import one
 import stdout
+import argv
+import argc
 
 stdout = @Output null
+
+function int string_println(s:String) {
+	fwrite_many$ @file 1 s.chars
+	putchar$ 10ub
+	return 0
+}
+
 type Output (
 	function void println(s:String) {
 		fwrite_many$ @file 1 s.chars
@@ -14,3 +23,30 @@ type Output (
 		fwrite_many$ @file 1 s.chars
 	}
 )
+
+function Arraylist find_command_line_args(argcptr:ptr includeProgramName:bool) {
+
+	argc = deref_uint$ argcptr
+	argv = + argcptr @ptr ?1
+	ifnot includeProgramName {
+		argc = - argc 1u
+		argv = + argv @ptr ?1
+	} ;
+	args = Arraylist$ string_eq
+	while &&
+		~ = argv null
+		> argc 0u {
+
+		args.add$ cstr_to_string$ deref_ptr$ argv
+		argv = + argv @ptr ?1
+		argc = - argc 1u
+	}
+	return args
+}
+function Arraylist command_line_args() {
+	p = null
+	return find_command_line_args$ + @p @ptr ?4 false
+}
+
+argv = command_line_args$
+argc = argv.size

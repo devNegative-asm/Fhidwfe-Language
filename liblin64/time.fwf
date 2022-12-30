@@ -1,3 +1,5 @@
+guard
+import null
 function int nanosleep(nanoseconds: uint){
 	temp timespec = [/ nanoseconds 1000000000u, % nanoseconds 1000000000u]
 	temp args = [
@@ -7,3 +9,121 @@ function int nanosleep(nanoseconds: uint){
 	errorcode = unix_syscall$ 35 args
 	return errorcode
 }
+
+function Time get_current_time() {
+	temp struct_timeval = [0u 0u]
+	struct_timezone = null
+	temp arguments = [@ptr struct_timeval struct_timezone]
+	//gettimeofday
+
+	errno = unix_syscall$ 96 arguments
+	return Time$ (0)struct_timeval (1)struct_timeval
+
+}
+
+type Time(
+	seconds:uint
+	microseconds:uint
+
+	function void init(seconds:uint micros:uint) {
+		this.seconds = seconds
+		this.microseconds = micros
+	}
+	function Time sub(t:Time) {
+		if > t.microseconds this.microseconds {
+			return Time$
+				- - this.seconds t.seconds 1u
+				+ 1000000u - this.microseconds t.microseconds
+		} ;
+		return Time$
+			- this.seconds t.seconds
+			- this.microseconds t.microseconds
+	}
+	
+	function Time add(t:Time) {
+		micros =  + this.microseconds t.microseconds
+		seconds = + + this.seconds t.seconds / micros 1000000u
+		return Time$ seconds % micros 1000000u
+	}
+
+	function int compare_to(t:Time) {
+		if > this.seconds t.seconds {
+			return 1
+		} ;
+		if < this.seconds t.seconds {
+			return !1
+		} ;
+		if > this.microseconds t.microseconds {
+			return 1
+		} ;
+		if < this.microseconds t.microseconds {
+			return !1
+		} ;
+		return 0
+	}
+	function void put2digits(i:uint) {
+		if < i 10u {
+			putchar$ '0'
+			putui$ i
+		} {
+			putui$ i
+		}
+	}
+	function void put3digits(i:uint) {
+		if < i 10u {
+			puts$ "00"
+			putui$ i
+		} {
+			if < i 100u {
+				putchar$ '0'
+				putui$ i
+			} {
+				putui$ i
+			}
+		}
+	}
+	function void printSS() {
+		this.put2digits$ this.seconds
+	}
+	function void printMMSS() {
+		this.put2digits$ / this.seconds 60u
+		putchar$ ':'
+		this.put2digits$ % this.seconds 60u
+	}
+	function void printHHMMSS() {
+		this.put2digits$ / this.seconds 3600u
+		putchar$ ':'
+		this.put2digits$ % / this.seconds 60u 60u
+		putchar$ ':'
+		this.put2digits$ % this.seconds 60u
+	}
+	function void printMSAttach() {
+		putchar$ '.'
+		this.put3digits$ / this.microseconds 1000u
+	}
+
+
+
+	//sort of a more accurate timer than would be expected for repeated nanosleep calls
+	function void sleep() {
+		
+		curTime = get_current_time$
+		end = this.add$ get_current_time$
+
+
+		while > end.compare_to$ curTime 0 {
+			nanosleep$ 1000u
+
+			curTime.delete$
+			free$ curTime
+			curTime = get_current_time$
+		}
+
+		curTime.delete$
+		free$ curTime
+	}
+
+	function void delete() {
+
+	}
+)

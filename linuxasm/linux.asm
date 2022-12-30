@@ -216,9 +216,9 @@ terminal_mode_raw:
 	mov edi, 0
 	mov esi, F_GETFL
 	syscall
+	mov rdx, rax
 
 	mov eax, __sys_fcntl
-	mov rdx, rax
 	xor edi, edi
 	mov esi, F_SETFL
 	or rdx, O_NONBLOCK
@@ -238,8 +238,8 @@ terminal_mode_default:
 	mov esi, F_GETFL
 	syscall
 
+    mov rdx, rax
 	mov eax, __sys_fcntl
-	mov rdx, rax
 	xor edi,edi
 	mov esi, F_SETFL
 	and rdx, ~O_NONBLOCK

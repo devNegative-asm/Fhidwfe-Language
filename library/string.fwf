@@ -321,3 +321,14 @@ function int string_free(s:String) {
 	free$ s
 	return 0
 }
+
+function String cstr_to_string(s:ptr) {
+	backupPtr = s
+	whilenot = 0ub deref_ubyte$ s {
+		s = + s one
+	}
+    len = @uint - s backupPtr
+	temp chars = malloc$ len
+	memcpy$ chars backupPtr len
+	return String$ chars
+}

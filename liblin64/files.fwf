@@ -132,8 +132,10 @@ function file fopen_w(path:ptr) {
 	]
 	fd = unix_syscall$ 2 request
 	if < fd 0 {
-		b = String$ "failed to open file "
-		error$ b.append$ String$ path
+		temp b = String$ "failed to open file "
+		temp c = String$ path
+		temp d = b.append$ c
+		error$ d.c_str$
 	} ;
 	return @file fd
 }
@@ -153,7 +155,8 @@ function file fopen_a(path:ptr) {
 	fd = unix_syscall$ 2 request
 	if < fd 0 {
 		b = String$ "failed to open file "
-		error$ b.append$ String$ path
+		b = b.append$ String$ path
+		error$ b.c_str$
 	} ;
 	return @file fd
 }
@@ -173,7 +176,8 @@ function file fopen_r(path:ptr) {
 	fd = unix_syscall$ 2 request
 	if < fd 0 {
 		b = String$ "failed to open file "
-		error$ b.append$ String$ path
+		b = b.append$ String$ path
+		error$ b.c_str$
 	} ;
 	return @file fd 
 }
@@ -212,6 +216,5 @@ function listubyte freadmany(f:file max:uint) {
 			index = + index 1u
 		}
 	}
-	put_ubyte$ + as max ptr ret 0ub
-	return as ret listubyte
+	return ret
 }
