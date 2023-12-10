@@ -14,7 +14,7 @@ import java.util.Scanner;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import assembler.Assembler;
+import assembler.Z80Assembler;
 import compiler.BaseTree;
 import compiler.Instruction;
 import compiler.IntermediateLang;
@@ -79,15 +79,15 @@ public class Main {
 				if(paramName==null) {
 					paramName = args[i].substring(2);
 				} else {
-					System.err.println("Do not use two --options back to back");
-					System.exit(1);
+					map.put(paramName, "true");
+					paramName = args[i].substring(2);
 				}
 			} else if(args[i].startsWith("-")) {
 				if(paramName==null) {
 					paramName = args[i].substring(1);
 				} else {
-					System.err.println("Do not use two --options back to back");
-					System.exit(1);
+					map.put(paramName, "true");
+					paramName = args[i].substring(1);
 				}
 			} else if(paramName==null) {
 				if(args[i].endsWith(".fwf"))
@@ -99,15 +99,17 @@ public class Main {
 				paramName = null;
 			}
 		}
+		if(paramName != null)
+			map.put(paramName, "true");
 		return map;
 	}
 	
 	
 	public static void main(String[] args) throws IOException, InterruptedException
 	{
+		long time = System.currentTimeMillis();
 		HashMap<String,String> arguments = arguments(args);
-		
-		
+		boolean debugTime = false;
 		if(arguments.get("mode").equalsIgnoreCase("repl")) {
 			CompilationSettings.Target target = CompilationSettings.Target.REPL;
 			int heapSpace = 2<<22;
@@ -196,15 +198,12 @@ public class Main {
 			}
 			run(arguments.get("binary"));
 			System.exit(0);
-		} else if(arguments.get("mode").equalsIgnoreCase("compile")) {
+		} else if(arguments.get("mode").equalsIgnoreCase("compile") || arguments.get("mode").equalsIgnoreCase("assemble")) {
 			String compilationTarget = arguments.get("target");
 			String outputFile = arguments.get("o");
 			String heapSize = arguments.get("heap-size");
 			String binFile = outputFile;
-			String source = arguments.get("source");
-			if(outputFile == null || binFile == null || source == null)
-				printUsage();
-			
+
 			CompilationSettings.Target target = null;
 			try {
 				 target = CompilationSettings.Target.valueOf(compilationTarget);
@@ -213,62 +212,100 @@ public class Main {
 				System.err.println("Must be one of "+Arrays.toString(CompilationSettings.Target.values()));
 				System.exit(1);
 			}
-			int heapspace = 0;
-			if(heapSize!=null)
-				try {
-					heapspace = Integer.parseInt(heapSize);
-					if(heapspace < 0)
-					{ 
+			if(arguments.get("mode").equalsIgnoreCase("compile")) {
+				String source = arguments.get("source");
+				if(outputFile == null || binFile == null || source == null)
+					printUsage();
+				
+				int heapspace = 0;
+				if(heapSize!=null)
+					try {
+						heapspace = Integer.parseInt(heapSize);
+						if(heapspace < 0)
+						{ 
+							System.err.println("Invalid heap size: "+heapSize);
+							System.exit(1);
+						}
+					} catch(Exception e) {
 						System.err.println("Invalid heap size: "+heapSize);
 						System.exit(1);
 					}
-				} catch(Exception e) {
-					System.err.println("Invalid heap size: "+heapSize);
-					System.exit(1);
+				
+				CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
+				if(debugTime)
+					System.out.println("lexer init" + (System.currentTimeMillis()-time));
+				Lexer lx = new Lexer(new File(source),settings, x -> (byte) x);
+				if(debugTime)
+					System.out.println("tokenizing" + (System.currentTimeMillis()-time));
+				ArrayList<Token> tokens = lx.tokenize(false);
+				if(debugTime)
+					System.out.println("parser init" + (System.currentTimeMillis()-time));
+				Parser p = new Parser(settings);
+				if(debugTime)
+					System.out.println("parsing" + (System.currentTimeMillis()-time));
+				BaseTree tree = p.parse(tokens);
+				if(debugTime)
+					System.out.println("type checking" + (System.currentTimeMillis()-time));
+				tree.typeCheck(); // check that typing is valid, and register all variables in use
+				if(debugTime)
+					System.out.println("preparing" + (System.currentTimeMillis()-time));
+				tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
+				if(debugTime)
+					System.out.println("generating VM" + (System.currentTimeMillis()-time));
+				ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
+				if(debugTime)
+					System.out.println("correcting" + (System.currentTimeMillis()-time));
+				settings.library.correct(VMCode, p);
+				PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
+				if(debugTime)
+					System.out.println("verifying" + (System.currentTimeMillis()-time));
+				p.verify(VMCode);
+				if(debugTime)
+					System.out.println("writing VM" + (System.currentTimeMillis()-time));
+				for(Instruction s:VMCode) {
+					pr1.println(s);
 				}
-			
-			CompilationSettings settings = CompilationSettings.setIntByteSize(target.intsize).setHeapSpace(heapspace).useTarget(target);
-			Lexer lx = new Lexer(new File(source),settings, x -> (byte) x);
-			ArrayList<Token> tokens = lx.tokenize(false);
-			Parser p = new Parser(settings);
-			BaseTree tree = p.parse(tokens);
-			
-			tree.typeCheck(); // check that typing is valid, and register all variables in use
-			tree.prepareVariables(settings.target.needsAlignment); // give variables their proper locations, whether that be on the stack or in the global scope
-			ArrayList<Instruction> VMCode = new IntermediateLang().generateInstructions(tree,lx);// turn elements of the tree into a lower-level intermediate code
-			settings.library.correct(VMCode, p);
-			PrintWriter pr1 = new PrintWriter(new File(binFile+".vm"));
-			p.verify(VMCode);
-			for(Instruction s:VMCode) {
-				pr1.println(s);
+				pr1.close();
+				if(debugTime)
+					System.out.println("translating" + (System.currentTimeMillis()-time));
+				ArrayList<String> assembly = Translator.translate(p, VMCode,false);
+				if(debugTime)
+					System.out.println("propagating constants" + (System.currentTimeMillis()-time));
+				ConstantPropagater.propagateConstants(assembly);
+				if(debugTime)
+					System.out.println("optimizing" + (System.currentTimeMillis()-time));
+				assembly = Optimizers.getOptimizer(settings).optimize(assembly, settings);
+				PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
+				for(String ins:assembly) {
+					pr.println(ins);
+				}
+				pr.close();
 			}
-			pr1.close();
-			
-			ArrayList<String> assembly = Translator.translate(p, VMCode,false);
-			ConstantPropagater.propagateConstants(assembly);
-			assembly = Optimizers.getOptimizer(settings).optimize(assembly, settings);
-			PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
-			for(String ins:assembly) {
-				pr.println(ins);
-			}
-			pr.close();
-			
 			switch(target) {
-			case TI83pz80:
-				Preprocessor.process(binFile+".asm");
-				Assembler.assemble(binFile+".prc", binFile+".bin");
-				Packager.to8xp(binFile+".bin");
-				break;
-			case LINx64:
-				break;
-			case WINx64:
-			case WINx86:
-				break;
-			case z80Emulator:
-				Preprocessor.process(binFile+".asm");
-				Assembler.assemble(binFile+".prc", binFile+".bin");
-				run(binFile+".bin");
-				break;
+				case TI83pz80:
+					if(debugTime)
+						System.out.println("preprocessing" + (System.currentTimeMillis()-time));
+					Preprocessor.process(binFile+".asm");
+					if(debugTime)
+						System.out.println("assembling" + (System.currentTimeMillis()-time));
+					Z80Assembler.assemble(binFile+".prc", binFile+".bin");
+					if(debugTime)
+						System.out.println("packaging" + (System.currentTimeMillis()-time));
+					Packager.to8xp(binFile+".bin");
+					System.out.println("finished compiling in " + (System.currentTimeMillis()-time) + " ms");
+					break;
+				case LINx64:
+					System.out.println("finished compiling in " + (System.currentTimeMillis()-time) + " ms");
+					break;
+				case WINx64:
+				case WINx86:
+					System.out.println("finished compiling in " + (System.currentTimeMillis()-time) + " ms");
+					break;
+				case z80Emulator:
+					Preprocessor.process(binFile+".asm");
+					Z80Assembler.assemble(binFile+".prc", binFile+".bin");
+					run(binFile+".bin");
+					break;
 			}
 		} else
 			printUsage();
@@ -284,6 +321,7 @@ public class Main {
 		System.exit(1);
 	}
 
+	static boolean startLogging = true;
 
 	public static void run(String infile) throws InterruptedException, IOException
 	{
@@ -442,10 +480,57 @@ public class Main {
 			}
 			
 		};
+		
+		ArrayList<Long> midiTimings = new ArrayList<>();
+		IODevice port21 = new IODevice() {
+			long states_n = 0;
+			@Override
+			public Byte get() {
+				return 0;
+			}
+
+			@Override
+			public void accept(Byte t) {
+				long states = MEMORY.getTstates();
+				long diff = states - states_n;
+				states_n = states;
+				midiTimings.add(diff);
+				//startLogging = !startLogging;
+				//System.out.println("T states between: MIDI flips" + diff);
+			}
+		};
+		IODevice port9 = new IODevice() {
+			public void accept(Byte t) {
+				//io info is memory mapped
+				System.out.println("-".repeat(96));
+				for(int y = 0; y < 64; y++) {
+					for(int x = 0; x < 96; x++) {
+						int addr = x/8 + y *12 + 0xc000;
+						byte mask = (byte) (0x100>>(x%8 + 1));
+						boolean on = (MEMORY.peek8(addr) & mask) == 0 ? false : true;
+						if(on) {
+							System.out.print('#');
+						} else {
+							System.out.print(' ');
+						}
+					}
+					System.out.println();
+				}
+				System.out.println("-".repeat(96));
+			}
+
+			@Override
+			public Byte get() {
+				return 0;
+			}
+		};
+		
 		MEMORY.addOutPortListener(0, n -> {System.out.write(n);System.out.flush();});
 		MEMORY.addInPortSupplier(0, bs);//set port 0 to be the text IO port
 		MEMORY.addOutPortListener(1, port1);//set port 1 to be file IO
 		MEMORY.addInPortSupplier(1, port1);
+		MEMORY.addOutPortListener(21, port21);//set port 21 to be midi
+		MEMORY.addOutPortListener(9, port9);//set port 9 to handle screen IO
 		//port 1 is for file operations
 		//control bytes:
 		// 0x80: write byte
@@ -471,15 +556,77 @@ public class Main {
 
 		long startTime = System.currentTimeMillis();
 		long inCount = 0;
+		int hl,bc,de,af;
+		hl = bc = de = af = 0;
 		while(PROCESSOR.isIFF1() || !PROCESSOR.isHalted())
 		{
-			PROCESSOR.execute();
-			int pc = PROCESSOR.getRegPC();
+			try {
+				PROCESSOR.execute();
+			} catch(Exception e) {
+				System.out.println("processor panic");
+				System.out.println("pc: " + PROCESSOR.getRegPC());
+				System.out.println("sp: " + PROCESSOR.getRegSP());
+				System.out.println("hl: " + PROCESSOR.getRegHL());
+				System.out.println("de: " + PROCESSOR.getRegDE());
+				System.out.println("bc:" + PROCESSOR.getRegBC());
+				System.out.println("af: " + PROCESSOR.getRegAF());
+				System.out.println("ix: " + PROCESSOR.getRegIX());
+				System.out.println("iy: " + PROCESSOR.getRegIY());
+				System.out.println("i: " + PROCESSOR.getRegI());
+				System.out.println("r: " + PROCESSOR.getRegR());
+				break;
+			}
 			inCount++;
 		}
 		long endTime = System.currentTimeMillis();
 		long actualTime = MEMORY.getTstates();
-		System.out.println();
+		
+		if(!midiTimings.isEmpty()) {
+			ArrayList<Long> midiTimings2 = new ArrayList<>();
+			long lastTime = -1;
+			midiTimings2.add(midiTimings.get(0));
+			for(int i=1;i<midiTimings.size()-1;i++) {
+				//choose the majority
+				long t1 = midiTimings.get(i-1);
+				long t2 = midiTimings.get(i);
+				long t3 = midiTimings.get(i+1);
+				if(t1==t2 || t1==t3) {
+					midiTimings2.add(t1);
+				} else if(t1==t2 || t2==t3) {
+					midiTimings2.add(t2);
+				} else if(t3==t2 || t1==t3) {
+					midiTimings2.add(t3);
+				} else {
+					midiTimings2.add(t2);
+				}
+			}
+			midiTimings2.add(midiTimings.get(midiTimings.size()-1));
+			long noteTstates = 0;
+			long repeatsCount = 0;
+			for(long l:midiTimings2) {
+				if(l!=noteTstates) {
+					if(repeatsCount!=1) {
+						System.out.println(noteTstates+ " t state sep (rep+1)/8 = " + (repeatsCount+1)/8 + " times.");
+						double freq = 6000000.0/noteTstates;
+						System.out.println("frequency = " + freq/2);//account for the fact the wave crests then troughs in the course of 1 wavelength
+						System.out.println("duration = " + repeatsCount/freq);
+						System.out.println("");
+					}
+					repeatsCount = 0;
+					noteTstates = l;
+					
+				}
+				repeatsCount++;
+			}
+			System.out.println(noteTstates+ " t state sep (rep+1)/8 = " + (repeatsCount+1)/8 + " times.");
+			double freq = 6000000.0/noteTstates;
+			System.out.println("frequency = " + freq/2);//account for the fact the wave crests then troughs in the course of 1 wavelength
+			System.out.println("duration = " + repeatsCount/freq);
+			System.out.println("");
+		}
+		
+		
+		//System.out.println(midiTimings2);
 		System.out.println("Program finished in "+(endTime-startTime)+"ms.");
 		System.out.println("Processed "+inCount+" instructions in "+actualTime+" cycles.");
 		System.out.println("Would run in "+(actualTime/6000)+"ms hardware time.");

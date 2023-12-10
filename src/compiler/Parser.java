@@ -513,7 +513,11 @@ public class Parser {
 	}
 	private ArrayList<Token> cache;
 	private void printParseError(String s) {
-		throw new RuntimeException("parsing error on line "+tok.linenum+" starting with "+tok.s+" : "+s);
+		if(tok.guarded()) {
+			throw new RuntimeException("parsing error on line "+tok.linenum+" starting with "+tok.unguardedVersion().s + " : " + s);
+		} else {
+			throw new RuntimeException("parsing error on line "+tok.linenum+" starting with "+tok.s+" : "+s);
+		}
 	}
 	private void printFuncError(String s, Token t) {
 		throw new RuntimeException("function parsing error on line "+t.linenum+" starting with "+t.s+" : "+s);
@@ -584,9 +588,6 @@ public class Parser {
 			if(replacement)
 				t.remove(1);
 		}
-		
-		
-		
 		
 		cache = t;
 		SyntaxTree root = new SyntaxTree(t.get(0),this,parent);
@@ -818,6 +819,8 @@ public class Parser {
 					root = new SyntaxTree(t.remove(0),this,lastRoot.getParent());
 					root.addChild(lastRoot.copyWithDifferentParent(root));
 				}
+				if(t.isEmpty())
+					pe("bare identifier. Function calls must be suffixed with $");
 				Token secondToken = t.remove(0);
 				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
@@ -1373,7 +1376,11 @@ public class Parser {
 				secondToken = t.remove(0);
 				if(secondToken.t==Token.Type.CLASS_FUNC_CALL) {
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
-					parent.notifyCalled(classFunc);
+					if(root.functionIn()==null) {
+						parent.notifyCalled(classFunc);
+					} else {
+						parent.addDependent(root.functionIn(), classFunc);
+					}
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					call.addChild(root);
 					root = call;
@@ -1579,6 +1586,7 @@ public class Parser {
 	 */
 	private SyntaxTree parseExpr(ArrayList<Token> t, BaseTree parent) {
 		tok = t.remove(0);
+		//System.out.println(tok);
 		SyntaxTree root = new SyntaxTree(tok,this,parent);
 		switch(tok.t)
 		{
@@ -1607,7 +1615,30 @@ public class Parser {
 			case TRUE:
 			case UBYTE_LITERAL:
 			case UINT_LITERAL:
+				break;
 			case STRING_LITERAL:
+				if(tok.s.equals("#[")) {
+					//table literal
+					if(t.isEmpty())
+						pe("Expected table data, but instead got EOF");
+					while((!t.isEmpty()) && t.get(0).t!=Token.Type.CLOSE_RANGE_INCLUSIVE) {
+						Token data = t.remove(0);
+						switch(data.t) {
+							case INT_LITERAL:
+							case BYTE_LITERAL:
+							case UINT_LITERAL:
+							case UBYTE_LITERAL:
+							case FLOAT_LITERAL:
+								root.addChild(data);
+								break;
+							default:
+								pe("constant tables can only be defined with ints, floats or bytes");
+						}
+					}
+					if(t.isEmpty())
+						pe("Expected table end, but instead got EOF");
+					t.remove(0);
+				}
 				break;
 			case IDENTIFIER:
 				while((!t.isEmpty()) && t.get(0).t==Token.Type.FIELD_ACCESS) {
@@ -1619,7 +1650,11 @@ public class Parser {
 				if((!t.isEmpty())&&t.get(0).t==Token.Type.CLASS_FUNC_CALL) {
 					Token secondToken = t.remove(0);
 					String classFunc = root.getType()+secondToken.s.substring(0, secondToken.s.length()-1);
-					parent.notifyCalled(classFunc);
+					if(root.functionIn()==null) {
+						root.notifyCalled(classFunc);
+					} else {
+						root.addDependent(root.functionIn(), classFunc);
+					}
 					SyntaxTree call = new SyntaxTree(new Token(classFunc,Token.Type.FUNC_CALL_NAME,root.getToken().guarded(),root.getToken().srcFile()).setLineNum(root.getToken().linenum),this,parent);
 					call.addChild(root);
 					root = call;

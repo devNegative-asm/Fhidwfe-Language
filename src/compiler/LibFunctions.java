@@ -114,6 +114,10 @@ public class LibFunctions {
 			p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Byte), DataType.Byte, "sbmod");
 			
 			p.registerLibFunction(Arrays.asList(), DataType.Void, "draw");
+			p.registerLibFunction(Arrays.asList(DataType.Ubyte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Uint), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Byte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Uint), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Ubyte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Int), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Byte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Int), DataType.Void, "play_midi_note");
 			break;
 			
 		case LINx64:
@@ -178,8 +182,8 @@ public class LibFunctions {
 			p.registerLibFunction(Arrays.asList(DataType.File), DataType.Void, "fclose");
 			p.registerLibFunction(Arrays.asList(DataType.File), DataType.Ubyte, "fread");
 			p.registerLibFunction(Arrays.asList(DataType.File), DataType.Ubyte, "favail");
+			p.registerLibFunction(Arrays.asList(), DataType.Void, "draw");
 			
-
 			p.requireLibFunction(Arrays.asList(DataType.Uint), DataType.Ptr, "malloc");
 			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Void, "free");
 			p.requireLibFunction(Arrays.asList(DataType.Ptr), DataType.Uint, "sizeof");
@@ -188,6 +192,11 @@ public class LibFunctions {
 			p.requireLibFunction(Arrays.asList(DataType.Int,DataType.Int), DataType.Int, "smod");
 			p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Byte), DataType.Byte, "sbdiv");
 			p.requireLibFunction(Arrays.asList(DataType.Byte,DataType.Byte), DataType.Byte, "sbmod");
+			
+			p.registerLibFunction(Arrays.asList(DataType.Ubyte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Uint), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Byte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Uint), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Ubyte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Int), DataType.Void, "play_midi_note");
+			p.aliasLibFunction(Arrays.asList(DataType.Byte,DataType.Listint,DataType.Listint,DataType.Listint,DataType.Int), DataType.Void, "play_midi_note");
 			break;
 		default:
 			break;
@@ -256,7 +265,7 @@ public class LibFunctions {
 			p.inlineReplace("putchar");
 			p.inlineReplace("strcpy");
 			p.inlineReplace("getc");
-			
+			p.inlineReplace("play_midi_note");
 			p.inlineReplace("draw");
 		}
 		if(architecture==CompilationSettings.Target.z80Emulator) {
@@ -265,13 +274,14 @@ public class LibFunctions {
 			p.inlineReplace("putchar");
 			p.inlineReplace("strcpy");
 			p.inlineReplace("getc");
-			
+			p.inlineReplace("play_midi_note");
 			p.inlineReplace("fread");
 			p.inlineReplace("fflush");
 			p.inlineReplace("fopen");
 			p.inlineReplace("fclose");
 			p.inlineReplace("fwrite");
 			p.inlineReplace("favail");
+			p.inlineReplace("draw");
 		}
 		for(int loc = 0;loc < instructions.size(); loc++) {
 			Instruction instr = instructions.get(loc);
@@ -705,6 +715,9 @@ public class LibFunctions {
 						switch(architecture) {
 							case TI83pz80:
 								replacement = Arrays.asList(InstructionType.syscall_noarg.cv("_GrBufCpy"));
+								break;
+							case z80Emulator://memory mapped io @ 0xc000, so just need this out to notify the screen
+								replacement = Arrays.asList(InstructionType.rawinstruction.cv("out (9), a"));
 								break;
 							default:
 								throw new UnsupportedOperationException("graphics on "+architecture+" not supported yet");

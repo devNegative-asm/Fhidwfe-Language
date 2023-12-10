@@ -1,6 +1,5 @@
 package compiler;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -48,11 +47,7 @@ public class BaseTree {
 		//puts has dependencies of its own
 		exploredFunctions.add("putchar");
 		exploredFunctions.add("putln");
-		
-		
 		return (calledCache = exploredFunctions).contains(func);
-		
-		
 		
 	}
 	/**
@@ -62,6 +57,9 @@ public class BaseTree {
 	public void notifyCalled(String fnName) {
 		if(calledCache!=null) {
 			throw new RuntimeException("call cache poisoned by "+ fnName);
+		}
+		if(fnName.equals("Arraylist.add")) {
+			throw new RuntimeException(fnName);
 		}
 		calledFunctions.add(fnName);
 	}

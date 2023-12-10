@@ -783,10 +783,10 @@ public class Z80TranslatorForWindows {
 				//divide top stack by hl
 				label = fresh();
 				comp.add("	pop de");
-				comp.add("	push de");
+				comp.add("	push hl");
 				comp.add("	call _Div16By16");
 				comp.add("	pop bc");
-				//result is in hl, but hl might be equal to what de was.
+				//result is in hl, but hl might be equal to what hl was.
 				comp.add("	xor a");
 				comp.add("	sbc hl,bc");//carry flag should be set. Add it back in
 				comp.add("	jr nc,"+"__stackmod"+label);
@@ -1121,7 +1121,7 @@ public class Z80TranslatorForWindows {
 		comp.add("	rla");
 		comp.add("	adc hl,hl");
 		comp.add("	sbc hl,de");
-		comp.add("	jr nc, $+4");
+		comp.add("	jr nc, 2");
 		comp.add("	add hl,de");
 		comp.add("	dec c");
 		comp.add("	djnz __divloop__");
@@ -1160,25 +1160,17 @@ public class Z80TranslatorForWindows {
 				}
 			}
 			
-			String[] likelyLoadPositions = "b c d e h l (ix+4) (ix+5) (ix+6) (ix+7) (ix+8) (ix+9) (ix+10) (ix+11) (ix-2) (ix-2+1) (ix-4) (ix-4+1) (ix-6) (ix-6+1) (ix-8) (ix-8+1) (hl) (de) (bc)".split(" ");
-			
-			// I have seen circumstances like ld a,l    ld l,a   come up in compiled code.
-			
-			for(int iter=0;iter<2;iter++)//this is a very slow loop, best not to run it more than twice.
-			{
-				for(int i=0;i<comp.size()-2;i++) {
-					if(!comp.get(i).startsWith("	ld"))//make the compiler faster, lol
-						continue;
-					for(String reg1:likelyLoadPositions)
-						for(String reg2:likelyLoadPositions)
-							if(comp.get(i).equals("	ld "+reg1+","+reg2) && comp.get(i+1).equals("	ld "+reg2+","+reg1)) {
-								comp.remove(i+1);
-							}
+			//remove no-op symmetric loads
+			for(int i=0;i<comp.size()-2;i++) {
+				String combined = comp.get(i) + ";"+comp.get(i+1);
+				if(combined.matches("\tld (.+?),(.+?);\tld (\\2),(\\1)")) {
+					comp.remove(i+1);
 				}
 			}
 			
 		}
-		
+
+		p.getSettings().addFooter(comp);
 		return comp;
 	}
 }

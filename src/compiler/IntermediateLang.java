@@ -1,11 +1,11 @@
 package compiler;
 import static types.DataType.*;
 
+import java.net.Proxy.Type;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
-
 import settings.CompilationSettings;
-import settings.CompilationSettings.Target;
 import types.DataType;
 import types.TypeResolver;
 /**
@@ -39,7 +39,7 @@ public class IntermediateLang {
 	{
 		return fres++;
 	}
-	
+	private Consumer<ArrayList<Instruction>> addToConstantTable = (x) -> {throw new RuntimeException("what?");};
 	BaseTree base;
 	/**
 	 * Takes a syntax tree base, a lexer (used for string info) and generates a program in the intermediate language
@@ -78,7 +78,14 @@ public class IntermediateLang {
 		
 		results.add(InstructionType.data_label.cv("__ExitLocation"));
 		results.add(InstructionType.rawspace.cv(""+(tree.theParser.settings.intsize+(tree.theParser.settings.intsize>2?8:0))));
-		for(Byte[] b:lex.stringConstants()) {//create string constants table
+		
+		//create string constants table
+		final int constantsTableAddress = results.size();
+		addToConstantTable = (constData) -> {
+			results.addAll(constantsTableAddress,constData);
+		};
+		
+		for(Byte[] b:lex.stringConstants()) {
 			results.add(InstructionType.data_label.cv("__String_"+stringCount+"_size"));
 			results.add(InstructionType.rawint.cv("$"+Integer.toHexString(b.length)));
 			results.add(InstructionType.data_label.cv("__String_"+stringCount++));
@@ -87,6 +94,7 @@ public class IntermediateLang {
 			}
 			results.add(InstructionType.raw.cv("$00"));
 		}
+		//create constant tables
 		
 		results.add(InstructionType.data_label.cv("__ErrMessageArray"));
 		for(byte c:"Array Error!".getBytes()) {
@@ -233,7 +241,7 @@ public class IntermediateLang {
 			else 
 				results.add(InstructionType.stackadd.cv());
 			if(type.getSize(settings)==1) {
-				results.add(new Instruction(InstructionType.truncate));
+				results.add(InstructionType.truncate.cv());
 			}
 			break;
 		case AS:
@@ -283,19 +291,19 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			results.add(new Instruction(InstructionType.stackand));
+			results.add(InstructionType.stackand.cv());
 			break;
 		case BITWISE_OR:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			results.add(new Instruction(InstructionType.stackor));
+			results.add(InstructionType.stackor.cv());
 			break;
 		case BITWISE_XOR:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			results.add(new Instruction(InstructionType.stackxor));
+			results.add(InstructionType.stackxor.cv());
 			break;
 		case BYTE_LITERAL:
 			try {
@@ -306,7 +314,7 @@ public class IntermediateLang {
 					x = Integer.parseInt(str.substring(0,str.length()-1));
 				if(x<-128||x>255)
 					throw new RuntimeException("byte value: "+str+" out of range at line "+tree.getToken().linenum);
-				results.add(new Instruction(InstructionType.retrieve_immediate_byte,x+""));
+				results.add(InstructionType.retrieve_immediate_byte.cv(x+""));
 			} catch(NumberFormatException e) {
 				throw new RuntimeException("byte value: "+str+" cannot be parsed at line "+tree.getToken().linenum);
 			}
@@ -321,23 +329,23 @@ public class IntermediateLang {
 				results.addAll(generateSubInstructions(child));
 			}
 			if(type.getSize(settings)==1) {
-				results.add(new Instruction(InstructionType.stacknot));
+				results.add(InstructionType.stacknot.cv());
 			} else
-				results.add(new Instruction(InstructionType.stackcpl));
+				results.add(InstructionType.stackcpl.cv());
 			break;
 		case DECREMENT_LOC:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			results.add(new Instruction(InstructionType.decrement_by_pointer_b));
+			results.add(InstructionType.decrement_by_pointer_b.cv());
 			break;
 		case DIVIDE:
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
 			new TypeResolver<Object>(type)
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackdiv_signed_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackdivfloat)))
+				.CASE(Byte, () -> results.add(InstructionType.stackdiv_signed_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.stackdivfloat.cv()))
 				.CASE(Int, () -> results.add(InstructionType.stackdiv_signed.cv()))
 				.CASE(Ptr, () -> results.add(InstructionType.stackdiv_unsigned.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.stackdiv_unsigned.cv()))
@@ -360,21 +368,21 @@ public class IntermediateLang {
 					switch(location) {
 					case ARG:
 						if(typeSize==1)
-							results.add(new Instruction(InstructionType.put_param_byte,placement));
+							results.add(InstructionType.put_param_byte.cv(placement));
 						else
-							results.add(new Instruction(InstructionType.put_param_int,placement));
+							results.add(InstructionType.put_param_int.cv(placement));
 						break;
 					case GLOBAL:
 						if(typeSize==1)
-							results.add(new Instruction(InstructionType.put_global_byte,placement));
+							results.add(InstructionType.put_global_byte.cv(placement));
 						else
-							results.add(new Instruction(InstructionType.put_global_int,placement));
+							results.add(InstructionType.put_global_int.cv(placement));
 						break;
 					case LOCAL:
 						if(typeSize==1)
-							results.add(new Instruction(InstructionType.put_local_byte,placement));
+							results.add(InstructionType.put_local_byte.cv(placement));
 						else
-							results.add(new Instruction(InstructionType.put_local_int,placement));
+							results.add(InstructionType.put_local_int.cv(placement));
 						break;
 					case NONE:
 						throw new RuntimeException("attempt to assign to constant symbol at line "+tree.getToken().linenum);
@@ -454,12 +462,12 @@ public class IntermediateLang {
 			}
 			break;
 		case FALSE:
-			results.add(new Instruction(InstructionType.retrieve_immediate_byte,"0"));
+			results.add(InstructionType.retrieve_immediate_byte.cv("0"));
 			break;
 		case FLOAT_LITERAL:
 			if(str.endsWith("f")||str.endsWith("F"))
 				str = str.substring(0,str.length()-1);
-			results.add(new Instruction(InstructionType.retrieve_immediate_float,str));
+			results.add(InstructionType.retrieve_immediate_float.cv(str));
 			break;
 		case FUNCTION_ARG:
 		case FUNCTION_ARG_COLON:
@@ -483,7 +491,7 @@ public class IntermediateLang {
 			for(SyntaxTree child:tree.getChildren()) {
 				results.addAll(generateSubInstructions(child));
 			}
-			results.add(new Instruction(InstructionType.call_function,str));
+			results.add(InstructionType.call_function.cv(str));
 			if(tree.getParser().getFunctionOutputType(str).get(0)!=DataType.Void)
 				if(tree.getParent() instanceof SyntaxTree) {
 					SyntaxTree parent =(SyntaxTree) tree.getParent();
@@ -501,8 +509,8 @@ public class IntermediateLang {
 			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.greater_equal_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.greater_equal_ui.cv()))
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_equal_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.greater_equal_f)))
+				.CASE(Byte, () -> results.add(InstructionType.greater_equal_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.greater_equal_f.cv()))
 				.CASE(Int, () -> results.add(InstructionType.greater_equal_i.cv()))
 				.CASE(Ubyte, ()-> results.add(InstructionType.greater_equal_ub.cv()))
 				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
@@ -515,8 +523,8 @@ public class IntermediateLang {
 			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.greater_than_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.greater_than_ui.cv()))
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.greater_than_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.greater_than_f)))
+				.CASE(Byte, () -> results.add(InstructionType.greater_than_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.greater_than_f.cv()))
 				.CASE(Int, () -> results.add(InstructionType.greater_than_i.cv()))
 				.CASE(Ubyte, ()-> results.add(InstructionType.greater_than_ub.cv()))
 				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
@@ -529,32 +537,32 @@ public class IntermediateLang {
 			switch(location) {
 			case ARG:
 				if(typeSize==1)
-					results.add(new Instruction(InstructionType.retrieve_param_byte,placement));
+					results.add(InstructionType.retrieve_param_byte.cv(placement));
 				else
-					results.add(new Instruction(InstructionType.retrieve_param_int,placement));
+					results.add(InstructionType.retrieve_param_int.cv(placement));
 				break;
 			case GLOBAL:
 				if(typeSize==1)
-					results.add(new Instruction(InstructionType.retrieve_global_byte,placement));
+					results.add(InstructionType.retrieve_global_byte.cv(placement));
 				else {
 					if((tree.getType()==DataType.Func||tree.getType()==DataType.Op)&&tree.theParser.functionNames().contains(tree.getTokenString())) {
-						results.add(new Instruction(InstructionType.retrieve_global_address,placement));
+						results.add(InstructionType.retrieve_global_address.cv(placement));
 					} else {
-						results.add(new Instruction(InstructionType.retrieve_global_int,placement));
+						results.add(InstructionType.retrieve_global_int.cv(placement));
 					}
 				}
 				break;
 			case LOCAL:
 				if(typeSize==1)
-					results.add(new Instruction(InstructionType.retrieve_local_byte,placement));
+					results.add(InstructionType.retrieve_local_byte.cv(placement));
 				else
-					results.add(new Instruction(InstructionType.retrieve_local_int,placement));
+					results.add(InstructionType.retrieve_local_int.cv(placement));
 				break;
 			case NONE:
 				if(typeSize==1)
-					results.add(new Instruction(InstructionType.retrieve_immediate_byte,placement));
+					results.add(InstructionType.retrieve_immediate_byte.cv(placement));
 				else
-					results.add(new Instruction(InstructionType.retrieve_immediate_int,placement));
+					results.add(InstructionType.retrieve_immediate_int.cv(placement));
 				break;
 			default:
 				throw new RuntimeException(tree.getTokenString()+"@@contact devs variable somehow evaluated to NONE location");
@@ -589,7 +597,7 @@ public class IntermediateLang {
 			} catch(NumberFormatException e) {
 				throw new RuntimeException("int value: "+str+" cannot be parsed at line "+tree.getToken().linenum);
 			}
-			results.add(new Instruction(InstructionType.retrieve_immediate_int,str));
+			results.add(InstructionType.retrieve_immediate_int.cv(str));
 			break;
 		case IS:
 			throw new RuntimeException("'is' is deprecated. Why did you find this at translation?");
@@ -600,8 +608,8 @@ public class IntermediateLang {
 			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.less_equal_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.less_equal_ui.cv()))
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_equal_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.less_equal_f)))
+				.CASE(Byte, () -> results.add(InstructionType.less_equal_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.less_equal_f.cv()))
 				.CASE(Int, () -> results.add(InstructionType.less_equal_i.cv()))
 				.CASE(Ubyte, ()-> results.add(InstructionType.less_equal_ub.cv()))
 				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
@@ -625,8 +633,8 @@ public class IntermediateLang {
 			new TypeResolver<Object>(tree.getChild(0).getType())
 				.CASE(Ptr, () -> results.add(InstructionType.less_than_ui.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.less_than_ui.cv()))
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.less_than_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.less_than_f)))
+				.CASE(Byte, () -> results.add(InstructionType.less_than_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.less_than_f.cv()))
 				.CASE(Int, () -> results.add(InstructionType.less_than_i.cv()))
 				.CASE(Ubyte, ()-> results.add(InstructionType.less_than_ub.cv()))
 				.DEFAULT_THROW(new UnsupportedOperationException("cannot compare type "+type));
@@ -636,8 +644,8 @@ public class IntermediateLang {
 				results.addAll(generateSubInstructions(child));
 			}
 			new TypeResolver<Object>(type)
-				.CASE(Byte, () -> results.add(new Instruction(InstructionType.stackmod_signed_b)))
-				.CASE(Float, () -> results.add(new Instruction(InstructionType.stackmodfloat)))
+				.CASE(Byte, () -> results.add(InstructionType.stackmod_signed_b.cv()))
+				.CASE(Float, () -> results.add(InstructionType.stackmodfloat.cv()))
 				.CASE(Int, () -> results.add(InstructionType.stackmod_signed.cv()))
 				.CASE(Ptr, () -> results.add(InstructionType.stackmod_unsigned.cv()))
 				.CASE(Uint, () -> results.add(InstructionType.stackmod_unsigned.cv()))
@@ -779,13 +787,13 @@ public class IntermediateLang {
 			results.add(InstructionType.retrieve_immediate_byte.cv("0"));
 			switch(location) {
 			case ARG:
-				results.add(new Instruction(InstructionType.put_param_byte,placement));
+				results.add(InstructionType.put_param_byte.cv(placement));
 				break;
 			case GLOBAL:
-				results.add(new Instruction(InstructionType.put_global_byte,placement));
+				results.add(InstructionType.put_global_byte.cv(placement));
 				break;
 			case LOCAL:
-				results.add(new Instruction(InstructionType.put_local_byte,placement));
+				results.add(InstructionType.put_local_byte.cv(placement));
 				break;
 			case NONE:
 				throw new RuntimeException("cannot create pointer to constant at line "+tree.getToken().linenum);
@@ -801,13 +809,13 @@ public class IntermediateLang {
 			results.add(InstructionType.retrieve_immediate_byte.cv("255"));
 			switch(location) {
 			case ARG:
-				results.add(new Instruction(InstructionType.put_param_byte,placement));
+				results.add(InstructionType.put_param_byte.cv(placement));
 				break;
 			case GLOBAL:
-				results.add(new Instruction(InstructionType.put_global_byte,placement));
+				results.add(InstructionType.put_global_byte.cv(placement));
 				break;
 			case LOCAL:
-				results.add(new Instruction(InstructionType.put_local_byte,placement));
+				results.add(InstructionType.put_local_byte.cv(placement));
 				break;
 			case NONE:
 				throw new RuntimeException("cannot create pointer to constant at line "+tree.getToken().linenum);
@@ -829,7 +837,56 @@ public class IntermediateLang {
 			break;
 		case STRING_LITERAL:
 			String stringnum = str.replace("#", "");
-			results.add(InstructionType.retrieve_immediate_int.cv("__String_"+stringnum));
+			if(stringnum.equals("[")) {//creating a constant table/struct, not actually string.
+				stringnum = "__Table_" + fresh();
+				ArrayList<Instruction> rawData = new ArrayList<>();
+				rawData.add(InstructionType.data_label.cv(stringnum+"_size"));
+				//edit rawData[1] to have the correct size once we know the actual size
+				rawData.add(InstructionType.rawint.cv("$0"));
+				rawData.add(InstructionType.data_label.cv(stringnum));
+				long tableSize = 0;
+				for(SyntaxTree child:tree.getChildren()) {
+					DataType ttt = child.getType();
+					if(ttt.builtin()) {
+						switch(child.getToken().t) {
+							case UINT_LITERAL:
+								String data = child.getTokenString().replace("u", "");
+								tableSize+=settings.intsize;
+								rawData.add(InstructionType.rawint.cv(data));
+								break;
+							case INT_LITERAL:
+								data = child.getTokenString();
+								tableSize+=settings.intsize;
+								rawData.add(InstructionType.rawint.cv(data));
+								break;
+							case BYTE_LITERAL:
+								data = child.getTokenString().replace("b", "");
+								tableSize+=1;
+								rawData.add(InstructionType.raw.cv(data));
+								break;
+							case UBYTE_LITERAL:
+								data = child.getTokenString().replace("bu", "").replace("ub", "");
+								tableSize+=1;
+								rawData.add(InstructionType.raw.cv(data));
+								break;
+							case FLOAT_LITERAL:
+								data = child.getTokenString().replace("f", "");
+								tableSize+=settings.intsize;
+								rawData.add(InstructionType.raw.cv(data));
+								break;
+							default:
+								throw new RuntimeException("error: data in table must be a numeric type" + tok.unguardedVersion().s + " on line " + tok.linenum + " in " + tok.srcFile() + ".");
+						}
+					} else {
+						throw new RuntimeException("error: data in table must be of a builtin type. Token " + child.getToken().unguardedVersion().s + " on line " + child.getToken().linenum + " in " + child.getToken().srcFile() + ".");
+					}
+				}
+				rawData.set(1, InstructionType.rawint.cv("$" + Long.toHexString(tableSize)));
+				addToConstantTable.accept(rawData);
+				results.add(InstructionType.retrieve_immediate_int.cv(stringnum));
+			} else {
+				results.add(InstructionType.retrieve_immediate_int.cv("__String_"+stringnum));
+			}
 			break;
 		case SUBTRACT:
 			for(SyntaxTree child:tree.getChildren()) {
@@ -840,7 +897,7 @@ public class IntermediateLang {
 			else 
 				results.add(InstructionType.stacksub.cv());
 			if(type.getSize(settings)==1) {
-				results.add(new Instruction(InstructionType.truncate));
+				results.add(InstructionType.truncate.cv());
 			}
 			break;
 		case TIMES:
@@ -852,7 +909,7 @@ public class IntermediateLang {
 			else 
 				results.add(InstructionType.stackmult.cv());
 			if(type.getSize(settings)==1) {
-				results.add(new Instruction(InstructionType.truncate));
+				results.add(InstructionType.truncate.cv());
 			}
 			break;
 		case TRUE:
@@ -1052,7 +1109,7 @@ public class IntermediateLang {
 						if(!signedType) {
 							results.add(InstructionType.retrieve_immediate_byte.cv("0"));
 						} else {
-							results.add(InstructionType.retrieve_immediate_byte.cv("-128"));
+							results.add(InstructionType.retrieve_immediate_byte.cv("128"));
 						}
 						results.add(InstructionType.branch_equal_to_b.cv("__for_loop_exit_"+id));
 					}
@@ -1089,7 +1146,26 @@ public class IntermediateLang {
 						// if result overflowed to MAX_INT, this was closed high on MIN_INT on a int range
 						results.add(InstructionType.copy.cv());
 						if(!signedType) {
-							results.add(InstructionType.retrieve_immediate_int.cv("-1"));
+							switch(settings.intsize) {
+								case 1:
+									results.add(InstructionType.retrieve_immediate_int.cv("255"));
+									break;
+								case 2:
+									results.add(InstructionType.retrieve_immediate_int.cv("65535"));
+									break;
+								case 3:
+									results.add(InstructionType.retrieve_immediate_int.cv("16777215"));
+									break;
+								case 4:
+									results.add(InstructionType.retrieve_immediate_int.cv("4294967295"));
+									break;
+								case 8:
+									results.add(InstructionType.retrieve_immediate_int.cv("18446744073709551615"));
+									break;
+								default:
+									throw new RuntimeException("architecture has unsupported int size: " + settings.intsize);
+							}
+							
 						} else {
 							results.add(InstructionType.retrieve_immediate_int.cv(String.valueOf(Integer.MAX_VALUE)));
 						}

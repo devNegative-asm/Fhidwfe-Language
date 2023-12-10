@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 
 import settings.CompilationSettings;
 
-public class X64Optimizer implements Optimizer {
+public class X64Optimizer extends Optimizer {
 	public static final X64Optimizer INSTANCE = new X64Optimizer();
 	
 	
@@ -35,29 +35,6 @@ public class X64Optimizer implements Optimizer {
 		return Pattern.compile("^\\s*"+s+"\\s*$");
 	}
 	
-	private ArrayList<String> multiPatternOptimization(List<String> instructions, Function<MatchResult,String> replacer , String...patternStrings) {
-		//add ; separator temporarily
-		ArrayList<String> patternStringList = new ArrayList<String>(Arrays.asList(patternStrings));
-		//mov rax, rbx ;  mov [asd], adad;
-		patternStringList.replaceAll(s -> "\\s*"+s+"\\s*");
-		String combined = "^"+String.join(";", patternStringList)+"$";
-		Pattern combinedPattern = Pattern.compile(combined);
-		ArrayList<String> results = new ArrayList<String>();
-		for(int i=0;i<instructions.size()+1-patternStrings.length;i++) {
-			String combinedInstructions = String.join(";", instructions.subList(i, i+patternStrings.length));
-			Matcher m =combinedPattern.matcher(combinedInstructions);
-			if(m.find()) {
-				passMatched = true;
-				for(String replacementString:m.replaceFirst(replacer).split("\n"))
-					results.add("\t"+replacementString);
-				i+=patternStrings.length-1;
-			} else {
-				results.add(instructions.get(i));
-			}
-		}
-		results.addAll(instructions.subList(instructions.size()-patternStrings.length+1, instructions.size()));
-		return results;
-	}
 	
 	private ArrayList<String> singleInstructionOptimizations(List<String> instructions) {
 		//strip comments if there are any
@@ -123,8 +100,6 @@ public class X64Optimizer implements Optimizer {
 		}
 		return results;
 	}
-	
-	boolean passMatched;
 	
 	@Override
 	public ArrayList<String> optimize(ArrayList<String> instructions, CompilationSettings settings) {

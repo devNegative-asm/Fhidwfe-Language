@@ -140,6 +140,11 @@ timer2max:             EQU $8a3d
 timer3:                EQU $8a3e
 custintaddr:           EQU $966F
 
+SavesScreen:           EQU 86ECh
+AppBackUpScreen:       EQU 9872h
+TempSwapArea:          EQU 82A5h
+
+
 saferam1:              EQU SavesScreen
 saferam2:              EQU AppBackUpScreen
 saferam3:              EQU TempSwapArea
@@ -149,6 +154,7 @@ rightalign:            EQU $07
 lcdinstport:           EQU $10
 lcddataport:           EQU $11
 
+CmdShadow:             EQU 966Eh
 numscrollpixels:       EQU CmdShadow+104
 scrollbarcoords:       EQU CmdShadow+105
 old_element:           EQU CmdShadow+107
@@ -160,7 +166,7 @@ max_elements:          EQU CmdShadow+113
 ; ===== Various Other Equates =====
 ; =================================
 
-gbuf:                  EQU PlotsScreen
+gbuf:                  EQU plotSScreen
 LargeSprite:           EQU ilsprite
 SmallSprite:           EQU isprite
 FastCopy:              EQU ifastcopy

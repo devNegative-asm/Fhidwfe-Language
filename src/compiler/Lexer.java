@@ -6,10 +6,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
-
+import java.util.regex.Pattern;
 import settings.Charmap;
 import settings.CompilationSettings;
 import types.DataType;
+import preprocessor.StringSet;
 /**
  * Tokenizes fwf files
  *
@@ -50,7 +51,13 @@ public class Lexer {
 		this.x=cm;
 		if(x!=null)
 			x.useDelimiter("(?<=\n)");
-		File[] libFiles = new File("./library/").listFiles();
+		File library = new File("./library/");
+		
+		File[] libFiles;
+		if(library.exists())
+			libFiles = library.listFiles();
+		else
+			libFiles = new File[] {};
 		Arrays.sort(libFiles,File::compareTo);
 		for(File fv:libFiles) {
 			if(fv.getName().endsWith(".fwf"))
@@ -95,16 +102,23 @@ public class Lexer {
 			retts[i] = data[i].toString().toLowerCase();
 		return retts;
 	}
-	static String type = null;
+	static Pattern type = null;
 	
+	
+	final static Pattern tokenRegex = Pattern.compile("\\s+|(?<=[\\[\\]()])|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))|(?=[.][a-zA-Z_])");
 	/**
 	 * @return the next string in the input files which matches the boundary conditions to make a sigle token
 	 */
+	String[] tokenRegexCache = new String[] {};
+	int tokenRegexCacheIndex = 0;
 	private String getNextString()
 	{
+		if(tokenRegexCacheIndex < tokenRegexCache.length) {
+			return tokenRegexCache[tokenRegexCacheIndex++];
+		}
+
 		//cut on spaces or special characters
 		//match words, literals, numbers surrounded by u, ub, b, f
-		String tokenRegex = "\\s+|(?<=[\\[\\]()])|(?<=[a-zA-Z0-9_])(?=[^a-zA-Z0-9_.$])|(?<=[^a-zA-Z0-9_.@#](?=[^+|&=<>-]))|(?=[.][a-zA-Z_])";
 		while(holding.isEmpty())
 		{
 			if(hasNextString())
@@ -119,15 +133,19 @@ public class Lexer {
 					lineNumber=0;
 					continue;
 				}
-				String ret = holding.split(tokenRegex)[0];
+
+				String ret = tokenRegex.split(holding)[0];
 				holding = holding.substring(ret.length()).trim();
 				return ret;
 			}
-			else
+			else {
 				return "";
+			}
 		}
-		String ret = holding.split(tokenRegex)[0];
-		holding = holding.substring(ret.length()).trim();
+		tokenRegexCache = tokenRegex.split(holding); 
+		String ret = tokenRegexCache[0];
+		tokenRegexCacheIndex = 1;
+		holding = "";
 		return ret;
 	}
 	
@@ -258,20 +276,16 @@ public class Lexer {
 		{
 			throw new RuntimeException("Incorrect string or char declaration > "+holding2+" < at line"+lineNumber+" in "+files.get(0).getName());
 		}
-		return ajustedSource.toString();
+		String rv = ajustedSource.toString();
+		return rv;
 	}
-	/**
-	 * Context needed for the parser to parse ambiguous tokens such as ( and identifiers, as a state machine
-	 *
-	 */
-	private static enum Expecting {
-		OUTER,
-		INNER,
-		EXPR,
-		FUNCTION_NAME,
-		FUNC_OPEN_PAREN,
-		FUNC_DETAILS,
-	}
+	final static Pattern fieldAccess = Pattern.compile("\\.[a-zA-Z_][a-zA-Z_0-9]*");
+	final static Pattern identifierRegex = Pattern.compile("[a-zA-Z_][a-zA-Z_0-9]*");
+	final static Pattern PT_BYTE_LITERAL = Pattern.compile("[0-9]+b");
+	final static Pattern PT_UBYTE_LITERAL = Pattern.compile("[0-9]+[uU][bB]|[0-9]+[bB][Uu]");
+	final static Pattern PT_INT_LITERAL = Pattern.compile("[0-9]+");
+	final static Pattern PT_UINT_LITERAL = Pattern.compile("[0-9]+[uU]");
+	final static Pattern PT_FLOAT_LITERAL = Pattern.compile("[0-9]+[fF]|[0-9]*\\.[0-9]+|[0-9]+\\.[0-9]*");
 	/**
 	 * Takes the input files this object was constructed with and turns them into a token list
 	 * @return the token list
@@ -279,218 +293,265 @@ public class Lexer {
 	public ArrayList<Token> tokenize(boolean inRepl)
 	{
 		if(type==null) {
-			type = String.join("|", lowerStringy(DataType.values()));
+			type = Pattern.compile(String.join("|", lowerStringy(DataType.values())));
 		}
-		ArrayDeque<Expecting> whereami = new ArrayDeque<>();
-		whereami.push(Expecting.OUTER);
 		ArrayList<Token> tokens = new ArrayList<>();
 		boolean functionContext = false;
 		boolean functionImmediate = false;
 		boolean fnNameImmediate = false;
 		boolean guarded = false;
-		ArrayList<String> imported = new ArrayList<String>();
+		StringSet imported = new StringSet();
 		File lastFile = null;
 		boolean importNext = false;
 		boolean typeNameNext = false;
-		
+		nextStringLoop:
 		while(hasNextString())
 		{
 			File fileIn;
-			String tok = getNextString();
+			String tok = getNextString().intern();
 			if(!files.isEmpty()) {
 				fileIn = this.files.get(0);
 				if(lastFile!=fileIn)
 				{
 					guarded = false;
-					imported = new ArrayList<String>();
+					imported.clear();
 				}
 				lastFile = fileIn;
 			} else {
 				fileIn = lastFile;
 			}
 			
-			
-			
+
 			Token tk;
-			if(tok.equals(""))
-				continue;
-			if(tok.equals("in")) {
-				tk = new Token(tok,Token.Type.IN,guarded,fileIn);
-			} else if(tok.equals("=")) {
-				tk = new Token(tok,Token.Type.EQ_SIGN,guarded,fileIn);
-			} else if(tok.equals("temp")) {
-				tk = new Token(tok,Token.Type.TEMP,guarded,fileIn);
-			} else if(tok.equals("import")) {
-				importNext =true;
-				continue;
-			} else if(tok.matches(type)) {
-				if(functionContext) {
-					tk = new Token(tok,Token.Type.FUNCTION_ARG_TYPE,guarded,fileIn);
-				} else if(functionImmediate) {
-					tk = new Token(tok,Token.Type.FUNCTION_RETTYPE,guarded,fileIn);
-				} else
-					tk = new Token(tok,Token.Type.TYPE,guarded,fileIn);
-			} else if(tok.equals("is")) {
-				tk = new Token(tok,Token.Type.IS,guarded,fileIn);
-			} else if(tok.equals("guard")) {
-				guarded = !inRepl;
-				continue;
-			} else if(tok.equals("type")) {
-				tk = new Token(tok,Token.Type.TYPE_DEFINITION,guarded,fileIn);
-			} else if(tok.equals("as")) {
-				tk = new Token(tok,Token.Type.AS,guarded,fileIn);
-			} else if(tok.equals("while")) {
-				tk = new Token(tok,Token.Type.WHILE,guarded,fileIn);
-			} else if(tok.equals("if")) {
-				tk = new Token(tok,Token.Type.IF,guarded,fileIn);
-			} else if(tok.equals("for")) {
-				tk = new Token(tok,Token.Type.FOR,guarded,fileIn);
-			} else if(tok.equals("ifnot")) {
-				tk = new Token(tok,Token.Type.IFNOT,guarded,fileIn);
-			} else if(tok.equals("whilenot")) {
-				tk = new Token(tok,Token.Type.WHILENOT,guarded,fileIn);
-			} else if(tok.equals("extern")) {
-				tk = new Token(tok,Token.Type.EXTERN,guarded,fileIn);
-			} else if(tok.equals("[")) {
-				whereami.push(Expecting.EXPR);
-				tk = new Token(tok,Token.Type.OPEN_RANGE_INCLUSIVE,guarded,fileIn);
-			} else if(tok.equals("]")) {
-				whereami.pop();
-				tk = new Token(tok,Token.Type.CLOSE_RANGE_INCLUSIVE,guarded,fileIn);
-			} else if(tok.equals("(")) {
-				if(functionContext) {
-					tk = new Token(tok,Token.Type.FUNCTION_PAREN_L,guarded,fileIn);
-				} else {
-					tk = new Token(tok,Token.Type.OPEN_RANGE_EXCLUSIVE,guarded,fileIn);
-				}
-			} else if(tok.equals(")")) {
-				if(functionContext) {
-					tk = new Token(tok,Token.Type.FUNCTION_PAREN_R,guarded,fileIn);
-					functionContext = false;
-				} else {
-					tk = new Token(tok,Token.Type.CLOSE_RANGE_EXCLUSIVE,guarded,fileIn);
-				}
-			} else if(tok.equals(",")) {
-				if(functionContext) {
-					tk = new Token(tok,Token.Type.FUNCTION_COMMA,guarded,fileIn);
-				} else {
-					tk = new Token(tok,Token.Type.RANGE_COMMA,guarded,fileIn);
-				}
-			} else if(tok.equals("?")) {
-				tk = new Token(tok,Token.Type.CORRECT,guarded,fileIn);
-			} else if(tok.equals("with")) {
-				tk = new Token(tok,Token.Type.WITH,guarded,fileIn);
-			} else if(tok.equals("set")) {
-				tk = new Token(tok,Token.Type.SET,guarded,fileIn);
-			} else if(tok.equals("reset")) {
-				tk = new Token(tok,Token.Type.RESET,guarded,fileIn);
-			} else if(tok.equals("!")) {
-				tk = new Token(tok,Token.Type.NEGATE,guarded,fileIn);
-			} else if(tok.equals("~")) {
-				tk = new Token(tok,Token.Type.COMPLEMENT,guarded,fileIn);
-			} else if(tok.startsWith("@")) {
-				tk = new Token(tok,Token.Type.POINTER_TO,guarded,fileIn);
-			} else if(tok.equals("*")) {
-				tk = new Token(tok,Token.Type.TIMES,guarded,fileIn);
-			} else if(tok.equals("%")) {
-				tk = new Token(tok,Token.Type.MODULO,guarded,fileIn);
-			} else if(tok.equals("/")) {
-				tk = new Token(tok,Token.Type.DIVIDE,guarded,fileIn);
-			} else if(tok.equals("+")) {
-				tk = new Token(tok,Token.Type.ADD,guarded,fileIn);
-			} else if(tok.equals("-")) {
-				tk = new Token(tok,Token.Type.SUBTRACT,guarded,fileIn);
-			} else if(tok.equals("|")) {
-				tk = new Token(tok,Token.Type.BITWISE_OR,guarded,fileIn);
-			} else if(tok.equals("^")) {
-				tk = new Token(tok,Token.Type.BITWISE_XOR,guarded,fileIn);
-			} else if(tok.equals("&")) {
-				tk = new Token(tok,Token.Type.BITWISE_AND,guarded,fileIn);
-			} else if(tok.equals("||")) {
-				tk = new Token(tok,Token.Type.LOGICAL_OR,guarded,fileIn);
-			} else if(tok.equals("&&")) {
-				tk = new Token(tok,Token.Type.LOGICAL_AND,guarded,fileIn);
-			} else if(tok.equals("function")) {
-				tk = new Token(tok,Token.Type.FUNCTION,guarded,fileIn);
-			} else if(tok.equals("return")) {
-				tk = new Token(tok,Token.Type.RETURN,guarded,fileIn);
-			} else if(tok.equals(":")) {
-				tk = new Token(tok,Token.Type.FUNCTION_ARG_COLON,guarded,fileIn);
-			} else if(tok.equals("++")) {
-				tk = new Token(tok,Token.Type.INCREMENT_LOC,guarded,fileIn);
-			} else if(tok.equals("--")) {
-				tk = new Token(tok,Token.Type.DECREMENT_LOC,guarded,fileIn);
-			} else if(tok.equals("{")) {
-				tk = new Token(tok,Token.Type.OPEN_BRACE,guarded,fileIn);
-			} else if(tok.equals("}")) {
-				tk = new Token(tok,Token.Type.CLOSE_BRACE,guarded,fileIn);
-			} else if(tok.equals("return")) {
-				tk = new Token(tok,Token.Type.RETURN,guarded,fileIn);
-			} else if(tok.startsWith("#")) {
-				tk = new Token(tok,Token.Type.STRING_LITERAL,guarded,fileIn);
-			} else if(tok.equals("true")) {
-				tk = new Token(tok,Token.Type.TRUE,guarded,fileIn);
-			} else if(tok.equals("false")) {
-				tk = new Token(tok,Token.Type.FALSE,guarded,fileIn);
-			} else if(tok.equals("false")) {
-				tk = new Token(tok,Token.Type.FALSE,guarded,fileIn);
-			} else if(tok.equals("alias")) {
-				tk = new Token(tok,Token.Type.ALIAS,guarded,fileIn);
-			} else if(tok.matches("[0-9]+b")) {
-				tk = new Token(tok,Token.Type.BYTE_LITERAL,guarded,fileIn);
-			} else if(tok.matches("[0-9]+[uU][bB]|[0-9]+[bB][Uu]")) {
-				tk = new Token(tok,Token.Type.UBYTE_LITERAL,guarded,fileIn);
-			} else if(tok.matches("[0-9]+")) {
-				tk = new Token(tok,Token.Type.INT_LITERAL,guarded,fileIn);
-			} else if(tok.matches("[0-9]+[uU]")) {
-				tk = new Token(tok,Token.Type.UINT_LITERAL,guarded,fileIn);
-			} else if(tok.matches("[0-9]+[fF]|[0-9]*\\.[0-9]+|[0-9]+\\.[0-9]*")) {
-				tk = new Token(tok,Token.Type.FLOAT_LITERAL,guarded,fileIn);
-			} else if(tok.equals("<")) {
-				tk = new Token(tok,Token.Type.LTHAN,guarded,fileIn);
-			} else if(tok.equals("<=")) {
-				tk = new Token(tok,Token.Type.LEQUAL,guarded,fileIn);
-			} else if(tok.equals(">")) {
-				tk = new Token(tok,Token.Type.GTHAN,guarded,fileIn);
-			} else if(tok.equals(">=")) {
-				tk = new Token(tok,Token.Type.GEQUAL,guarded,fileIn);
-			} else if(tok.endsWith("$")) {
-				if(!tok.startsWith("."))
-					tk = new Token(tok,Token.Type.FUNC_CALL_NAME,guarded,fileIn);
-				else
-					tk = new Token(tok,Token.Type.CLASS_FUNC_CALL,guarded,fileIn);
-			} else if(tok.equals(";")) {
-				tk = new Token(tok,Token.Type.EMPTY_BLOCK,guarded,fileIn);
-			} else if(tok.equals("<<")) {
-				tk = new Token(tok,Token.Type.SHIFT_LEFT,guarded,fileIn);
-			} else if(tok.equals(">>")) {
-				tk = new Token(tok,Token.Type.SHIFT_RIGHT,guarded,fileIn);
-			} else if(tok.matches("\\.[a-zA-Z_][a-zA-Z_0-9]*")) {
-				tk = new Token(tok.substring(1),Token.Type.FIELD_ACCESS,false,fileIn);
-			} else if(tok.matches("[a-zA-Z_][a-zA-Z_0-9]*")){
-				//generic string
-				//identifier
-				if(importNext) {
-					imported.add(tok);
-					importNext=false;
-					continue;
-				}
-				if(fnNameImmediate) {
-					tk = new Token(tok,Token.Type.FUNCTION_NAME,guarded,fileIn);
-				} else if(functionContext) {
-					tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
-				} else if(typeNameNext){
-					tk = new Token(tok,Token.Type.TYPE,false,fileIn);
-					DataType.makeUserType(tok);
-					Lexer.type+="|"+tok;
-				} else {
-					if((!inRepl) && (!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
-						throw new RuntimeException("Identifier "+tok+" is too short at line "+this.lineNumber+" in "+files.get(0).getName()+"\nconsider using 'guard' ");
+			switch(tok) {
+				case "":
+					continue nextStringLoop;
+				case "in":
+					tk = new Token(tok,Token.Type.IN,guarded,fileIn);
+					break;
+				case "=":
+					tk = new Token(tok,Token.Type.EQ_SIGN,guarded,fileIn);
+					break;
+				case "temp":
+					tk = new Token(tok,Token.Type.TEMP,guarded,fileIn);
+					break;
+				case "import":
+					importNext =true;
+					continue nextStringLoop;
+				case "is":
+					tk = new Token(tok,Token.Type.IS,guarded,fileIn);
+					break;
+				case "guard":
+					guarded = !inRepl;
+					continue nextStringLoop;
+				case "type":
+					tk = new Token(tok,Token.Type.TYPE_DEFINITION,guarded,fileIn);
+					break;
+				case "as":
+					tk = new Token(tok,Token.Type.AS,guarded,fileIn);
+					break;
+				case "while":
+					tk = new Token(tok,Token.Type.WHILE,guarded,fileIn);
+					break;
+				case "if":
+					tk = new Token(tok,Token.Type.IF,guarded,fileIn);
+					break;
+				case "for":
+					tk = new Token(tok,Token.Type.FOR,guarded,fileIn);
+					break;
+				case "ifnot":
+					tk = new Token(tok,Token.Type.IFNOT,guarded,fileIn);
+					break;
+				case "whilenot":
+					tk = new Token(tok,Token.Type.WHILENOT,guarded,fileIn);
+					break;
+				case "extern":
+					tk = new Token(tok,Token.Type.EXTERN,guarded,fileIn);
+					break;
+				case "[":
+					tk = new Token(tok,Token.Type.OPEN_RANGE_INCLUSIVE,guarded,fileIn);
+					break;
+				case "]":
+					tk = new Token(tok,Token.Type.CLOSE_RANGE_INCLUSIVE,guarded,fileIn);
+					break;
+				case "(":
+					if(functionContext) {
+						tk = new Token(tok,Token.Type.FUNCTION_PAREN_L,guarded,fileIn);
+					} else {
+						tk = new Token(tok,Token.Type.OPEN_RANGE_EXCLUSIVE,guarded,fileIn);
 					}
-					tk = new Token(tok,Token.Type.IDENTIFIER,guarded && !imported.contains(tok),fileIn);
-				}
-			} else {
-				throw new RuntimeException("unrecognizable token: "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());
+					break;
+				case ")":
+					if(functionContext) {
+						tk = new Token(tok,Token.Type.FUNCTION_PAREN_R,guarded,fileIn);
+						functionContext = false;
+					} else {
+						tk = new Token(tok,Token.Type.CLOSE_RANGE_EXCLUSIVE,guarded,fileIn);
+					}
+					break;
+				case ",":
+					if(functionContext) {
+						tk = new Token(tok,Token.Type.FUNCTION_COMMA,guarded,fileIn);
+					} else {
+						tk = new Token(tok,Token.Type.RANGE_COMMA,guarded,fileIn);
+					}
+					break;
+				case "?":
+					tk = new Token(tok,Token.Type.CORRECT,guarded,fileIn);
+					break;
+				case "with":
+					tk = new Token(tok,Token.Type.WITH,guarded,fileIn);
+					break;
+				case "set":
+					tk = new Token(tok,Token.Type.SET,guarded,fileIn);
+					break;
+				case "reset":
+					tk = new Token(tok,Token.Type.RESET,guarded,fileIn);
+					break;
+				case "!":
+					tk = new Token(tok,Token.Type.NEGATE,guarded,fileIn);
+					break;
+				case "~":
+					tk = new Token(tok,Token.Type.COMPLEMENT,guarded,fileIn);
+					break;
+				case "*":
+					tk = new Token(tok,Token.Type.TIMES,guarded,fileIn);
+					break;
+				case "%":
+					tk = new Token(tok,Token.Type.MODULO,guarded,fileIn);
+					break;
+				case "/":
+					tk = new Token(tok,Token.Type.DIVIDE,guarded,fileIn);
+					break;
+				case "+":
+					tk = new Token(tok,Token.Type.ADD,guarded,fileIn);
+					break;
+				case "-":
+					tk = new Token(tok,Token.Type.SUBTRACT,guarded,fileIn);
+					break;
+				case "|":
+					tk = new Token(tok,Token.Type.BITWISE_OR,guarded,fileIn);
+					break;
+				case "^":
+					tk = new Token(tok,Token.Type.BITWISE_XOR,guarded,fileIn);
+					break;
+				case "&":
+					tk = new Token(tok,Token.Type.BITWISE_AND,guarded,fileIn);
+					break;
+				case "||":
+					tk = new Token(tok,Token.Type.LOGICAL_OR,guarded,fileIn);
+					break;
+				case "&&":
+					tk = new Token(tok,Token.Type.LOGICAL_AND,guarded,fileIn);
+					break;
+				case "function":
+					tk = new Token(tok,Token.Type.FUNCTION,guarded,fileIn);
+					break;
+				case ":":
+					tk = new Token(tok,Token.Type.FUNCTION_ARG_COLON,guarded,fileIn);
+					break;
+				case "++":
+					tk = new Token(tok,Token.Type.INCREMENT_LOC,guarded,fileIn);
+					break;
+				case "--":
+					tk = new Token(tok,Token.Type.DECREMENT_LOC,guarded,fileIn);
+					break;
+				case "{":
+					tk = new Token(tok,Token.Type.OPEN_BRACE,guarded,fileIn);
+					break;
+				case "}":
+					tk = new Token(tok,Token.Type.CLOSE_BRACE,guarded,fileIn);
+					break;
+				case "return":
+					tk = new Token(tok,Token.Type.RETURN,guarded,fileIn);
+					break;
+				case "true":
+					tk = new Token(tok,Token.Type.TRUE,guarded,fileIn);
+					break;
+				case "false":
+					tk = new Token(tok,Token.Type.FALSE,guarded,fileIn);
+					break;
+				case "alias":
+					tk = new Token(tok,Token.Type.ALIAS,guarded,fileIn);
+					break;
+				case "<":
+					tk = new Token(tok,Token.Type.LTHAN,guarded,fileIn);
+					break;
+				case "<=":
+					tk = new Token(tok,Token.Type.LEQUAL,guarded,fileIn);
+					break;
+				case ">":
+					tk = new Token(tok,Token.Type.GTHAN,guarded,fileIn);
+					break;
+				case ">=":
+					tk = new Token(tok,Token.Type.GEQUAL,guarded,fileIn);
+					break;
+				case ";":
+					tk = new Token(tok,Token.Type.EMPTY_BLOCK,guarded,fileIn);
+					break;
+				case "<<":
+					tk = new Token(tok,Token.Type.SHIFT_LEFT,guarded,fileIn);
+					break;
+				case ">>":
+					tk = new Token(tok,Token.Type.SHIFT_RIGHT,guarded,fileIn);
+					break;
+				default:
+					if(type.matcher(tok).matches()) {
+						if(functionContext) {
+							tk = new Token(tok,Token.Type.FUNCTION_ARG_TYPE,guarded,fileIn);
+						} else if(functionImmediate) {
+							tk = new Token(tok,Token.Type.FUNCTION_RETTYPE,guarded,fileIn);
+						} else
+							tk = new Token(tok,Token.Type.TYPE,guarded,fileIn);
+					} else if(identifierRegex.matcher(tok).matches()){
+						//generic string
+						//identifier
+						if(importNext) {
+							imported.add(tok);
+							importNext=false;
+							continue nextStringLoop;
+						}
+
+						if(fnNameImmediate) {
+							tk = new Token(tok,Token.Type.FUNCTION_NAME,guarded,fileIn);
+						} else if(functionContext) {
+							tk = new Token(tok,Token.Type.FUNCTION_ARG,guarded,fileIn);
+						} else if(typeNameNext){
+							tk = new Token(tok,Token.Type.TYPE,false,fileIn);
+							DataType.makeUserType(tok);
+							Lexer.type = Pattern.compile(Lexer.type.pattern()+"|"+tok);
+						} else {
+							boolean hidden = !imported.contains(tok);
+							if((!inRepl) && (!guarded) && tok.length()<4 && !(tok.equals("one") || tok.equals("e") || tok.equals("pi") || tok.equals("NaN"))) {
+								throw new RuntimeException("Identifier "+tok+" is too short at line "+this.lineNumber+" in "+files.get(0).getName()+"\nconsider using 'guard' ");
+							}
+							tk = new Token(tok,Token.Type.IDENTIFIER,guarded && hidden,fileIn);
+						}
+					} else if(tok.endsWith("$")) {
+						if(!tok.startsWith("."))
+							tk = new Token(tok,Token.Type.FUNC_CALL_NAME,guarded,fileIn);
+						else
+							tk = new Token(tok,Token.Type.CLASS_FUNC_CALL,guarded,fileIn);
+					} else if(PT_BYTE_LITERAL.matcher(tok).matches()) {
+						tk = new Token(tok,Token.Type.BYTE_LITERAL,guarded,fileIn);
+					} else if(PT_UBYTE_LITERAL.matcher(tok).matches()) {
+						tk = new Token(tok,Token.Type.UBYTE_LITERAL,guarded,fileIn);
+					} else if(PT_INT_LITERAL.matcher(tok).matches()) {
+						tk = new Token(tok,Token.Type.INT_LITERAL,guarded,fileIn);
+					} else if(PT_UINT_LITERAL.matcher(tok).matches()) {
+						tk = new Token(tok,Token.Type.UINT_LITERAL,guarded,fileIn);
+					} else if(PT_FLOAT_LITERAL.matcher(tok).matches()) {
+						tk = new Token(tok,Token.Type.FLOAT_LITERAL,guarded,fileIn);
+					} else if(tok.startsWith("@")) {
+						tk = new Token(tok,Token.Type.POINTER_TO,guarded,fileIn);
+					} else if(fieldAccess.matcher(tok).matches()) {
+						tk = new Token(tok.substring(1),Token.Type.FIELD_ACCESS,false,fileIn);
+					} else if(tok.startsWith("#")) {
+						tk = new Token(tok,Token.Type.STRING_LITERAL,guarded,fileIn);
+					} else {
+						throw new RuntimeException("unrecognizable token: "+tok+" at line "+this.lineNumber+" in "+files.get(0).getName());
+					}
+					break;
 			}
 			if(tok.startsWith("_"))
 				throw new RuntimeException("_ prefix saved for internal use at line "+this.lineNumber+" in "+files.get(0).getName());
@@ -516,7 +577,6 @@ public class Lexer {
 				newTokens.add(t.setLineNum(t.linenum));
 			}
 		});
-		
 		return newTokens;
 	}
 	private class fakeFile extends File {

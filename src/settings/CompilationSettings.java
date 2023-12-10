@@ -1,4 +1,5 @@
 package settings;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -62,7 +63,6 @@ public class CompilationSettings {
 					"bcall					.equ $EF",
 					"",
 					".org	$0000				;Origin",
-					"",
 					""));
 			for(DataType type:DataType.values()) {
 				if(!type.builtin())
@@ -111,7 +111,24 @@ public class CompilationSettings {
 					"",
 					".org	$9d93				;Origin (set back two to account for AsmPrgm)",
 					"	.db	$BB,$6D				;Compiled AsmPrgm token",
-					"",
+					"	ret					;So TIOS wont run the program",
+					"	.db	1				;Identifier as MirageOS program",
+					"	.db	%11101000, %00101110		;15x15 button",
+					"	.db	%10001000, %00101000",
+					"	.db	%11101001, %00101110",
+					"	.db	%10000101, %01001000",
+					"	.db	%10000010, %10001000",
+					"	.db	%00000000, %00000000",
+					"	.db	%00000000, %00000000",
+					"	.db	%11101110, %00011100",
+					"	.db	%10101001, %00100000",
+					"	.db	%11101110, %00101110",
+					"	.db	%10001001, %00100010",
+					"	.db	%10001000, %10011100",
+					"	.db	%00000000, %00000000",
+					"	.db	%00000000, %00000000",
+					"	.db	%00000000, %00000000",
+					"	.db	70, 119, 102, 32, 112, 114, 103, 109, 0",
 					""));
 			for(DataType type:DataType.values()) {
 				if(!type.builtin())
@@ -201,5 +218,133 @@ public class CompilationSettings {
 	}
 	public LibFunctions getLibrary() {
 		return library;
+	}
+	public void addFooter(ArrayList<String> comp) {
+		int midiPort = 0;
+		switch(target) {
+		case LINx64:
+			break;
+		case REPL:
+			break;
+		case z80Emulator:
+			midiPort = 21;
+		case TI83pz80:
+			// stack holds [note, &inners, &outers, &durations, beats]
+			// basically just a bunch of nested loops with the second to bottom outputing to port 0
+			/*
+			 * push ix
+				ld ix,$0000
+				add ix,sp
+				
+				...
+				
+				ld sp,ix
+				pop ix
+				pop bc
+				pop de;removing 1 arg
+				push bc
+				ret
+			 */
+			comp.add("play_midi_silence:");
+			comp.add("	ld a, 0");
+			comp.add("	ld (__midi_output_port_num_minus_1 + 1), a");
+			comp.add("	jr __play_midi_common");
+
+			comp.add("play_midi_note:");
+			comp.add("	ld a, 3");
+			comp.add("	ld (__midi_output_port_num_minus_1 + 1), a");
+			
+			comp.add("__play_midi_common:");
+			comp.add("	pop hl");
+			comp.add("	ld (__midi_return + 1), hl");
+			comp.add("	pop hl");
+			comp.add("	ld (__midi_data), hl");
+			// stack holds [note, &inners, &outers, &durations]
+			comp.add("	ld hl,6");
+			comp.add("	add hl,sp");
+			comp.add("	ld a,(hl)");
+			comp.add("	add a,a");//turn note # into index into int[]
+			// a = note. I don't care about note anymore except to pop it off the stack when we return 
+			comp.add("	ld c,a");
+			comp.add("	ld b,0");
+			
+			comp.add("	pop hl");
+			comp.add("	add hl,bc");
+			comp.add("	ld a, (hl)");
+			comp.add("	ld (__midi_data+2), a");
+			comp.add("	inc hl");
+			comp.add("	ld a, (hl)");// de is durations[note]
+			comp.add("	ld (__midi_data+3), a");
+			
+			comp.add("	pop hl");
+			comp.add("	add hl,bc");
+			comp.add("	ld e, (hl)");
+			comp.add("	inc hl");
+			comp.add("	ld d, (hl)");// de is outers[note]
+			
+			comp.add("	pop hl");
+			comp.add("	add hl,bc");
+			comp.add("	ld c, (hl)");
+			comp.add("	inc hl");
+			comp.add("	ld b, (hl)");// bc is inners[note]
+			comp.add("	ld hl, (__midi_data + 2)");//hl = duration, de = outers, bc = inners
+			comp.add("	exx");
+			comp.add("	ld a, (__midi_data)");
+			comp.add("	ld b,a");//b' = beats
+			comp.add("	xor a");
+			comp.add("	ex af, af'");//a' = status
+
+			comp.add("__midi_note_loop1:");
+			comp.add("	exx");
+			comp.add("	push hl");
+			comp.add("__midi_note_loop2:");
+			comp.add("	push de");
+			comp.add("__midi_note_loop3:");
+			comp.add("	push bc");
+			comp.add("__midi_note_loop4:");
+			//for some stupid reason, dec bc,de,hl don't set flags, but the 1-reg instructions do
+			comp.add("	dec bc");
+			comp.add("	ld a,b");
+			comp.add("	or c");
+			comp.add("	jp nz, __midi_note_loop4");
+			comp.add("	pop bc");
+			comp.add("	dec de");
+			comp.add("	ld a,d");
+			comp.add("	or e");
+			comp.add("	jp nz, __midi_note_loop3");
+			comp.add("	pop de");
+			comp.add("	ex af, af'");
+			comp.add("__midi_output_port_num_minus_1:");
+			comp.add("	xor $03");
+			comp.add("	out ("+midiPort+"), a");
+			comp.add("	ex af, af'");
+			comp.add("	dec hl");
+			comp.add("	ld a,h");
+			comp.add("	or l");
+			comp.add("	jp nz, __midi_note_loop2");
+			comp.add("	pop hl");
+			comp.add("	exx");
+			comp.add("	djnz __midi_note_loop1");
+			comp.add("	exx");
+			
+			comp.add("__midi_end:");
+			comp.add("  pop hl");
+			comp.add("__midi_return:");
+			comp.add("  jp $0");
+			
+			comp.add("__midi_data:");
+			comp.add("  .dw 0");//beats
+			comp.add("  .dw 0");//duration
+			comp.add("  .dw 0");//outer
+			comp.add("  .dw 0");//inner
+			break;
+		case WINx64:
+			break;
+		case WINx86:
+			break;
+		default:
+			break;
+		
+		}
 	}
 }

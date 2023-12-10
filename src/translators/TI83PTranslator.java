@@ -624,7 +624,7 @@ public class TI83PTranslator {
 			case getc:
 				if(stackDepth++>0)
 					comp.add("	push hl");
-				comp.add("	b_call(__GetKeyRetOff)");
+				comp.add("	b_call(_GetKeyRetOff)");
 				comp.add("	ld l,a");
 				comp.add("	ld h,0");
 				break;
@@ -1098,7 +1098,7 @@ public class TI83PTranslator {
 		comp.add("	.dw $0000");
 		
 		//slight optimization
-		final boolean optimize = !debug;
+		final boolean optimize = true;
 		
 		if(optimize) {
 			// hl specifically we can do this because we won't have to discard the top of the stack and duplicate what's beneath
@@ -1128,25 +1128,15 @@ public class TI83PTranslator {
 				}
 			}
 			
-			String[] likelyLoadPositions = "b c d e h l (ix+4) (ix+5) (ix+6) (ix+7) (ix+8) (ix+9) (ix+10) (ix+11) (ix-2) (ix-2+1) (ix-4) (ix-4+1) (ix-6) (ix-6+1) (ix-8) (ix-8+1) (hl) (de) (bc)".split(" ");
-			
-			// I have seen circumstances like ld a,l    ld l,a   come up in compiled code.
-			
-			for(int iter=0;iter<2;iter++)//this is a very slow loop, best not to run it more than twice.
-			{
-				for(int i=0;i<comp.size()-2;i++) {
-					if(!comp.get(i).startsWith("	ld"))//make the compiler faster, lol
-						continue;
-					for(String reg1:likelyLoadPositions)
-						for(String reg2:likelyLoadPositions)
-							if(comp.get(i).equals("	ld "+reg1+","+reg2) && comp.get(i+1).equals("	ld "+reg2+","+reg1)) {
-								comp.remove(i+1);
-							}
+			//remove no-op symmetric loads
+			for(int i=0;i<comp.size()-2;i++) {
+				String combined = comp.get(i) + ";"+comp.get(i+1);
+				if(combined.matches("\tld (.+?),(.+?);\tld (\\2),(\\1)")) {
+					comp.remove(i+1);
 				}
 			}
-			
 		}
-		
+		p.getSettings().addFooter(comp);
 		return comp;
 	}
 	ArrayList<String> cache;
