@@ -274,7 +274,8 @@ public class Main {
 				ConstantPropagater.propagateConstants(assembly);
 				if(debugTime)
 					System.out.println("optimizing" + (System.currentTimeMillis()-time));
-				assembly = Optimizers.getOptimizer(settings).optimize(assembly, settings);
+				// the optimizer is broken, eg: it'll load oversized constants into literals where only 32 bit values can be loaded
+				// assembly = Optimizers.getOptimizer(settings).optimize(assembly, settings);
 				PrintWriter pr = new PrintWriter(new File(binFile+".asm"));
 				for(String ins:assembly) {
 					pr.println(ins);
