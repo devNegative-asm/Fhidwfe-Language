@@ -41,14 +41,14 @@ public class VariableTree {
 			throw new RuntimeException("error in resolving variables: local varlist changed after size retrieved");
 		if(!align)
 			if(parent!=null)
-				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-parent.getOverallSize(p,align)-type.getSize(p)),type,p));
+				myvars.add(new Variable(name,(-getMySize(p,align)-parent.getOverallSize(p,align)-type.getSize(p)),type,p));
 			else
-				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-type.getSize(p)),type,p));
+				myvars.add(new Variable(name,(-getMySize(p,align)-type.getSize(p)),type,p));
 		else
 			if(parent!=null)
-				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-parent.getOverallSize(p,align)-gs),type,p));
+				myvars.add(new Variable(name,(-getMySize(p,align)-parent.getOverallSize(p,align)-gs),type,p));
 			else
-				myvars.add(new Variable(name,(byte)(-getMySize(p,align)-gs),type,p));
+				myvars.add(new Variable(name,(-getMySize(p,align)-gs),type,p));
 	}
 	private int getMySize(Parser p,boolean align) {
 		int sizeReq = 0;
